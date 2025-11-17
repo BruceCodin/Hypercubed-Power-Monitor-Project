@@ -1,8 +1,35 @@
-# Branch Naming
+# Branch Convention
+
+## Adding/deleting branches
+
+### adding new branches
+
+- use a new branch for each work package/ticket
+- making a new branch locally:
+```
+git checkout -b "<branch-name>"
+```
+
+### deleting branches 
+
+- delete branches after pull request and successfully merged into main
+- deleting local branch:
+```
+git branch -d <local-branch-name>
+```
+
+- deleting remote branch
+    - this can be done via github interface when the PR is merged
+    - command to do this from CLI:
+```
+git push origin --delete <remote-branch-name>
+```
+
+## Naming Branches
 
 **Format:** `type/short-description`
 
-## Types
+### Types
 - `feature/` - New functionality
 - `fix/` - Bug fixes
 - `docs/` - Documentation changes
@@ -10,12 +37,12 @@
 - `test/` - Adding or updating tests
 - `chore/` - Maintenance tasks (dependencies, config, etc.)
 
-## Rules
+### Rules
 - All lowercase
 - Use hyphens (not underscores or spaces)
 - Be descriptive but concise
 
-## Examples
+### Examples
 ```
 feature/extract-pipeline
 feature/database-schema

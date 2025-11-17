@@ -15,6 +15,6 @@ This folder contains information and advice for contributions to the project, su
 
 ### Folder: /git
 - [Git Workflow](git-workflow.md)
-- [Branch Naming](branch-naming.md)
+- [Branch Convention](branch-convention.md)
 - [Commit Messages](commit-messages.md)
 - [Pull Requests](pull-requests.md)
