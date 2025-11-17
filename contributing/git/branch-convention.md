@@ -9,7 +9,10 @@
 ```
 git checkout -b "<branch-name>"
 ```
-
+- pushing a new local branch:
+```
+git push --set-upstream origin <branch-name>
+```
 ### deleting branches 
 
 - delete branches after pull request and successfully merged into main
