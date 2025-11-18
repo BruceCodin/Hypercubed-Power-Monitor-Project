@@ -17,14 +17,14 @@ CREATE TABLE system_price(
     price_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     settlement_id INT NOT NULL,
     system_price DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id)
+    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE
 );
 
 CREATE TABLE carbon_intensity(
     intensity_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     settlement_id INT NOT NULL,
     carbon_intensity DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id)
+    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE
 );
 
 CREATE TABLE fuel_type(
@@ -37,8 +37,8 @@ CREATE TABLE generation(
     settlement_id INT NOT NULL,
     fuel_type_id INT NOT NULL,
     generation_mw DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id),
-    FOREIGN KEY (fuel_type_id) REFERENCES fuel_type(fuel_type_id)
+    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE,
+    FOREIGN KEY (fuel_type_id) REFERENCES fuel_type(fuel_type_id) ON DELETE CASCADE
 );
 
 CREATE TABLE recent_demand(
@@ -46,7 +46,7 @@ CREATE TABLE recent_demand(
     settlement_id INT NOT NULL,
     national_demand DECIMAL(10,2) NOT NULL,
     transmission_system_demand DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id)
+    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE
 );
 
 CREATE TABLE historic_demand(
@@ -54,5 +54,5 @@ CREATE TABLE historic_demand(
     settlement_id INT NOT NULL,
     national_demand DECIMAL(10,2) NOT NULL,
     transmission_system_demand DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id)
+    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE
 );
