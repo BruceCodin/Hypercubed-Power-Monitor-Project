@@ -75,11 +75,14 @@ yarn-debug.log*
 yarn-error.log*
 package-lock.json
 
+# Python and Pytest
 __pycache__
 .ipynb_checkpoints
 venv/
 .pytest_cache
+.coverage
 
+# Terraform
 .terraform*
 *.tfstate
 *.tfstate.backup
