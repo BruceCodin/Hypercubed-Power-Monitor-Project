@@ -49,14 +49,14 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pytest pytest-cov
-        # Install project dependencies if requirements.txt exists
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        # Install project dependencies from all requirements.txt files
+        find . -name 'requirements.txt' -exec pip install -r {} \;
     
     - name: Run tests with coverage
       run: |
         TEST_FILES=$(find . -name 'test_*.py' -o -name '*_test.py')
         if [ -n "$TEST_FILES" ]; then
-          pytest --cov=. --cov-report=term-missing --cov-fail-under=80
+          pytest --cov --cov-report=term-missing --cov-fail-under=80
         else
           echo "No test files found to run"
         fi
