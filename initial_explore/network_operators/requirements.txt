@@ -1,0 +1,6 @@
+pytest 
+pylint 
+requests
+pandas
+altair[all]
+python-dotenv
