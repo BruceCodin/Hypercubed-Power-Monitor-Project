@@ -27,7 +27,7 @@ def fetch_raw_data(limit: int = 1000) -> Optional[Dict]:
 
     try:
         response = requests.get(BASE_URL, params=params, timeout=TIMEOUT)
-        response.raise_for_status()
+        response.raise_for_status() # Raise error for bad responses
         return response.json()
     
     except requests.exceptions.RequestException as e: # Catch all api get request errors
@@ -38,6 +38,7 @@ def fetch_raw_data(limit: int = 1000) -> Optional[Dict]:
 def parse_records(raw_data: Dict) -> List[Dict]:
     """
     Extract records array from API response.
+    This is because the API response has a nested structure with other irrelevant metadata.
     
     Args:
         raw_data: Raw API response dictionary
@@ -62,7 +63,7 @@ def validate_record(record: Dict) -> bool:
     Returns:
         True if record is valid, False otherwise
     """
-    postcodes = record.get('Postcodes')  # Changed from 'Postcode'
+    postcodes = record.get('Postcodes') 
     start_time = record.get('Start Time')
 
     # Check postcodes exists and is not empty
@@ -86,23 +87,18 @@ def transform_record(record: Dict) -> Dict:
     Returns:
         Cleaned dictionary with standardized field names
     """
-    # Parse start time to datetime
-    start_time_str = record.get('Start Time', '')
-    start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
-
     return {
-        # Changed from 'Postcode'
         'postcode': record.get('Postcodes', '').strip(),
-        'start_time': start_time,
+        'start_time': record.get('Start Time', ''),  # String
         'status': record.get('Status', ''),
         'data_source': 'national_grid',
-        'extracted_at': datetime.now()
+        'extracted_at': datetime.now().isoformat()  # String
     }
 
 
 def extract_power_cuts() -> List[Dict]:
     """
-    Main extraction function - orchestrates full ETL process.
+    Main extraction function - orchestrates full Extraction process.
     
     Returns:
         List of cleaned power cut records
@@ -115,7 +111,7 @@ def extract_power_cuts() -> List[Dict]:
 
     # Parse records
     records = parse_records(raw_data)
-    print(f"📥 Fetched {len(records)} records from API")
+    print(f"Fetched {len(records)} records from API")
 
     # Filter valid records
     valid_records = [r for r in records if validate_record(r)]
@@ -142,27 +138,16 @@ def save_to_csv(data: List[Dict], filename: str = 'national_grid_power_cuts.csv'
     # Define CSV columns
     fieldnames = ['postcode', 'start_time',
                   'status', 'data_source', 'extracted_at']
-
-    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    with open(filename, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
+        writer.writerows(data)  # Direct write!
 
-        for row in data:
-            # Convert datetime objects to strings for CSV
-            csv_row = {
-                'postcode': row['postcode'],
-                'start_time': row['start_time'].isoformat(),
-                'status': row['status'],
-                'data_source': row['data_source'],
-                'extracted_at': row['extracted_at'].isoformat()
-            }
-            writer.writerow(csv_row)
-
-    print(f"💾 Saved {len(data)} records to {filename}")
+    print(f"Saved {len(data)} records to {filename}")
 
 
 if __name__ == "__main__":
-    print("🔌 Starting National Grid power cuts extraction...")
+    print("Starting National Grid power cuts extraction...")
 
     # Extract data
     power_cuts = extract_power_cuts()
@@ -170,6 +155,6 @@ if __name__ == "__main__":
     # Save to CSV
     if power_cuts:
         save_to_csv(power_cuts)
-        print(f"✨ Extraction complete! Found {len(power_cuts)} power cuts")
+        print(f"Extraction complete! Found {len(power_cuts)} power cuts")
     else:
-        print("❌ No power cuts data extracted")
+        print("No power cuts data extracted")
