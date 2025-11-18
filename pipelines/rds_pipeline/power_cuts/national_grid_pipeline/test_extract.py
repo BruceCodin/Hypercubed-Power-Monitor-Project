@@ -1,3 +1,4 @@
+# pylint: skip-file
 # test_extract.py
 import pytest
 from extract import (
