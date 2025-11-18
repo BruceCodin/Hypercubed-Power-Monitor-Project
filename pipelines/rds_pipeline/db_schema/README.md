@@ -28,9 +28,27 @@ Customer outage notification system.
 ## Setup
 ```bash
 # Run both schemas
-psql -d power_monitor_db -f schema.sql
-psql -d power_monitor_db -f outage_schema.sql
+psql -d power_monitor_db -f power_generation_schema.sql
+psql -d power_monitor_db -f subscriber_alerts_schema.sql
 ```
+
+## Testing
+
+Test the power generation schema before deploying:
+
+```bash
+# 1. Create the schema
+psql -d your_database -f power_generation_schema.sql
+
+# 2. Run tests
+psql -d your_database -f test_power_generation_schema.sql
+```
+
+The test file validates:
+- Constraint checks (settlement periods 1-48)
+- Foreign key relationships
+- Unique constraints
+- CASCADE deletes
 
 ## Notes
 
