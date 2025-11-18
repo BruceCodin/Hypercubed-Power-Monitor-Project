@@ -36,7 +36,7 @@ psql -h <rds-endpoint> -U admin -d power-monitor-db -f subscriber_alerts_schema.
 
 ## Testing
 
-Test the power generation schema before deploying:
+Test the power generation schema before deployment:
 
 ```bash
 # 1. Create the schema
