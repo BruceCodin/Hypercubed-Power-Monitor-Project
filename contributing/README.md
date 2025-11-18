@@ -9,12 +9,12 @@ This folder contains information and advice for contributions to the project, su
 - [Docstring Style](docstring-style.md)
 - [Testing](testing.md)
 
-### Folder: /folder_structure
+### Folder: /directory_structure
 - [Naming Conventions](naming-conventions.md)
-- [File and Folder Structure](file-folder-structure.md)
+- [File and Folder Structure](structure.md)
 
 ### Folder: /git
 - [Git Workflow](git-workflow.md)
-- [Branch Naming](branch-naming.md)
+- [Branch Convention](branch-convention.md)
 - [Commit Messages](commit-messages.md)
 - [Pull Requests](pull-requests.md)

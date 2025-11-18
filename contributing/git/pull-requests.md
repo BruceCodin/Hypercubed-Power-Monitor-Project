@@ -12,10 +12,10 @@
 Brief description of what this PR does
 
 # Type of Change
-- [ ] Feature
-- [ ] Bug fix
-- [ ] Documentation
-- [ ] Refactor
+- [ ] Feature Request
+- [ ] Bug Report
+- [ ] Task
+- [ ] Other
 
 # Testing
 How was this tested?
