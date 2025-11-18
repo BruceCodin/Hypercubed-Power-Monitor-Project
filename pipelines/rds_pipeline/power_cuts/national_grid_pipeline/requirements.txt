@@ -1,5 +1,6 @@
 pytest
 pylint 
 requests
+requests-mock
 pandas
 python-dotenv

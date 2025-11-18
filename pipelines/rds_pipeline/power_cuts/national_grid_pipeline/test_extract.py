@@ -1,6 +1,5 @@
 # test_extract.py
 import pytest
-from datetime import datetime
 from extract import (
     fetch_raw_data,
     parse_records,
@@ -13,275 +12,350 @@ BASE_URL = "https://connecteddata.nationalgrid.co.uk/api/3/action/datastore_sear
 RESOURCE_ID = "292f788f-4339-455b-8cc0-153e14509d4d"
 
 
-"""Test API Response Handling"""
+class TestAPIFetching:
+    """Tests for fetching data from National Grid API"""
 
-
-def test_fetch_raw_data_success(requests_mock):
-    """Test fetching power cuts data returns dictionary."""
-    # Arrange
-    mock_response = {
-        "success": True,
-        "result": {
-            "total": 2,
-            "records": [
-                {
-                    "Postcode": "EX37 9TB",
-                    "Start Time": "2025-11-14T15:33:00",
-                    "Status": "In Progress"
-                }
-            ]
+    def test_fetch_raw_data_success(self, requests_mock):
+        """Test successful API call returns expected dictionary structure."""
+        # Arrange
+        mock_response = {
+            "success": True,
+            "result": {
+                "total": 2,
+                "records": [{"Postcodes": "EX37 9TB", "Start Time": "2025-11-14T15:33:00"}]
+            }
         }
-    }
-    requests_mock.get(
-        f"{BASE_URL}?resource_id={RESOURCE_ID}&limit=1000",
-        json=mock_response,
-        status_code=200
-    )
+        requests_mock.get(
+            f"{BASE_URL}?resource_id={RESOURCE_ID}&limit=1000",
+            json=mock_response,
+            status_code=200
+        )
 
-    # Act
-    result = fetch_raw_data()
+        # Act
+        result = fetch_raw_data()
 
-    # Assert
-    assert result is not None
-    assert result["success"] is True
+        # Assert
+        assert result["success"] is True
 
+    def test_fetch_raw_data_server_error(self, requests_mock):
+        """Test server error returns None."""
+        # Arrange
+        requests_mock.get(
+            f"{BASE_URL}?resource_id={RESOURCE_ID}&limit=1000",
+            status_code=500
+        )
 
-def test_fetch_raw_data_server_error(requests_mock):
-    """Test server error returns None."""
-    # Arrange
-    requests_mock.get(
-        f"{BASE_URL}?resource_id={RESOURCE_ID}&limit=1000",
-        status_code=500
-    )
+        # Act
+        result = fetch_raw_data()
 
-    # Act
-    result = fetch_raw_data()
-
-    # Assert
-    assert result is None
+        # Assert
+        assert result is None
 
 
-"""Test Data Parsing"""
+class TestRecordParsing:
+    """Tests for parsing records from API response"""
 
-
-def test_parse_records_extracts_records():
-    """Test parsing records from API response."""
-    # Arrange
-    raw_data = {
-        "success": True,
-        "result": {
-            "total": 2,
-            "records": [
-                {"Postcode": "EX37 9TB"},
-                {"Postcode": "BS20 6NB"}
-            ]
+    @pytest.mark.parametrize("total,record_count,expected_length", [
+        (2, 2, 2),      # Normal case
+        (0, 0, 0),      # Empty response
+        (5, 5, 5),      # Multiple records
+    ])
+    def test_parse_records_extracts_correct_count(self, total, record_count, expected_length):
+        """Test parsing extracts correct number of records."""
+        # Arrange
+        raw_data = {
+            "success": True,
+            "result": {
+                "total": total,
+                "records": [{"Postcodes": f"TEST{i}"} for i in range(record_count)]
+            }
         }
-    }
 
-    # Act
-    result = parse_records(raw_data)
+        # Act
+        result = parse_records(raw_data)
 
-    # Assert
-    assert len(result) == 2
+        # Assert
+        assert len(result) == expected_length
+
+    @pytest.mark.parametrize("raw_data,expected", [
+        (None, []),                                          # None input
+        ({}, []),                                            # Empty dict
+        ({"success": False}, []),                            # Failed response
+        ({"success": True, "result": {}}, []),              # Missing records key
+    ])
+    def test_parse_records_handles_invalid_input(self, raw_data, expected):
+        """Test parsing handles various invalid inputs."""
+        # Act
+        result = parse_records(raw_data)
+
+        # Assert
+        assert result == expected
 
 
-def test_parse_records_empty_response():
-    """Test parsing empty response returns empty list."""
-    # Arrange
-    raw_data = {
-        "success": True,
-        "result": {
-            "total": 0,
-            "records": []
+class TestRecordValidation:
+    """Tests for validating individual power cut records"""
+
+    def test_validate_record_with_valid_data(self):
+        """Test validation passes for record with all required fields."""
+        # Arrange
+        record = {
+            "Postcodes": "EX37 9TB",
+            "Start Time": "2025-11-14T15:33:00",
+            "Status": "In Progress"
         }
-    }
 
-    # Act
-    result = parse_records(raw_data)
+        # Act
+        result = validate_record(record)
 
-    # Assert
-    assert result == []
+        # Assert
+        assert result is True
 
+    @pytest.mark.parametrize("record,expected", [
+        # Missing postcodes
+        ({"Start Time": "2025-11-14T15:33:00", "Status": "In Progress"}, False),
+        # Empty postcodes
+        ({"Postcodes": "", "Start Time": "2025-11-14T15:33:00",
+         "Status": "In Progress"}, False),
+        # Whitespace only postcodes
+        ({"Postcodes": "   ", "Start Time": "2025-11-14T15:33:00",
+         "Status": "In Progress"}, False),
+        # None postcodes
+        ({"Postcodes": None, "Start Time": "2025-11-14T15:33:00",
+         "Status": "In Progress"}, False),
+        # Missing start time
+        ({"Postcodes": "EX37 9TB", "Status": "In Progress"}, False),
+        # Empty start time
+        ({"Postcodes": "EX37 9TB", "Start Time": "", "Status": "In Progress"}, False),
+        # Whitespace only start time
+        ({"Postcodes": "EX37 9TB", "Start Time": "   ", "Status": "In Progress"}, False),
+        # Both missing
+        ({"Status": "In Progress"}, False),
+    ])
+    def test_validate_record_rejects_invalid_data(self, record, expected):
+        """Test validation correctly rejects records with missing/invalid required fields."""
+        # Act
+        result = validate_record(record)
 
-"""Test Record Validation"""
-
-
-def test_validate_record_with_all_required_fields():
-    """Test valid record with all required fields returns True."""
-    # Arrange
-    record = {
-        "Postcode": "EX37 9TB",
-        "Start Time": "2025-11-14T15:33:00",
-        "Status": "In Progress"
-    }
-
-    # Act
-    result = validate_record(record)
-
-    # Assert
-    assert result is True
-
-
-@pytest.mark.parametrize("record,expected", [
-    # Missing postcode
-    ({"Start Time": "2025-11-14T15:33:00", "Status": "In Progress"}, False),
-    # Empty postcode
-    ({"Postcode": "", "Start Time": "2025-11-14T15:33:00", "Status": "In Progress"}, False),
-    # None postcode
-    ({"Postcode": None, "Start Time": "2025-11-14T15:33:00",
-     "Status": "In Progress"}, False),
-    # Missing start time
-    ({"Postcode": "EX37 9TB", "Status": "In Progress"}, False),
-    # Empty start time
-    ({"Postcode": "EX37 9TB", "Start Time": "", "Status": "In Progress"}, False),
-])
-def test_validate_record_invalid_cases(record, expected):
-    """Test record validation for various invalid cases."""
-    # Act
-    result = validate_record(record)
-
-    # Assert
-    assert result == expected
+        # Assert
+        assert result == expected
 
 
-"""Test Record Transformation"""
+class TestRecordTransformation:
+    """Tests for transforming raw records to clean format"""
 
-
-@pytest.mark.parametrize("postcode,expected_postcode", [
-    ("EX37 9TB", "EX37 9TB"),
-    ("  EX37 9TB  ", "EX37 9TB"),
-    ("BS20 6NB", "BS20 6NB"),
-])
-def test_transform_record_postcode_handling(postcode, expected_postcode):
-    """Test transformation handles postcodes correctly."""
-    # Arrange
-    record = {
-        "Postcode": postcode,
-        "Start Time": "2025-11-14T15:33:00",
-        "Status": "In Progress"
-    }
-
-    # Act
-    result = transform_record(record)
-
-    # Assert
-    assert result["postcode"] == expected_postcode
-
-
-@pytest.mark.parametrize("start_time_str,expected_year,expected_month,expected_day", [
-    ("2025-11-14T15:33:00", 2025, 11, 14),
-    ("2025-10-22T08:59:00", 2025, 10, 22),
-    ("2025-11-15T00:00:00", 2025, 11, 15),
-])
-def test_transform_record_datetime_conversion(start_time_str, expected_year, expected_month, expected_day):
-    """Test transformation converts start time to datetime correctly."""
-    # Arrange
-    record = {
-        "Postcode": "EX37 9TB",
-        "Start Time": start_time_str,
-        "Status": "In Progress"
-    }
-
-    # Act
-    result = transform_record(record)
-
-    # Assert
-    assert isinstance(result["start_time"], datetime)
-    assert result["start_time"].year == expected_year
-    assert result["start_time"].month == expected_month
-    assert result["start_time"].day == expected_day
-
-
-def test_transform_record_adds_metadata():
-    """Test transformation adds required metadata fields."""
-    # Arrange
-    record = {
-        "Postcode": "EX37 9TB",
-        "Start Time": "2025-11-14T15:33:00",
-        "Status": "In Progress"
-    }
-
-    # Act
-    result = transform_record(record)
-
-    # Assert
-    assert result["data_source"] == "national_grid"
-    assert "extracted_at" in result
-    assert isinstance(result["extracted_at"], datetime)
-
-
-"""Test Full Extraction Pipeline"""
-
-
-def test_extract_power_cuts_returns_list(requests_mock):
-    """Test full extraction returns list of power cuts."""
-    # Arrange
-    mock_response = {
-        "success": True,
-        "result": {
-            "total": 2,
-            "records": [
-                {
-                    "Postcode": "EX37 9TB",
-                    "Start Time": "2025-11-14T15:33:00",
-                    "Status": "In Progress"
-                },
-                {
-                    "Postcode": "BS20 6NB",
-                    "Start Time": "2025-11-14T16:00:00",
-                    "Status": "Awaiting"
-                }
-            ]
+    @pytest.mark.parametrize("input_postcode,expected_postcode", [
+        ("EX37 9TB", "EX37 9TB"),          # Normal postcode
+        ("  EX37 9TB  ", "EX37 9TB"),      # With leading/trailing whitespace
+        ("BS20 6NB", "BS20 6NB"),          # Different postcode
+        ("  BA1 6TL  ", "BA1 6TL"),        # Another with whitespace
+    ])
+    def test_transform_record_cleans_postcode(self, input_postcode, expected_postcode):
+        """Test transformation strips whitespace from postcodes."""
+        # Arrange
+        record = {
+            "Postcodes": input_postcode,
+            "Start Time": "2025-11-14T15:33:00",
+            "Status": "In Progress"
         }
-    }
-    requests_mock.get(
-        f"{BASE_URL}?resource_id={RESOURCE_ID}&limit=1000",
-        json=mock_response,
-        status_code=200
-    )
 
-    # Act
-    result = extract_power_cuts()
+        # Act
+        result = transform_record(record)
 
-    # Assert
-    assert isinstance(result, list)
-    assert len(result) == 2
+        # Assert
+        assert result["postcode"] == expected_postcode
 
-
-def test_extract_power_cuts_filters_invalid_records(requests_mock):
-    """Test extraction filters out records with missing postcodes."""
-    # Arrange
-    mock_response = {
-        "success": True,
-        "result": {
-            "total": 3,
-            "records": [
-                {
-                    "Postcode": "EX37 9TB",
-                    "Start Time": "2025-11-14T15:33:00",
-                    "Status": "In Progress"
-                },
-                {
-                    "Postcode": "",
-                    "Start Time": "2025-11-14T16:00:00",
-                    "Status": "Awaiting"
-                },
-                {
-                    "Postcode": "BS20 6NB",
-                    "Start Time": "2025-11-14T17:00:00",
-                    "Status": "In Progress"
-                }
-            ]
+    @pytest.mark.parametrize("start_time", [
+        "2025-11-14T15:33:00",
+        "2025-10-22T08:59:00",
+        "2025-11-15T00:00:00",
+    ])
+    def test_transform_record_preserves_start_time_as_string(self, start_time):
+        """Test transformation keeps start_time as string without modification."""
+        # Arrange
+        record = {
+            "Postcodes": "EX37 9TB",
+            "Start Time": start_time,
+            "Status": "In Progress"
         }
-    }
-    requests_mock.get(
-        f"{BASE_URL}?resource_id={RESOURCE_ID}&limit=1000",
-        json=mock_response,
-        status_code=200
-    )
 
-    # Act
-    result = extract_power_cuts()
+        # Act
+        result = transform_record(record)
 
-    # Assert
-    assert len(result) == 2
+        # Assert
+        assert result["start_time"] == start_time
+        assert isinstance(result["start_time"], str)
+
+    @pytest.mark.parametrize("status", [
+        "In Progress",
+        "Awaiting",
+        "Restored",
+    ])
+    def test_transform_record_preserves_status(self, status):
+        """Test transformation preserves status field."""
+        # Arrange
+        record = {
+            "Postcodes": "EX37 9TB",
+            "Start Time": "2025-11-14T15:33:00",
+            "Status": status
+        }
+
+        # Act
+        result = transform_record(record)
+
+        # Assert
+        assert result["status"] == status
+
+    def test_transform_record_adds_data_source(self):
+        """Test transformation adds data_source field."""
+        # Arrange
+        record = {
+            "Postcodes": "EX37 9TB",
+            "Start Time": "2025-11-14T15:33:00",
+            "Status": "In Progress"
+        }
+
+        # Act
+        result = transform_record(record)
+
+        # Assert
+        assert result["data_source"] == "national_grid"
+
+    def test_transform_record_adds_extracted_at(self):
+        """Test transformation adds extracted_at timestamp."""
+        # Arrange
+        record = {
+            "Postcodes": "EX37 9TB",
+            "Start Time": "2025-11-14T15:33:00",
+            "Status": "In Progress"
+        }
+
+        # Act
+        result = transform_record(record)
+
+        # Assert
+        assert "extracted_at" in result
+        assert isinstance(result["extracted_at"], str)
+        # Verify it's ISO format (basic check - don't test datetime library)
+        assert "T" in result["extracted_at"]
+
+    def test_transform_record_output_structure(self):
+        """Test transformed record has all expected keys."""
+        # Arrange
+        record = {
+            "Postcodes": "EX37 9TB",
+            "Start Time": "2025-11-14T15:33:00",
+            "Status": "In Progress"
+        }
+        expected_keys = {"postcode", "start_time",
+                         "status", "data_source", "extracted_at"}
+
+        # Act
+        result = transform_record(record)
+
+        # Assert
+        assert set(result.keys()) == expected_keys
+
+
+class TestFullExtractionPipeline:
+    """Tests for the complete extraction orchestration"""
+
+    def test_extract_power_cuts_returns_list(self, requests_mock):
+        """Test full extraction returns list of transformed records."""
+        # Arrange
+        mock_response = {
+            "success": True,
+            "result": {
+                "total": 2,
+                "records": [
+                    {
+                        "Postcodes": "EX37 9TB",
+                        "Start Time": "2025-11-14T15:33:00",
+                        "Status": "In Progress"
+                    },
+                    {
+                        "Postcodes": "BS20 6NB",
+                        "Start Time": "2025-11-14T16:00:00",
+                        "Status": "Awaiting"
+                    }
+                ]
+            }
+        }
+        requests_mock.get(
+            f"{BASE_URL}?resource_id={RESOURCE_ID}&limit=1000",
+            json=mock_response,
+            status_code=200
+        )
+
+        # Act
+        result = extract_power_cuts()
+
+        # Assert
+        assert isinstance(result, list)
+        assert len(result) == 2
+
+    def test_extract_power_cuts_filters_invalid_records(self, requests_mock):
+        """Test extraction filters out invalid records."""
+        # Arrange
+        mock_response = {
+            "success": True,
+            "result": {
+                "total": 4,
+                "records": [
+                    {"Postcodes": "EX37 9TB", "Start Time": "2025-11-14T15:33:00",
+                        "Status": "In Progress"},
+                    {"Postcodes": "", "Start Time": "2025-11-14T16:00:00",
+                        "Status": "Awaiting"},  # Invalid
+                    {"Postcodes": "BS20 6NB", "Start Time": "",
+                        "Status": "In Progress"},  # Invalid
+                    {"Postcodes": "BA1 6TL",
+                        "Start Time": "2025-11-14T17:00:00", "Status": "Restored"},
+                ]
+            }
+        }
+        requests_mock.get(
+            f"{BASE_URL}?resource_id={RESOURCE_ID}&limit=1000",
+            json=mock_response,
+            status_code=200
+        )
+
+        # Act
+        result = extract_power_cuts()
+
+        # Assert
+        assert len(result) == 2
+
+    def test_extract_power_cuts_handles_api_failure(self, requests_mock):
+        """Test extraction returns empty list when API fails."""
+        # Arrange
+        requests_mock.get(
+            f"{BASE_URL}?resource_id={RESOURCE_ID}&limit=1000",
+            status_code=500
+        )
+
+        # Act
+        result = extract_power_cuts()
+
+        # Assert
+        assert result == []
+
+    def test_extract_power_cuts_handles_empty_response(self, requests_mock):
+        """Test extraction handles empty records gracefully."""
+        # Arrange
+        mock_response = {
+            "success": True,
+            "result": {
+                "total": 0,
+                "records": []
+            }
+        }
+        requests_mock.get(
+            f"{BASE_URL}?resource_id={RESOURCE_ID}&limit=1000",
+            json=mock_response,
+            status_code=200
+        )
+
+        # Act
+        result = extract_power_cuts()
+
+        # Assert
+        assert result == []
