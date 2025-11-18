@@ -14,6 +14,8 @@ Brief description of what this PR does
 - [ ] Bug fix
 - [ ] Documentation
 - [ ] Refactor
+- [ ] Chore
+- [ ] Other (please specify): ________________________
 
 # Testing
 How was this tested?
