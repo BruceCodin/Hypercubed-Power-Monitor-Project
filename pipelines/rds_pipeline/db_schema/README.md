@@ -28,8 +28,8 @@ Customer outage notification system.
 ## Setup
 ```bash
 # Run both schemas
-psql -d your_database -f schema.sql
-psql -d your_database -f outage_schema.sql
+psql -d power_monitor_db -f schema.sql
+psql -d power_monitor_db -f outage_schema.sql
 ```
 
 ## Notes
