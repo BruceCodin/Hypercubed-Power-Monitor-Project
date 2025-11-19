@@ -14,7 +14,6 @@ variable "db_host" {
 variable "db_port" {
   description = "Database port"
   type        = number
-  sensitive   = true
 }
 
 variable "db_name" {
