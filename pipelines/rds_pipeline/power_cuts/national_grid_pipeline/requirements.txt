@@ -1,7 +1,3 @@
-pytest
-pylint 
 requests
-requests-mock
-pandas
-python-dotenv
+pytest
 pytest-cov
