@@ -23,7 +23,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install pylint
         # Install project dependencies from all requirements.txt files
-        find . -name 'requirements.txt' -exec pip install -r {} \;
+        if find . -name 'requirements.txt' | grep -q .; then
+          find . -name 'requirements.txt' -exec pip install -r {} \;
+        else
+          echo "No requirements.txt files found"
+        fi
     
     - name: Analysing the code with pylint
       run: |
@@ -50,13 +54,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest pytest-cov
         # Install project dependencies from all requirements.txt files
-        find . -name 'requirements.txt' -exec pip install -r {} \;
+        if find . -name 'requirements.txt' | grep -q .; then
+          find . -name 'requirements.txt' -exec pip install -r {} \;
+        else
+          echo "No requirements.txt files found"
+        fi
     
     - name: Run tests with coverage
       run: |
         TEST_FILES=$(find . -name 'test_*.py' -o -name '*_test.py')
         if [ -n "$TEST_FILES" ]; then
-          pytest --cov=. --cov-omit="*/test_*,*_test.py" --cov-report=term-missing --cov-fail-under=80
+          pytest --cov=. --cov-report=term-missing --cov-config=.github/workflows/pytest_cov.toml
         else
           echo "No test files found to run"
         fi
