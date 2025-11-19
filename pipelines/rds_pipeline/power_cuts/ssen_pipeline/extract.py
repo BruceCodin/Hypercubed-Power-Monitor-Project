@@ -10,6 +10,8 @@ BASE_URL = "https://ssen-powertrack-api.opcld.com/gridiview/reporter/info/livefa
 PROVIDER = "Scottish and Southern Electricity Networks"
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def extract_power_cut_data() -> Optional[dict]:
@@ -68,11 +70,9 @@ if __name__ == "__main__":
 
     # Example usage for local testing
 
-    # data = extract_power_cut_data()
-    # # pprint(data)
+    data = extract_power_cut_data()
 
-    # if data:
-    #     parsed_data = parse_power_cut_data(data)
-    #     pprint(parsed_data)
-
-    pass
+    if data:
+        parsed_data = parse_power_cut_data(data)
+        print("Extracted and Parsed Data:")
+        print(parsed_data)
