@@ -19,7 +19,6 @@ variable "db_port" {
 variable "db_name" {
   description = "Database name"
   type        = string
-  sensitive   = true
 }
 
 variable "db_user" {
