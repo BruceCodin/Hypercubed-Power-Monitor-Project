@@ -32,28 +32,17 @@ def fetch_raw_data(limit: int = 100) -> Optional[Dict]:
     """
     # Get API key from environment variable
     api_key = os.getenv('SP_ENERGY_API_KEY')
+
     if not api_key:
         logger.error("SP_ENERGY_API_KEY environment variable not set")
         return None
 
-    # API key in headers with "Apikey" prefix (Opendatasoft format)
-    headers = {
-        "Authorization": f"Apikey {api_key}"
-    }
-
-    # API parameters
-    params = {
-        "limit": limit,
-        "timezone": "Europe/London"
-    }
+    # API key in headers and API parameters (Opendatasoft format)
+    headers = {"Authorization": f"Apikey {api_key}"}
+    params = {"limit": limit, "timezone": "Europe/London"}
 
     try:
-        response = requests.get(
-            API_ENDPOINT,
-            headers=headers,
-            params=params,
-            timeout=TIMEOUT
-        )
+        response = requests.get(API_ENDPOINT, headers=headers, params=params, timeout=TIMEOUT)
 
         if response.status_code == 401:
             logger.error("Unauthorized (401) - check API key")
@@ -154,17 +143,23 @@ def transform_record(record: Dict) -> Dict:
     Returns:
         Cleaned dictionary with standardized field names for RDS
     """
-    # SP Energy uses 'postcode_sector' field which contains postcode(s) in brackets like "[TD12 4]"
-    postcode_raw = record.get('postcode_sector', '')
+    # SP Energy uses 'postcode_sector' field which is a list of postcodes
+    # Examples: ['TD12 4'] or ['CH7 6', 'CH7 2', 'CH7 4']
+    postcode_raw = record.get('postcode_sector', [])
+
+    # Convert list to comma-separated string
+    if isinstance(postcode_raw, list):
+        affected_postcodes = ', '.join(postcode_raw)
+    else:
+        affected_postcodes = str(postcode_raw)
 
     return {
         'source_provider': PROVIDER,
         'status': record.get('status', ''),
         'outage_date': record.get('date_of_reported_fault', ''),
         'recording_time': datetime.now().isoformat(),
-        'affected_postcodes': postcode_raw.strip()
+        'affected_postcodes': affected_postcodes.strip()
     }
-
 
 def extract_power_cut_data() -> List[Dict]:
     """
@@ -200,6 +195,9 @@ def extract_power_cut_data() -> List[Dict]:
 
 
 if __name__ == "__main__":
+    # Load environment variables from .env file
+    load_dotenv()
+
     # Example usage for local testing
     logging.basicConfig(
         level=logging.INFO,
@@ -212,7 +210,6 @@ if __name__ == "__main__":
     if power_cuts:
         logger.info(f"Extraction complete! Found {len(power_cuts)} power cuts")
         # Print first 10 records for inspection
-        print("\n" + "="*80)
         print(f"Sample of first {min(10, len(power_cuts))} records:")
         pprint(power_cuts[:10])
     else:
