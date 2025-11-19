@@ -111,7 +111,7 @@ def validate_record(record: Dict) -> bool:
 
 def transform_record(record: Dict) -> Dict:
     """
-    Transform raw record to clean format with datetime objects.
+    Transform raw record to clean format matching RDS schema.
     
     Args:
         record: Raw power cut record from API
@@ -120,45 +120,12 @@ def transform_record(record: Dict) -> Dict:
         Cleaned dictionary with standardized field names
     """
     return {
-        'postcode': record.get('Postcodes', '').strip(),
-        'start_time': record.get('Start Time', ''),  # String
+        'affected_postcodes': record.get('Postcodes', '').strip(),
+        'outage_date': record.get('Start Time', ''),  # String
         'status': record.get('Status', ''),
-        'data_source': 'national_grid',
         'source_provider': PROVIDER,
-        'extracted_at': datetime.now().isoformat()  # String
+        'recording_time': datetime.now().isoformat()  # String
     }
-
-
-def extract_power_cuts() -> List[Dict]:
-    """
-    Main extraction function - orchestrates full Extraction process.
-    
-    Returns:
-        List of cleaned power cut records
-    """
-    # Fetch raw data
-    raw_data = fetch_raw_data()
-    if not raw_data:
-        logger.warning("No data fetched from API")
-        return []
-
-    # Parse records
-    records = parse_records(raw_data)
-    logger.info(f"Fetched {len(records)} records from API")
-
-    # Filter valid records
-    valid_records = [r for r in records if validate_record(r)]
-    filtered_count = len(records) - len(valid_records)
-
-    if filtered_count > 0:
-        logger.info(f"Filtered out {filtered_count} invalid records")
-    logger.info(f"Validated {len(valid_records)} records")
-
-    # Transform records
-    clean_records = [transform_record(r) for r in valid_records]
-
-    return clean_records
-
 
 def extract_power_cut_data() -> List[Dict]:
     """
