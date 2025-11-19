@@ -4,6 +4,11 @@ variable "aws_region" {
   default = "eu-west-2"
 }
 
+variable "db_secret_name" {
+  description = "Name of the Secrets Manager secret containing DB credentials"
+  type        = string
+  default = "c20-power-monitor-db-credentials"
+}
 
 variable "db_host" {
   description = "Database host endpoint"
