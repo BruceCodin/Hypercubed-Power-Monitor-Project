@@ -62,9 +62,18 @@ jobs:
     
     - name: Run tests with coverage
       run: |
-        TEST_FILES=$(find . -name 'test_*.py' -o -name '*_test.py')
-        if [ -n "$TEST_FILES" ]; then
-          pytest --cov=. --cov-report=term-missing
+        # Find all directories containing test files
+        TEST_DIRS=$(find . -type f \( -name 'test_*.py' -o -name '*_test.py' \) -exec dirname {} \; | sort -u)
+        
+        if [ -n "$TEST_DIRS" ]; then
+          echo "Found test directories:"
+          echo "$TEST_DIRS"
+          
+          # Run pytest for each directory separately
+          for dir in $TEST_DIRS; do
+            echo "Testing $dir..."
+            pytest "$dir" --cov="$dir" --cov-report=term-missing
+          done
         else
           echo "No test files found to run"
         fi
