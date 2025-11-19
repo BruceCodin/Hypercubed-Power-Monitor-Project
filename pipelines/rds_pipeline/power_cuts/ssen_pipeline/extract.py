@@ -16,9 +16,6 @@ def extract_power_cut_data() -> Optional[dict]:
     """
     Fetch raw data from SSEN power cut API.
 
-    Args:
-        url (str): The API endpoint URL to fetch power cut data from.
-
     Returns:
         dict: The raw data fetched from the SSEN power cut API.
     """
