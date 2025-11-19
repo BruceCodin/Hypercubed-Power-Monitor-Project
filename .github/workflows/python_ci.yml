@@ -9,7 +9,6 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
 
@@ -22,15 +21,15 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pylint
-        # Install project dependencies from all requirements.txt files
-        if find . -name 'requirements.txt' | grep -q .; then
-          find . -name 'requirements.txt' -exec pip install -r {} \;
-        else
-          echo "No requirements.txt files found"
+        # Install requirements, ignoring .venv or other hidden directories
+        if find . -name 'requirements.txt' -not -path '*/.*' | grep -q .; then
+          find . -name 'requirements.txt' -not -path '*/.*' -exec pip install -r {} \;
         fi
     
     - name: Analysing the code with pylint
       run: |
+        # Add current directory to PYTHONPATH for linting too
+        export PYTHONPATH=$PYTHONPATH:. 
         FILES=$(git ls-files '*.py')
         if [ -n "$FILES" ]; then
           pylint $FILES --fail-under=8.0 --output-format=colorized
@@ -40,7 +39,6 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
 
@@ -53,18 +51,22 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pytest pytest-cov
-        # Install project dependencies from all requirements.txt files
-        if find . -name 'requirements.txt' | grep -q .; then
-          find . -name 'requirements.txt' -exec pip install -r {} \;
-        else
-          echo "No requirements.txt files found"
+        # Install requirements, ignoring hidden directories
+        if find . -name 'requirements.txt' -not -path '*/.*' | grep -q .; then
+          find . -name 'requirements.txt' -not -path '*/.*' -exec pip install -r {} \;
         fi
-    
+        
+        # OPTIONAL BUT RECOMMENDED: 
+        # If you have a setup.py or pyproject.toml, uncomment the line below
+        # pip install -e .
+
     - name: Run tests with coverage
       run: |
+        # Check if tests exist before running
         TEST_FILES=$(find . -name 'test_*.py' -o -name '*_test.py')
         if [ -n "$TEST_FILES" ]; then
-          pytest --cov=. --cov-report=term-missing
+          # Using 'python -m pytest' adds the current dir to sys.path
+          python -m pytest --cov=. --cov-report=term-missing
         else
           echo "No test files found to run"
         fi
