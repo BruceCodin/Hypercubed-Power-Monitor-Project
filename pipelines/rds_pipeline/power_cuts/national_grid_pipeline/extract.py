@@ -1,4 +1,5 @@
 """Extract power cuts data from National Grid API"""
+import os
 import requests
 import csv
 from datetime import datetime
@@ -135,15 +136,22 @@ def save_to_csv(data: List[Dict], filename: str = 'national_grid_power_cuts.csv'
         print("⚠️ No data to save")
         return
 
+    # Create data_raw directory if it doesn't exist
+    output_dir = 'data_raw'
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Construct full filepath
+    filepath = os.path.join(output_dir, filename)
+
     # Define CSV columns
     fieldnames = ['postcode', 'start_time',
                   'status', 'data_source', 'extracted_at']
-    with open(filename, 'w', newline='', encoding='utf-8') as f:
+    with open(filepath, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(data)  # Direct write!
 
-    print(f"Saved {len(data)} records to {filename}")
+    print(f"Saved {len(data)} records to {filepath}")
 
 
 if __name__ == "__main__":
