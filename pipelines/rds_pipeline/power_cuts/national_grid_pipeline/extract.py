@@ -1,15 +1,25 @@
 """Extract power cuts data from National Grid API"""
+# imports 
 import os
+import logging
 import requests
 import csv
 from datetime import datetime
 from typing import List, Dict, Optional # For older python versions type hints 
 
+# API configuration
 BASE_URL = "https://connecteddata.nationalgrid.co.uk/api/3/action/datastore_search"
 RESOURCE_ID = "292f788f-4339-455b-8cc0-153e14509d4d"
 TIMEOUT = 30
 # No API Key required for national grid (public dataset)
 # Website says 'Update frequency: Near Real Time' but looks like it's around every 5 minutes from the website
+
+# Logging configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def fetch_raw_data(limit: int = 1000) -> Optional[Dict]:
     """
@@ -28,11 +38,35 @@ def fetch_raw_data(limit: int = 1000) -> Optional[Dict]:
 
     try:
         response = requests.get(BASE_URL, params=params, timeout=TIMEOUT)
-        response.raise_for_status() # Raise error for bad responses
+
+        if response.status_code == 404:
+            logger.error("Resource not found (404) - check RESOURCE_ID")
+            return None
+
+        if response.status_code >= 500:
+            logger.error(
+                f"Server error ({response.status_code}) - API temporarily unavailable")
+            return None
+
+        if response.status_code >= 400:
+            logger.error(
+                f"Client error ({response.status_code}) - invalid request parameters")
+            return None
+
+        # If we get here status is 2xx (success)
         return response.json()
-    
-    except requests.exceptions.RequestException as e: # Catch all api get request errors
-        print(f"❌ API request failed: {e}")
+
+    # Handle possible request exceptions
+    except requests.exceptions.Timeout:
+        logger.error(f"Request timeout after {TIMEOUT} seconds")
+        return None
+
+    except requests.exceptions.ConnectionError:
+        logger.error("Connection failed - check network or API URL")
+        return None
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"❌ API request failed: {e}")
         return None
 
 
