@@ -1,3 +1,5 @@
+# pylint: disable=redefined-outer-name
+
 """Module to extract power cut data from NIE Networks API.
 Seems to update ~ every 5 minutes."""
 
