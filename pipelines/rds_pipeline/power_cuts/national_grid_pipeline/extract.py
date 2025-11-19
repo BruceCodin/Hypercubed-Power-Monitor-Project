@@ -1,25 +1,21 @@
 # pylint: disable=W1203, R0911, C0301, C0303
 """Extract power cuts data from National Grid API"""
 # imports
-import os
 import logging
 from datetime import datetime
-from typing import List, Dict, Optional  # For older python versions type hints
-import csv
+from typing import List, Dict, Optional
 import requests
+from pprint import pprint
 
 # API configuration
 BASE_URL = "https://connecteddata.nationalgrid.co.uk/api/3/action/datastore_search"
 RESOURCE_ID = "292f788f-4339-455b-8cc0-153e14509d4d"
 TIMEOUT = 30
+PROVIDER = "National Grid"
 # No API Key required for national grid (public dataset)
 # Website says 'Update frequency: Near Real Time' but looks like it's around every 5 minutes from the website
 
 # Logging configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger(__name__)
 
 def fetch_raw_data(limit: int = 1000) -> Optional[Dict]:
@@ -128,6 +124,7 @@ def transform_record(record: Dict) -> Dict:
         'start_time': record.get('Start Time', ''),  # String
         'status': record.get('Status', ''),
         'data_source': 'national_grid',
+        'source_provider': PROVIDER,
         'extracted_at': datetime.now().isoformat()  # String
     }
 
@@ -163,44 +160,55 @@ def extract_power_cuts() -> List[Dict]:
     return clean_records
 
 
-def save_to_csv(data: List[Dict], filename: str = 'national_grid_power_cuts.csv') -> None:
+def extract_power_cut_data() -> List[Dict]:
     """
-    Save extracted power cuts to CSV file.
+    Main extraction function - orchestrates full extraction process.
     
-    Args:
-        data: List of power cut dictionaries
-        filename: Output CSV filename
+    Returns:
+        List of cleaned power cut records as dictionaries
     """
-    if not data:
-        logger.warning("No data to save")
-        return
+    # Fetch raw data
+    raw_data = fetch_raw_data()
+    if not raw_data:
+        logger.warning("No data fetched from API")
+        return []
 
-    # Create data_raw directory if it doesn't exist
-    output_dir = 'data_raw'
-    os.makedirs(output_dir, exist_ok=True)
+    # Parse records
+    records = parse_records(raw_data)
+    logger.info(f"Fetched {len(records)} records from API")
 
-    # Construct full filepath
-    filepath = os.path.join(output_dir, filename)
+    # Filter valid records
+    valid_records = [r for r in records if validate_record(r)]
+    filtered_count = len(records) - len(valid_records)
 
-    # Define CSV columns
-    fieldnames = ['postcode', 'start_time',
-                  'status', 'data_source', 'extracted_at']
-    with open(filepath, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(data)  # Direct write!
+    if filtered_count > 0:
+        logger.info(f"Filtered out {filtered_count} invalid records")
+    logger.info(f"Validated {len(valid_records)} records")
 
-    logger.info(f"Saved {len(data)} records to {filepath}")
+    # Transform records
+    clean_records = [transform_record(r) for r in valid_records]
+
+    logger.info(
+        f"Data extraction successful. Returning {len(clean_records)} records")
+    return clean_records
 
 
 if __name__ == "__main__":
-    logger.info("Starting National Grid power cuts extraction...")
-    # Extract data
-    power_cuts = extract_power_cuts()
+    # Example usage for local testing
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
 
-    # Save to CSV
+    logger.info("Starting National Grid power cuts extraction...")
+    power_cuts = extract_power_cut_data()
+
     if power_cuts:
-        save_to_csv(power_cuts)
         logger.info(f"Extraction complete! Found {len(power_cuts)} power cuts")
+        # Print first 10 records for inspection
+        print("\n" + "="*80)
+        print(f"Sample of first {min(10, len(power_cuts))} records:")
+        print("="*80)
+        pprint(power_cuts[:10])
     else:
-        logger.info("No power cuts data extracted")
+        logger.warning("No power cuts data extracted")

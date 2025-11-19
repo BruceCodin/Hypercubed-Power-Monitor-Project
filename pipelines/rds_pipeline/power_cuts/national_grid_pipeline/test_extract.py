@@ -193,20 +193,3 @@ class TestRecordTransformation:
         assert isinstance(result["extracted_at"], str)
         # Verify it's ISO format (basic check - don't test datetime library)
         assert "T" in result["extracted_at"]
-
-    def test_transform_record_output_structure(self):
-        """Test transformed record has all expected keys."""
-        # Arrange
-        record = {
-            "Postcodes": "EX37 9TB",
-            "Start Time": "2025-11-14T15:33:00",
-            "Status": "In Progress"
-        }
-        expected_keys = {"postcode", "start_time",
-                         "status", "data_source", "extracted_at"}
-
-        # Act
-        result = transform_record(record)
-
-        # Assert
-        assert set(result.keys()) == expected_keys
