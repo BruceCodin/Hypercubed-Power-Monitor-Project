@@ -8,13 +8,21 @@ def fetch_elexon_price_data(date: datetime) -> pd.DataFrame:
     Fetch price data from Elexon API for a specific date
     from https://data.elexon.co.uk/bmrs/api/v1/balancing/settlement/system-prices/
     '''
+    if not isinstance(date, datetime):
+        raise ValueError("date must be a datetime object")
+    
     date_str = date.strftime("%Y-%m-%d")
     url = f"https://data.elexon.co.uk/bmrs/api/v1/balancing/settlement/system-prices/{date_str}"
-    response = requests.get(url)
-    response.raise_for_status()
-    data = response.json()
-    return data
 
+    try: 
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        return data
+    except requests.RequestException as e:
+        print(f"Error fetching Elexon price data: {e}")
+        return None
+    
 def parse_elexon_price_data(raw_data: dict) -> pd.DataFrame:
     '''
     Parse raw price data from Elexon API into a DataFrame
@@ -30,23 +38,31 @@ def fetch_elexon_generation_data(startTime: datetime, endTime: datetime) -> pd.D
     Fetch generation data from Elexon API for a specific date range
     https://data.elexon.co.uk/bmrs/api/v1/generation/outturn/summary?startTime&endTime
     '''
-    start_str = startTime.strftime("%Y-%m-%dT%H:%MZ")
-    end_str = endTime.strftime("%Y-%m-%dT%H:%MZ")
-    url = f"https://data.elexon.co.uk/bmrs/api/v1/generation/outturn/summary?startTime={start_str}&endTime={end_str}"
-    response = requests.get(url)
-    response.raise_for_status()
-    data = response.json()
-    return data
+    if not isinstance(startTime, datetime) or not isinstance(endTime, datetime):
+        raise ValueError("startTime and endTime must be datetime objects")
+    
+    try:
+        start_str = startTime.strftime("%Y-%m-%dT%H:%MZ")
+        end_str = endTime.strftime("%Y-%m-%dT%H:%MZ")
+        url = f"https://data.elexon.co.uk/bmrs/api/v1/generation/outturn/summary?startTime={start_str}&endTime={end_str}"
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        return data
+    except requests.RequestException as e:
+        print(f"Error fetching Elexon generation data: {e}")
+        return None
 
-def parse_elexon_generation_data(raw_data: dict) -> pd.DataFrame:
+def parse_elexon_generation_data(raw_data: list) -> pd.DataFrame:
     '''
     Parse raw generation data from Elexon API into a DataFrame
     '''
 
-    df = pd.DataFrame(raw_data[0])
+    df = pd.DataFrame(raw_data)
     return df
 
 if __name__ == "__main__":
+    pass
     # # Example usage
     # price_data_raw = fetch_elexon_price_data(datetime(2024, 1, 1))
     # price_df = parse_elexon_price_data(price_data_raw)
