@@ -153,10 +153,15 @@ def transform_record(record: Dict) -> Dict:
     else:
         affected_postcodes = str(postcode_raw)
 
+    # Determine outage date: prefer planned_outage_start_date if exists
+    planned_date = record.get('planned_outage_start_date')
+    reported_date = record.get('date_of_reported_fault', '')
+    outage_date = planned_date if planned_date else reported_date
+
     return {
         'source_provider': PROVIDER,
         'status': record.get('status', ''),
-        'outage_date': record.get('date_of_reported_fault', ''),
+        'outage_date': outage_date,
         'recording_time': datetime.now().isoformat(),
         'affected_postcodes': affected_postcodes.strip()
     }
