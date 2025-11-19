@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 resource "aws_secretsmanager_secret" "db_credentials" {
-  name        = "power-monitor-db-credentials"
+  name        = "c20-power-monitor-db-credentials"
   description = "Database credentials for power monitor RDS"
 }
 
