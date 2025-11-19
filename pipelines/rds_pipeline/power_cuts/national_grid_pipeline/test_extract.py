@@ -118,15 +118,15 @@ class TestRecordTransformation:
         result = transform_record(record)
 
         # Assert
-        assert result["postcode"] == expected_postcode
+        assert result["affected_postcodes"] == expected_postcode
 
     @pytest.mark.parametrize("start_time", [
         "2025-11-14T15:33:00",
         "2025-10-22T08:59:00",
         "2025-11-15T00:00:00",
     ])
-    def test_transform_record_preserves_start_time_as_string(self, start_time):
-        """Test transformation keeps start_time as string without modification."""
+    def test_transform_record_preserves_outage_date_as_string(self, start_time):
+        """Test transformation keeps outage_date as string without modification."""
         # Arrange
         record = {
             "Postcodes": "EX37 9TB",
@@ -138,8 +138,8 @@ class TestRecordTransformation:
         result = transform_record(record)
 
         # Assert
-        assert result["start_time"] == start_time
-        assert isinstance(result["start_time"], str)
+        assert result["outage_date"] == start_time
+        assert isinstance(result["outage_date"], str)
 
     @pytest.mark.parametrize("status", [
         "In Progress",
@@ -161,8 +161,8 @@ class TestRecordTransformation:
         # Assert
         assert result["status"] == status
 
-    def test_transform_record_adds_data_source(self):
-        """Test transformation adds data_source field."""
+    def test_transform_record_adds_source_provider(self):
+        """Test transformation adds source_provider field."""
         # Arrange
         record = {
             "Postcodes": "EX37 9TB",
@@ -174,10 +174,10 @@ class TestRecordTransformation:
         result = transform_record(record)
 
         # Assert
-        assert result["data_source"] == "national_grid"
+        assert result["source_provider"] == "National Grid"
 
-    def test_transform_record_adds_extracted_at(self):
-        """Test transformation adds extracted_at timestamp."""
+    def test_transform_record_adds_recording_time(self):
+        """Test transformation adds recording_time timestamp."""
         # Arrange
         record = {
             "Postcodes": "EX37 9TB",
@@ -189,7 +189,24 @@ class TestRecordTransformation:
         result = transform_record(record)
 
         # Assert
-        assert "extracted_at" in result
-        assert isinstance(result["extracted_at"], str)
+        assert "recording_time" in result
+        assert isinstance(result["recording_time"], str)
         # Verify it's ISO format (basic check - don't test datetime library)
-        assert "T" in result["extracted_at"]
+        assert "T" in result["recording_time"]
+
+    def test_transform_record_output_structure(self):
+        """Test transformed record has all expected keys."""
+        # Arrange
+        record = {
+            "Postcodes": "EX37 9TB",
+            "Start Time": "2025-11-14T15:33:00",
+            "Status": "In Progress"
+        }
+        expected_keys = {"affected_postcodes", "outage_date",
+                         "status", "source_provider", "recording_time"}
+
+        # Act
+        result = transform_record(record)
+
+        # Assert
+        assert set(result.keys()) == expected_keys
