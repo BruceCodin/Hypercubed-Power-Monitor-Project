@@ -6,7 +6,6 @@ Seems to update ~ every 5 minutes."""
 from datetime import datetime
 import logging
 from typing import Optional
-from pprint import pprint
 import requests as req
 
 BASE_URL = "https://ssen-powertrack-api.opcld.com/gridiview/reporter/info/livefaults"
@@ -74,9 +73,8 @@ if __name__ == "__main__":
     # Example usage for local testing
 
     data = extract_power_cut_data()
-    # pprint(data)
 
     if data:
         parsed_data = parse_power_cut_data(data)
         print("Extracted and Parsed Data:")
-        pprint(parsed_data)
+        print(parsed_data)
