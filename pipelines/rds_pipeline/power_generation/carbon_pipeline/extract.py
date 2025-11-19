@@ -1,6 +1,5 @@
 '''Extract functions for data from Carbon Intensity API.'''
 import requests
-import pandas as pd
 from datetime import datetime
 
 def fetch_carbon_intensity_data(from_datetime: datetime, to_datetime: datetime) -> pd.DataFrame:
@@ -24,8 +23,3 @@ def fetch_carbon_intensity_data(from_datetime: datetime, to_datetime: datetime) 
         print(f"Error fetching carbon intensity data: {e}")
         return None
     
-
-# start_date = datetime(2024, 1, 1)
-# end_date = datetime(2024, 1, 2)
-# data = fetch_carbon_intensity_data(start_date, end_date)
-# print(data)
