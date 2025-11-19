@@ -8,7 +8,8 @@ CREATE TABLE DIM_customer (
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    PRIMARY KEY (customer_id)
+    PRIMARY KEY (customer_id),
+    CONSTRAINT email_format CHECK (email LIKE '%_@__%.__%')
 );
 
 CREATE TABLE FACT_outage (
@@ -33,6 +34,7 @@ CREATE TABLE BRIDGE_subscribed_postcodes (
     subscription_id INT GENERATED ALWAYS AS IDENTITY,
     customer_id INT NOT NULL,
     postcode TEXT NOT NULL,
+    UNIQUE (customer_id, postcode),
     PRIMARY KEY (subscription_id),
     FOREIGN KEY (customer_id) REFERENCES DIM_customer(customer_id) ON DELETE CASCADE
 );
