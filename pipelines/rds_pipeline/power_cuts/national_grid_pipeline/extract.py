@@ -1,18 +1,20 @@
+# pylint: disable=W1203, R0911, C0301, C0303
 """Extract power cuts data from National Grid API"""
-# imports 
+# imports
 import os
 import logging
-import requests
-import csv
 from datetime import datetime
-from typing import List, Dict, Optional # For older python versions type hints 
+from typing import List, Dict, Optional  # For older python versions type hints
+import csv
+import requests
 
 # API configuration
 BASE_URL = "https://connecteddata.nationalgrid.co.uk/api/3/action/datastore_search"
 RESOURCE_ID = "292f788f-4339-455b-8cc0-153e14509d4d"
 TIMEOUT = 30
 # No API Key required for national grid (public dataset)
-# Website says 'Update frequency: Near Real Time' but looks like it's around every 5 minutes from the website
+# Website says 'Update frequency: Near Real Time' but looks 
+# like it's around every 5 minutes from the website
 
 # Logging configuration
 logging.basicConfig(
