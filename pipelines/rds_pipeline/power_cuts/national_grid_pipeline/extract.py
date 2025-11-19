@@ -120,12 +120,11 @@ def transform_record(record: Dict) -> Dict:
         Cleaned dictionary with standardized field names
     """
     return {
-        'postcode': record.get('Postcodes', '').strip(),
-        'start_time': record.get('Start Time', ''),  # String
+        'affected_postcodes': record.get('Postcodes', '').strip(),
+        'outage_date': record.get('Start Time', ''),  # String
         'status': record.get('Status', ''),
-        'data_source': 'national_grid',
         'source_provider': PROVIDER,
-        'extracted_at': datetime.now().isoformat()  # String
+        'recording_time': datetime.now().isoformat()  # String
     }
 
 
