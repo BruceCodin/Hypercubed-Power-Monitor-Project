@@ -13,8 +13,7 @@ BASE_URL = "https://connecteddata.nationalgrid.co.uk/api/3/action/datastore_sear
 RESOURCE_ID = "292f788f-4339-455b-8cc0-153e14509d4d"
 TIMEOUT = 30
 # No API Key required for national grid (public dataset)
-# Website says 'Update frequency: Near Real Time' but looks 
-# like it's around every 5 minutes from the website
+# Website says 'Update frequency: Near Real Time' but looks like it's around every 5 minutes from the website
 
 # Logging configuration
 logging.basicConfig(
