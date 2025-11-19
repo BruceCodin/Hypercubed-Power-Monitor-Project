@@ -1,11 +1,10 @@
 """Module to extract power cut data from SSEN API.
 Seems to update ~ every 5 minutes."""
 
-import logging
-import requests as req
-from typing import Optional
 from datetime import datetime
-from pprint import pprint
+import logging
+from typing import Optional
+import requests as req
 
 BASE_URL = "https://ssen-powertrack-api.opcld.com/gridiview/reporter/info/livefaults"
 PROVIDER = "Scottish and Southern Electricity Networks"
@@ -25,7 +24,7 @@ def extract_power_cut_data() -> Optional[dict]:
     """
 
     try:
-        response = req.get(BASE_URL)
+        response = req.get(BASE_URL, timeout=10)
         response.raise_for_status()  # Raise an error for bad responses
         data = response.json()
         logger.info("Data extraction successful.")
@@ -70,12 +69,13 @@ def parse_power_cut_data(data: dict) -> list[dict]:
 
 if __name__ == "__main__":
 
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # Example usage for local testing
 
-    data = extract_power_cut_data()
-    # pprint(data)
+    # data = extract_power_cut_data()
+    # # pprint(data)
 
-    if data:
-        parsed_data = parse_power_cut_data(data)
-        pprint(parsed_data)
+    # if data:
+    #     parsed_data = parse_power_cut_data(data)
+    #     pprint(parsed_data)
+
+    pass
