@@ -2,7 +2,7 @@
 
 from unittest.mock import patch, Mock
 import requests
-from extract import extract_power_cut_data, parse_power_cut_data, PROVIDER
+from .extract import extract_power_cut_data, parse_power_cut_data, PROVIDER
 
 
 # Tests for extract_power_cut_data
