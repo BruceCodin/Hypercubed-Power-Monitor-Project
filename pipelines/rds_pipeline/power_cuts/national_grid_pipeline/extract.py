@@ -66,7 +66,7 @@ def fetch_raw_data(limit: int = 1000) -> Optional[Dict]:
         return None
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"❌ API request failed: {e}")
+        logger.error(f"API request failed: {e}")
         return None
 
 
@@ -141,16 +141,20 @@ def extract_power_cuts() -> List[Dict]:
     # Fetch raw data
     raw_data = fetch_raw_data()
     if not raw_data:
-        print("⚠️ No data fetched from API")
+        logger.warning("No data fetched from API")
         return []
 
     # Parse records
     records = parse_records(raw_data)
-    print(f"Fetched {len(records)} records from API")
+    logger.info(f"Fetched {len(records)} records from API")
 
     # Filter valid records
     valid_records = [r for r in records if validate_record(r)]
-    print(f"✅ {len(valid_records)} valid records (filtered out {len(records) - len(valid_records)})")
+    filtered_count = len(records) - len(valid_records)
+
+    if filtered_count > 0:
+        logger.info(f"Filtered out {filtered_count} invalid records")
+    logger.info(f"Validated {len(valid_records)} records")
 
     # Transform records
     clean_records = [transform_record(r) for r in valid_records]
@@ -167,7 +171,7 @@ def save_to_csv(data: List[Dict], filename: str = 'national_grid_power_cuts.csv'
         filename: Output CSV filename
     """
     if not data:
-        print("⚠️ No data to save")
+        logger.warning("No data to save")
         return
 
     # Create data_raw directory if it doesn't exist
@@ -185,18 +189,17 @@ def save_to_csv(data: List[Dict], filename: str = 'national_grid_power_cuts.csv'
         writer.writeheader()
         writer.writerows(data)  # Direct write!
 
-    print(f"Saved {len(data)} records to {filepath}")
+    logger.info(f"Saved {len(data)} records to {filepath}")
 
 
 if __name__ == "__main__":
-    print("Starting National Grid power cuts extraction...")
-
+    logger.info("Starting National Grid power cuts extraction...")
     # Extract data
     power_cuts = extract_power_cuts()
 
     # Save to CSV
     if power_cuts:
         save_to_csv(power_cuts)
-        print(f"Extraction complete! Found {len(power_cuts)} power cuts")
+        logger.info(f"Extraction complete! Found {len(power_cuts)} power cuts")
     else:
-        print("No power cuts data extracted")
+        logger.info("No power cuts data extracted")
