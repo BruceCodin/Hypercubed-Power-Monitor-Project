@@ -8,7 +8,6 @@ variable "aws_region" {
 variable "db_host" {
   description = "Database host endpoint"
   type        = string
-  sensitive   = true
 }
 
 variable "db_port" {
@@ -29,12 +28,6 @@ variable "db_user" {
 
 variable "db_password" {
   description = "Database password"
-  type        = string
-  sensitive   = true
-}
-
-variable "db_schema" {
-  description = "Database schema"
   type        = string
   sensitive   = true
 }
