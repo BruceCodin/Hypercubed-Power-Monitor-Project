@@ -62,11 +62,10 @@ jobs:
 
     - name: Run tests with coverage
       run: |
-        # Check if tests exist before running
-        TEST_FILES=$(find . -name 'test_*.py' -o -name '*_test.py')
-        if [ -n "$TEST_FILES" ]; then
-          # Using 'python -m pytest' adds the current dir to sys.path
-          python -m pytest --cov=. --cov-report=term-missing
-        else
-          echo "No test files found to run"
-        fi
+              TEST_FILES=$(find . -name 'test_*.py' -o -name '*_test.py')
+              if [ -n "$TEST_FILES" ]; then
+                # The magic flag is --import-mode=importlib
+                python -m pytest --cov=. --cov-report=term-missing --import-mode=importlib
+              else
+                echo "No test files found to run"
+              fi
