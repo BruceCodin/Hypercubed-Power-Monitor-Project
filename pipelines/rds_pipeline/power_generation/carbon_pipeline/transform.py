@@ -41,6 +41,7 @@ def add_settlement_period(carbon_df: pd.DataFrame) -> pd.DataFrame:
         carbon_df['settlement_period'] = settlement_periods
         logger.info(f"Added settlement periods to {len(carbon_df)} rows")
         return carbon_df
+    
     except ValueError as e:
         logger.error(f"Failed to parse timestamp: {e}")
         raise
@@ -70,7 +71,8 @@ def refactor_intensity_column(carbon_df: pd.DataFrame) -> pd.DataFrame:
         carbon_df = pd.concat([carbon_df.drop(columns=['intensity']), intensity_data], axis=1)
         logger.info(f"Refactored intensity column into {len(intensity_data.columns)} columns")
         return carbon_df
-    except Exception as e:
+    # Capture specific exceptions that may arise during parsing
+    except (TypeError, ValueError) as e:
         logger.error(f"Failed to refactor intensity column: {e}")
         raise ValueError(f"Failed to parse intensity column data: {e}") from e
 
@@ -111,7 +113,7 @@ def transform_carbon_data(carbon_df: pd.DataFrame) -> pd.DataFrame:
 
     Args:
         carbon_df (pd.DataFrame): DataFrame containing raw carbon intensity data.
-    
+
     Returns:
         pd.DataFrame: Transformed carbon intensity data.
     '''
