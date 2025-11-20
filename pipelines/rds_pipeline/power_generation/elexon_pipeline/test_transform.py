@@ -27,6 +27,9 @@ class TestUpdatePriceColumnNames(unittest.TestCase):
         self.assertNotIn('settlementPeriod', result.columns)
         self.assertNotIn('systemSellPrice', result.columns)
 
+        # Check that date column is datetime type
+        self.assertTrue(pd.api.types.is_datetime64_any_dtype(result['date']))
+
     def test_handles_empty_dataframe(self):
         '''Test that empty DataFrame is handled gracefully.'''
         df = pd.DataFrame()
@@ -53,24 +56,25 @@ class TestExpandGenerationDataColumn(unittest.TestCase):
         '''Test that data column is expanded correctly.'''
         df = pd.DataFrame({
             'data': [
-                [{'psrType': 'WIND', 'quantity': 100}, {'psrType': 'SOLAR', 'quantity': 50}],
-                [{'psrType': 'WIND', 'quantity': 110}]
+                [{'fuelType': 'WIND', 'quantity': 100}, {'fuelType': 'SOLAR', 'quantity': 50}],
+                [{'fuelType': 'WIND', 'quantity': 110}]
             ]
         })
         result = expand_generation_data_column(df)
         self.assertGreater(len(result), len(df))
-        self.assertIn('psrType', result.columns)
+        self.assertIn('fuel_type', result.columns)
+        self.assertNotIn('fuelType', result.columns)
         self.assertIn('quantity', result.columns)
         self.assertEqual(len(result), 3)
 
     def test_handles_string_data(self):
         '''Test that string data is parsed correctly.'''
         df = pd.DataFrame({
-            'data': ["[{'psrType': 'WIND', 'quantity': 100}]"]
+            'data': ["[{'fuelType': 'WIND', 'quantity': 100}]"]
         })
         result = expand_generation_data_column(df)
-        self.assertIn('psrType', result.columns)
-        self.assertEqual(result['psrType'].iloc[0], 'WIND')
+        self.assertIn('fuel_type', result.columns)
+        self.assertEqual(result['fuel_type'].iloc[0], 'WIND')
 
     def test_handles_empty_dataframe(self):
         '''Test that empty DataFrame is handled gracefully.'''
@@ -86,26 +90,37 @@ class TestAddDateColumnToGeneration(unittest.TestCase):
         '''Test that settlement_date column is added correctly.'''
         df = pd.DataFrame({
             'startTime': ['2023-01-01T00:00:00Z', '2023-01-02T00:00:00Z'],
-            'quantity': [100, 110]
+            'quantity': [100, 110],
+            'settlementPeriod': [1, 2]
         })
         result = add_date_column_to_generation(df)
         self.assertIn('settlement_date', result.columns)
+        self.assertIn('settlement_period', result.columns)
         self.assertNotIn('startTime', result.columns)
-        self.assertEqual(result['settlement_date'].iloc[0], date(2023, 1, 1))
-        self.assertEqual(result['settlement_date'].iloc[1], date(2023, 1, 2))
+        self.assertNotIn('settlementPeriod', result.columns)
+
+        # Check that settlement_date is datetime type
+        self.assertTrue(pd.api.types.is_datetime64_any_dtype(result['settlement_date']))
+
+        # Check values are correct
+        self.assertEqual(result['settlement_date'].iloc[0], pd.Timestamp('2023-01-01'))
+        self.assertEqual(result['settlement_date'].iloc[1], pd.Timestamp('2023-01-02'))
 
     def test_preserves_other_columns(self):
         '''Test that other columns are preserved.'''
         df = pd.DataFrame({
             'startTime': ['2023-01-01T00:00:00Z'],
             'quantity': [100],
-            'psrType': ['WIND']
+            'psrType': ['WIND'],
+            'settlementPeriod': [1]
         })
         result = add_date_column_to_generation(df)
         self.assertIn('quantity', result.columns)
         self.assertIn('psrType', result.columns)
+        self.assertIn('settlement_period', result.columns)
         self.assertEqual(result['quantity'].iloc[0], 100)
         self.assertEqual(result['psrType'].iloc[0], 'WIND')
+        self.assertEqual(result['settlement_period'].iloc[0], 1)
 
     def test_handles_empty_dataframe(self):
         '''Test that empty DataFrame is handled gracefully.'''

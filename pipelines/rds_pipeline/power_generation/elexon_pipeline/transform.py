@@ -28,6 +28,8 @@ def update_price_column_names(price_df: pd.DataFrame) -> pd.DataFrame:
             'settlementPeriod': 'settlement_period',
             'systemSellPrice': 'system_sell_price'
         })
+        # Convert date column to datetime type
+        price_df['date'] = pd.to_datetime(price_df['date'])
         logger.info("Updated price column names")
         return price_df
     except Exception as e:
@@ -96,6 +98,9 @@ def add_date_column_to_generation(genearation_df: pd.DataFrame) -> pd.DataFrame:
 
     try:
         genearation_df['settlement_date'] = pd.to_datetime(genearation_df['startTime']).dt.date
+        # make settlement_date datetime type
+        genearation_df['settlement_date'] = pd.to_datetime(genearation_df['settlement_date'])
+        #drop startTime column
         genearation_df = genearation_df.drop(columns=['startTime'])
         #rename settlementPeriod to settlement_period
         genearation_df = genearation_df.rename(columns={'settlementPeriod': 'settlement_period'})
@@ -106,19 +111,16 @@ def add_date_column_to_generation(genearation_df: pd.DataFrame) -> pd.DataFrame:
         raise
 
 
-if __name__ == '__main__':
-    pass
-    # # Fetch and transform price data
-    # fetch_date = datetime.datetime(2023, 1, 1)
-    # raw_price_data = fetch_elexon_price_data(fetch_date)
-    # price_df = parse_elexon_price_data(raw_price_data)
-    # updated_price_df = update_price_column_names(price_df)
-    # print(updated_price_df.head())
+def transform_generation_data(generation_df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Transform generation data by expanding data column and adding settlement_date column.
 
-    # # Fetch and transform generation data
-    # start_time = datetime.datetime(2023, 1, 1, 0, 0)
-    # end_time = datetime.datetime(2023, 1, 1, 1, 0)
-    # generation_df = fetch_elexon_generation_data(start_time, end_time)
-    # expanded_generation_df = expand_generation_data_column(generation_df)
-    # final_generation_df = add_date_column_to_generation(expanded_generation_df)
-    # print(final_generation_df.head())
+    Args:
+        generation_df (pd.DataFrame): DataFrame containing generation data.
+    Returns:
+        pd.DataFrame: Transformed generation data.
+    '''
+    expanded_df = expand_generation_data_column(generation_df)
+    transformed_df = add_date_column_to_generation(expanded_df)
+    return transformed_df
+
