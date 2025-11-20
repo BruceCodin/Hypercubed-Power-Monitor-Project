@@ -7,13 +7,13 @@ from datetime import datetime
 import logging
 from typing import Optional
 import requests as req
+from pprint import pprint
 
 BASE_URL = "https://powercheck.nienetworks.co.uk/NIEPowerCheckerWebAPI/api/faults"
 PROVIDER = "Northern Ireland Electricity Networks"
+API_TIMEOUT = 10  # seconds
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def extract_power_cut_data() -> Optional[dict]:
@@ -25,8 +25,13 @@ def extract_power_cut_data() -> Optional[dict]:
     """
 
     try:
-        response = req.get(BASE_URL, timeout=10)
-        response.raise_for_status()  # Raise an error for bad responses
+        response = req.get(BASE_URL, timeout=API_TIMEOUT)
+
+        if response.status_code != 200:
+            logger.error(
+                f"Failed to fetch data: Status code {response.status_code}")
+            return None
+
         data = response.json()
         logger.info("Data extraction successful.")
         return data
@@ -36,7 +41,7 @@ def extract_power_cut_data() -> Optional[dict]:
         return None
 
 
-def parse_power_cut_data(data: dict) -> list[dict]:
+def parse_power_cut_data(data: Optional[dict]) -> Optional[list[dict]]:
     """
     Parse the raw data from NIE Networks power cut API to extract relevant information.
 
@@ -69,6 +74,9 @@ def parse_power_cut_data(data: dict) -> list[dict]:
 
 if __name__ == "__main__":
 
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s')
+
     # Example usage for local testing
 
     data = extract_power_cut_data()
@@ -76,4 +84,4 @@ if __name__ == "__main__":
     if data:
         parsed_data = parse_power_cut_data(data)
         print("Extracted and Parsed Data:")
-        print(parsed_data)
+        pprint(parsed_data)
