@@ -105,44 +105,23 @@ def add_date_column(carbon_df: pd.DataFrame) -> pd.DataFrame:
         logger.error(f"Failed to parse timestamp: {e}")
         raise
 
-def transform_carbon_data(from_datetime: datetime, to_datetime: datetime) -> pd.DataFrame:
+def transform_carbon_data(carbon_df: pd.DataFrame) -> pd.DataFrame:
     '''
-    Fetch and transform carbon intensity data for a specific date range.
+    Perform full transformation pipeline on carbon intensity data.
 
     Args:
-        from_datetime (datetime): Start datetime for data extraction.
-        to_datetime (datetime): End datetime for data extraction.
-
+        carbon_df (pd.DataFrame): DataFrame containing raw carbon intensity data.
+    
     Returns:
         pd.DataFrame: Transformed carbon intensity data.
     '''
-    if not isinstance(from_datetime, datetime):
-        raise TypeError(f"from_datetime must be a datetime object, got {type(from_datetime)}")
-
-    if not isinstance(to_datetime, datetime):
-        raise TypeError(f"to_datetime must be a datetime object, got {type(to_datetime)}")
-
-    if from_datetime >= to_datetime:
-        raise ValueError("from_datetime must be before to_datetime")
-
-    try:
-        logger.info(f"Transforming carbon data for {from_datetime} to {to_datetime}")
-
-        carbon_df = fetch_carbon_intensity_data(from_datetime, to_datetime)
-        if carbon_df is None or carbon_df.empty:
-            logger.warning("No data returned from API")
-            return pd.DataFrame()
-
-        carbon_df = refactor_intensity_column(carbon_df)
-        carbon_df = add_settlement_period(carbon_df)
-        carbon_df = add_date_column(carbon_df)
-        carbon_df = update_column_names(carbon_df)
-
-        logger.info(f"Successfully transformed {len(carbon_df)} rows")
-        return carbon_df
-    except Exception as e:
-        logger.error(f"Transformation failed: {e}")
-        raise
+    carbon_df = refactor_intensity_column(carbon_df)
+    carbon_df = add_settlement_period(carbon_df)
+    carbon_df = add_date_column(carbon_df)
+    carbon_df = update_column_names(carbon_df)
+    carbon_df = make_date_datetime(carbon_df)
+    logger.info("Completed full transformation of carbon intensity data")
+    return carbon_df
 
 def update_column_names(carbon_df: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -206,9 +185,6 @@ if __name__ == "__main__":
     from_datetime = datetime(2025, 1, 1, 0, 0)
     to_datetime = datetime(2025, 1, 1, 1, 0)
     carbon_data = fetch_carbon_intensity_data(from_datetime, to_datetime)
-    carbon_data = refactor_intensity_column(carbon_data)
-    carbon_data = add_settlement_period(carbon_data)
-    carbon_data = add_date_column(carbon_data)
-    carbon_data = update_column_names(carbon_data)
-    carbon_data = make_date_datetime(carbon_data)
-    print(carbon_data.info())
+    transformed_data = transform_carbon_data(carbon_data)
+    print(transformed_data.head())
+    print(transformed_data.dtypes)
