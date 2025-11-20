@@ -6,15 +6,12 @@ Seems to update every ~30 minutes."""
 from datetime import datetime
 import logging
 from typing import Optional
-from pprint import pprint
 import requests as req
 
 BASE_URL = "https://power.northernpowergrid.com/Powercut_API/rest/powercuts/getall"
 PROVIDER = "Northern Powergrid"
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def extract_power_cut_data() -> Optional[dict]:
@@ -37,7 +34,7 @@ def extract_power_cut_data() -> Optional[dict]:
         return None
 
 
-def parse_power_cut_data(data: dict) -> list[dict]:
+def parse_power_cut_data(data: dict) -> Optional[list[dict]]:
     """
     Parse the raw data from Northern Powergrid power cut API to extract relevant information.
 
@@ -55,8 +52,6 @@ def parse_power_cut_data(data: dict) -> list[dict]:
         return parsed_data
 
     for fault in data:
-        pprint(fault)
-        print("-----")
         parsed_data.append({
             "source_provider": PROVIDER,
             "status": fault.get("NatureOfOutage"),
@@ -71,6 +66,9 @@ def parse_power_cut_data(data: dict) -> list[dict]:
 
 if __name__ == "__main__":
 
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s')
+
     # Example usage for local testing
 
     data = extract_power_cut_data()
@@ -79,6 +77,6 @@ if __name__ == "__main__":
         parsed_data = parse_power_cut_data(data)
         print("Extracted and Parsed Data:")
         for entry in parsed_data:
-            pprint(entry)
+            print(entry)
             print("-----")
         print(f"Total records extracted: {len(parsed_data)}")
