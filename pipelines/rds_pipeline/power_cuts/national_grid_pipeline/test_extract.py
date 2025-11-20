@@ -1,7 +1,7 @@
 # pylint: skip-file
 # test_extract.py
 import pytest
-from extract import (
+from pipelines.rds_pipeline.power_cuts.national_grid_pipeline.extract import (
     parse_records,
     validate_record,
     transform_record
