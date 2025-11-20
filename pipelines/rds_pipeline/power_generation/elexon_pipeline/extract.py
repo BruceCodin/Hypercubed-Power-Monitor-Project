@@ -11,11 +11,11 @@ PRICE_URL = "https://data.elexon.co.uk/bmrs/api/v1/balancing/settlement/system-p
 GENERATION_URL = "https://data.elexon.co.uk/bmrs/api/v1/generation/outturn/summary"
 TIME_OUT = 30
 
-def fetch_elexon_price_data(fetch_date: datetime) -> pd.DataFrame:
+def fetch_elexon_price_data(fetch_date: datetime) -> dict:
     '''
     Fetch price data from Elexon API for a specific date
-     Args:
-        date (datetime): Date for which to fetch price data
+    Args:
+        fetch_date (datetime): Date for which to fetch price data
     Returns:
         dict: Raw JSON data from Elexon API
     '''
@@ -36,7 +36,7 @@ def fetch_elexon_price_data(fetch_date: datetime) -> pd.DataFrame:
 
     except requests.RequestException as e:
         logger.error(f"Error fetching Elexon price data: {e}", exc_info=True)
-        return None
+        raise
     
 def parse_elexon_price_data(raw_data: dict) -> pd.DataFrame:
     '''
