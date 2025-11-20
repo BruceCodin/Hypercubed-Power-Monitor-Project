@@ -122,7 +122,7 @@ def transform_record(record: Dict) -> Dict:
     return {
         'affected_postcodes': record.get('Postcodes', '').strip(),
         'outage_date': record.get('Start Time', ''),  # String
-        'status': record.get('Status', ''),
+        'status': record.get('Planned', ''),
         'source_provider': PROVIDER,
         'recording_time': datetime.now().isoformat()  # String
     }
