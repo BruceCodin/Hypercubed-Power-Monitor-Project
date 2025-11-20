@@ -83,7 +83,7 @@ def fetch_raw_data(limit: int = 100) -> Optional[Dict]:
         return None
 
 
-def parse_records(raw_data: Dict) -> List[Dict]:
+def parse_records(raw_data: Optional[Dict]) -> List[Dict]:
     """
     Extract records array from API response.
     Opendatasoft API nests data under 'results' key.
