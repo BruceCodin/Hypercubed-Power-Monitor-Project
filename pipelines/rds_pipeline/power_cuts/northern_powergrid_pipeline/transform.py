@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from pprint import pprint
 from extract import (extract_power_cut_data,
                      parse_power_cut_data)
@@ -28,19 +27,19 @@ def transform_power_cut_data(data: list[dict]) -> list[dict]:
     return data
 
 
-def transform_postcode(postcode: str) -> str:
+def transform_postcode(postcode: str) -> list[str]:
     """Helper function to standardize postcode format.
     By removing extra spaces and converting to uppercase.
 
     Args:
-        postcodes (list[str]): List of postcodes to standardize.
+        postcode (str): Single postcode to standardize.
 
     Returns:
-        list[str]: Standardized list of postcodes."""
+        list[str]: Single postcode as a list."""
 
     standard_pc = " ".join(postcode.upper().split())
 
-    return standard_pc
+    return [standard_pc]
 
 
 def transform_status(status: str) -> str:
@@ -52,11 +51,11 @@ def transform_status(status: str) -> str:
     Returns:
         str: Standardized status value.
     """
-    status_mapping = {
-        "Planned Work on System": "Planned",
-        "Localised Fault": "Unplanned"
-    }
-    return status_mapping.get(status, "Unknown")
+
+    if "fault" in status.lower():
+        return "Unplanned"
+    else:
+        return "Planned"
 
 
 if __name__ == "__main__":
