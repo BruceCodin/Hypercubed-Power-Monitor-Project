@@ -1,5 +1,4 @@
 # pylint: skip-file
-# test_transform.py
 import pytest
 from transform import (
     parse_postcodes,
