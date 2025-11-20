@@ -89,3 +89,19 @@ def validate_data_types(demand_df: pd.DataFrame) -> bool:
             return False
     logger.info("All data types are valid")
     return True
+
+def transform_neso_demand_data(demand_df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Full transformation pipeline for NESO demand data
+
+    Args:
+        demand_df (pd.DataFrame): Raw NESO demand data
+    Returns:
+        pd.DataFrame: Fully transformed NESO demand data
+    ''' 
+    
+    df = transform_neso_data_columns(demand_df)
+    df = make_date_column_datetime(df)
+    if not validate_data_types(df):
+        raise ValueError("Data validation failed")
+    return df
