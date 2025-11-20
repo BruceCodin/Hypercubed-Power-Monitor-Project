@@ -127,7 +127,3 @@ class TestAddDateColumnToGeneration(unittest.TestCase):
         df = pd.DataFrame(columns=['startTime'])
         result = add_date_column_to_generation(df)
         self.assertTrue(result.empty)
-
-
-if __name__ == '__main__':
-    unittest.main()

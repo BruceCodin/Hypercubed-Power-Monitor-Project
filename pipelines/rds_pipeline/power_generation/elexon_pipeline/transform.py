@@ -2,11 +2,8 @@
 import logging
 import ast
 import pandas as pd
-from extract import fetch_elexon_price_data, parse_elexon_price_data, fetch_elexon_generation_data
-import datetime
 # Configure logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 def update_price_column_names(price_df: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -68,7 +65,7 @@ def expand_generation_data_column(generation_df: pd.DataFrame) -> pd.DataFrame:
         df_expanded = generation_df.explode('data').reset_index(drop=True)
         df_expanded = pd.concat([df_expanded.drop('data', axis=1),
                                 df_expanded['data'].apply(pd.Series)], axis=1)
-        #rename fuelType to fuel_type
+        #Rename fuelType to fuel_type
         df_expanded = df_expanded.rename(columns={'fuelType': 'fuel_type'})
         logger.info(f"Expanded generation data from {len(generation_df)} to {len(df_expanded)} rows")
         return df_expanded
@@ -76,36 +73,35 @@ def expand_generation_data_column(generation_df: pd.DataFrame) -> pd.DataFrame:
         logger.error(f"Failed to expand generation data column: {e}")
         raise
 
-def add_date_column_to_generation(genearation_df: pd.DataFrame) -> pd.DataFrame:
+def add_date_column_to_generation(generation_df: pd.DataFrame) -> pd.DataFrame:
     '''
     Add settlement_date column to generation DataFrame from 'startTime' column.
     Drop startTime column.
 
     Args:
-        genearation_df (pd.DataFrame): DataFrame containing generation data.
+        generation_df (pd.DataFrame): DataFrame containing generation data.
 
     Returns:
         pd.DataFrame: DataFrame with added settlement_date column.
     '''
-    if not isinstance(genearation_df, pd.DataFrame):
-        raise TypeError(f"Expected pandas DataFrame, got {type(genearation_df)}")
+    if not isinstance(generation_df, pd.DataFrame):
+        raise TypeError(f"Expected pandas DataFrame, got {type(generation_df)}")
 
-    if genearation_df.empty:
-        return genearation_df
-
-    if 'startTime' not in genearation_df.columns:
+    if generation_df.empty:
+        return generation_df
+    if 'startTime' not in generation_df.columns:
         raise ValueError("DataFrame must contain 'startTime' column")
 
     try:
-        genearation_df['settlement_date'] = pd.to_datetime(genearation_df['startTime']).dt.date
-        # make settlement_date datetime type
-        genearation_df['settlement_date'] = pd.to_datetime(genearation_df['settlement_date'])
-        #drop startTime column
-        genearation_df = genearation_df.drop(columns=['startTime'])
-        #rename settlementPeriod to settlement_period
-        genearation_df = genearation_df.rename(columns={'settlementPeriod': 'settlement_period'})
-        logger.info(f"Added settlement_date column to {len(genearation_df)} rows")
-        return genearation_df
+        generation_df['settlement_date'] = pd.to_datetime(generation_df['startTime']).dt.date
+        # Make settlement_date datetime type
+        generation_df['settlement_date'] = pd.to_datetime(generation_df['settlement_date'])
+        #Drop startTime column
+        generation_df = generation_df.drop(columns=['startTime'])
+        #Rename settlementPeriod to settlement_period
+        generation_df = generation_df.rename(columns={'settlementPeriod': 'settlement_period'})
+        logger.info(f"Added settlement_date column to {len(generation_df)} rows")
+        return generation_df
     except Exception as e:
         logger.error(f"Failed to add date column: {e}")
         raise
