@@ -173,6 +173,34 @@ def update_column_names(carbon_df: pd.DataFrame) -> pd.DataFrame:
     logger.info("Updated column names to match database schema")
     return carbon_df
 
+def make_date_datetime(carbon_df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Convert 'date' column to datetime objects.
+
+    Args:
+        carbon_df (pd.DataFrame): DataFrame containing carbon intensity data with 'date' column.
+
+    Returns:
+        pd.DataFrame: DataFrame with 'date' column as datetime objects.
+    '''
+    if not isinstance(carbon_df, pd.DataFrame):
+        raise TypeError(f"Expected pandas DataFrame, got {type(carbon_df)}")
+
+    if carbon_df.empty:
+        return carbon_df
+
+    if 'date' not in carbon_df.columns:
+        raise ValueError("DataFrame must contain 'date' column")
+
+    try:
+        carbon_df['date'] = pd.to_datetime(carbon_df['date'])
+        logger.info("Converted 'date' column to datetime objects")
+        return carbon_df
+    except Exception as e:
+        logger.error(f"Failed to convert 'date' column: {e}")
+        raise ValueError(f"Failed to convert 'date' column: {e}") from e
+    
+    
 if __name__ == "__main__":
     # Example usage for refactor_intensity_column
     from_datetime = datetime(2025, 1, 1, 0, 0)
@@ -182,4 +210,5 @@ if __name__ == "__main__":
     carbon_data = add_settlement_period(carbon_data)
     carbon_data = add_date_column(carbon_data)
     carbon_data = update_column_names(carbon_data)
-    print(carbon_data.head())
+    carbon_data = make_date_datetime(carbon_data)
+    print(carbon_data.info())

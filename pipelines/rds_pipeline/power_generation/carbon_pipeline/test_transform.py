@@ -1,14 +1,15 @@
 '''Simple test suite for transform module.'''
 import unittest
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
 from unittest.mock import patch
 from transform import (
     add_settlement_period,
     refactor_intensity_column,
     add_date_column,
     transform_carbon_data,
-    update_column_names
+    update_column_names,
+    make_date_datetime
 )
 
 
@@ -204,6 +205,53 @@ class TestUpdateColumnNames(unittest.TestCase):
         '''Test that TypeError is raised for non-DataFrame input.'''
         with self.assertRaises(TypeError):
             update_column_names("not a dataframe")
+
+
+class TestMakeDateDatetime(unittest.TestCase):
+    '''Tests for make_date_datetime function.'''
+
+    def test_converts_date_to_datetime(self):
+        '''Test that date column is converted to datetime.'''
+        df = pd.DataFrame({
+            'date': [date(2023, 1, 1), date(2023, 1, 2), date(2023, 1, 3)],
+            'intensity_forecast': [100, 110, 120]
+        })
+        result = make_date_datetime(df)
+
+        # Check that date is datetime type
+        self.assertTrue(pd.api.types.is_datetime64_any_dtype(result['date']))
+
+        # Check values are correct
+        self.assertEqual(result['date'].iloc[0], pd.Timestamp('2023-01-01'))
+        self.assertEqual(result['date'].iloc[1], pd.Timestamp('2023-01-02'))
+
+    def test_raises_error_for_missing_date_column(self):
+        '''Test that ValueError is raised when date column is missing.'''
+        df = pd.DataFrame({
+            'other_column': [1, 2, 3]
+        })
+        with self.assertRaises(ValueError):
+            make_date_datetime(df)
+
+    def test_handles_empty_dataframe(self):
+        '''Test that empty DataFrame is handled gracefully.'''
+        df = pd.DataFrame()
+        result = make_date_datetime(df)
+        self.assertTrue(result.empty)
+
+    def test_raises_error_for_invalid_type(self):
+        '''Test that TypeError is raised for non-DataFrame input.'''
+        with self.assertRaises(TypeError):
+            make_date_datetime("not a dataframe")
+
+    def test_handles_already_datetime_column(self):
+        '''Test that function works even if column is already datetime.'''
+        df = pd.DataFrame({
+            'date': pd.to_datetime(['2023-01-01', '2023-01-02']),
+            'intensity_forecast': [100, 110]
+        })
+        result = make_date_datetime(df)
+        self.assertTrue(pd.api.types.is_datetime64_any_dtype(result['date']))
 
 
 if __name__ == '__main__':
