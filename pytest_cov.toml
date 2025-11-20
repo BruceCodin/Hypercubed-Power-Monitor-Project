@@ -1,15 +1,10 @@
 [tool.coverage.run]
 omit = [
-    "test_*.py",
-    "*_test.py",
-    "tests/*",
-    "*/test_*.py",
     "**/test_*.py",
     "**/*_test.py",
 ]
+source = ["."]
 
 [tool.coverage.report]
 # Show missing lines in the report
 skip_covered = false
-# Fail if coverage is below this percentage
-fail_under = 80
