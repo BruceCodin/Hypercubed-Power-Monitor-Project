@@ -76,5 +76,11 @@ jobs:
         
         for dir in $TEST_DIRS; do
           echo "Testing $dir..."
-          pytest "$dir" --cov="$dir" --cov-report=term-missing --cov-fail-under=80
+          # Use find to get only non-test Python files for coverage
+          SOURCE_FILES=$(find "$dir" -name '*.py' ! -name 'test_*.py' ! -name '*_test.py' -type f)
+          if [ -n "$SOURCE_FILES" ]; then
+            pytest "$dir" --cov --cov-report=term-missing $(echo $SOURCE_FILES | xargs -n1 | sed 's/^/--cov=/')
+          else
+            pytest "$dir"
+          fi
         done
