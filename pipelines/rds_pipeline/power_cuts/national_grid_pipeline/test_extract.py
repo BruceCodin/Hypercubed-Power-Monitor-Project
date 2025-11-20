@@ -1,7 +1,7 @@
 # pylint: skip-file
 # test_extract.py
 import pytest
-from pipelines.rds_pipeline.power_cuts.national_grid_pipeline.extract import (
+from extract import (
     parse_records,
     validate_record,
     transform_record
@@ -12,9 +12,9 @@ class TestRecordParsing:
     """Tests for parsing records from API response"""
 
     @pytest.mark.parametrize("total,record_count,expected_length", [
-        (2, 2, 2),      # Normal case
-        (0, 0, 0),      # Empty response
-        (5, 5, 5),      # Multiple records
+        (2, 2, 2),
+        (0, 0, 0),
+        (5, 5, 5),
     ])
     def test_parse_records_extracts_correct_count(self, total, record_count, expected_length):
         """Test parsing extracts correct number of records."""
@@ -34,10 +34,10 @@ class TestRecordParsing:
         assert len(result) == expected_length
 
     @pytest.mark.parametrize("raw_data,expected", [
-        (None, []),                                          # None input
-        ({}, []),                                            # Empty dict
-        ({"success": False}, []),                            # Failed response
-        ({"success": True, "result": {}}, []),              # Missing records key
+        (None, []),
+        ({}, []),
+        ({"success": False}, []),
+        ({"success": True, "result": {}}, []),
     ])
     def test_parse_records_handles_invalid_input(self, raw_data, expected):
         """Test parsing handles various invalid inputs."""
@@ -57,7 +57,7 @@ class TestRecordValidation:
         record = {
             "Postcodes": "EX37 9TB",
             "Start Time": "2025-11-14T15:33:00",
-            "Status": "In Progress"
+            "Planned": "false"
         }
 
         # Act
@@ -67,25 +67,15 @@ class TestRecordValidation:
         assert result is True
 
     @pytest.mark.parametrize("record,expected", [
-        # Missing postcodes
-        ({"Start Time": "2025-11-14T15:33:00", "Status": "In Progress"}, False),
-        # Empty postcodes
-        ({"Postcodes": "", "Start Time": "2025-11-14T15:33:00",
-         "Status": "In Progress"}, False),
-        # Whitespace only postcodes
+        ({"Start Time": "2025-11-14T15:33:00", "Planned": "false"}, False),
+        ({"Postcodes": "", "Start Time": "2025-11-14T15:33:00", "Planned": "false"}, False),
         ({"Postcodes": "   ", "Start Time": "2025-11-14T15:33:00",
-         "Status": "In Progress"}, False),
-        # None postcodes
-        ({"Postcodes": None, "Start Time": "2025-11-14T15:33:00",
-         "Status": "In Progress"}, False),
-        # Missing start time
-        ({"Postcodes": "EX37 9TB", "Status": "In Progress"}, False),
-        # Empty start time
-        ({"Postcodes": "EX37 9TB", "Start Time": "", "Status": "In Progress"}, False),
-        # Whitespace only start time
-        ({"Postcodes": "EX37 9TB", "Start Time": "   ", "Status": "In Progress"}, False),
-        # Both missing
-        ({"Status": "In Progress"}, False),
+         "Planned": "false"}, False),
+        ({"Postcodes": None, "Start Time": "2025-11-14T15:33:00", "Planned": "false"}, False),
+        ({"Postcodes": "EX37 9TB", "Planned": "false"}, False),
+        ({"Postcodes": "EX37 9TB", "Start Time": "", "Planned": "false"}, False),
+        ({"Postcodes": "EX37 9TB", "Start Time": "   ", "Planned": "false"}, False),
+        ({"Planned": "false"}, False),
     ])
     def test_validate_record_rejects_invalid_data(self, record, expected):
         """Test validation correctly rejects records with missing/invalid required fields."""
@@ -100,10 +90,10 @@ class TestRecordTransformation:
     """Tests for transforming raw records to clean format"""
 
     @pytest.mark.parametrize("input_postcode,expected_postcode", [
-        ("EX37 9TB", "EX37 9TB"),          # Normal postcode
-        ("  EX37 9TB  ", "EX37 9TB"),      # With leading/trailing whitespace
-        ("BS20 6NB", "BS20 6NB"),          # Different postcode
-        ("  BA1 6TL  ", "BA1 6TL"),        # Another with whitespace
+        ("EX37 9TB", "EX37 9TB"),
+        ("  EX37 9TB  ", "EX37 9TB"),
+        ("BS20 6NB", "BS20 6NB"),
+        ("  BA1 6TL  ", "BA1 6TL"),
     ])
     def test_transform_record_cleans_postcode(self, input_postcode, expected_postcode):
         """Test transformation strips whitespace from postcodes."""
@@ -111,7 +101,7 @@ class TestRecordTransformation:
         record = {
             "Postcodes": input_postcode,
             "Start Time": "2025-11-14T15:33:00",
-            "Status": "In Progress"
+            "Planned": "false"
         }
 
         # Act
@@ -131,7 +121,7 @@ class TestRecordTransformation:
         record = {
             "Postcodes": "EX37 9TB",
             "Start Time": start_time,
-            "Status": "In Progress"
+            "Planned": "false"
         }
 
         # Act
@@ -141,25 +131,24 @@ class TestRecordTransformation:
         assert result["outage_date"] == start_time
         assert isinstance(result["outage_date"], str)
 
-    @pytest.mark.parametrize("status", [
-        "In Progress",
-        "Awaiting",
-        "Restored",
+    @pytest.mark.parametrize("planned", [
+        "false",
+        "true",
     ])
-    def test_transform_record_preserves_status(self, status):
-        """Test transformation preserves status field."""
+    def test_transform_record_preserves_planned(self, planned):
+        """Test transformation preserves planned field."""
         # Arrange
         record = {
             "Postcodes": "EX37 9TB",
             "Start Time": "2025-11-14T15:33:00",
-            "Status": status
+            "Planned": planned
         }
 
         # Act
         result = transform_record(record)
 
         # Assert
-        assert result["status"] == status
+        assert result["status"] == planned
 
     def test_transform_record_adds_source_provider(self):
         """Test transformation adds source_provider field."""
@@ -167,7 +156,7 @@ class TestRecordTransformation:
         record = {
             "Postcodes": "EX37 9TB",
             "Start Time": "2025-11-14T15:33:00",
-            "Status": "In Progress"
+            "Planned": "false"
         }
 
         # Act
@@ -182,7 +171,7 @@ class TestRecordTransformation:
         record = {
             "Postcodes": "EX37 9TB",
             "Start Time": "2025-11-14T15:33:00",
-            "Status": "In Progress"
+            "Planned": "false"
         }
 
         # Act
@@ -191,7 +180,6 @@ class TestRecordTransformation:
         # Assert
         assert "recording_time" in result
         assert isinstance(result["recording_time"], str)
-        # Verify it's ISO format (basic check - don't test datetime library)
         assert "T" in result["recording_time"]
 
     def test_transform_record_output_structure(self):
@@ -200,7 +188,7 @@ class TestRecordTransformation:
         record = {
             "Postcodes": "EX37 9TB",
             "Start Time": "2025-11-14T15:33:00",
-            "Status": "In Progress"
+            "Planned": "false"
         }
         expected_keys = {"affected_postcodes", "outage_date",
                          "status", "source_provider", "recording_time"}
