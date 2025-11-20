@@ -94,14 +94,14 @@ def normalize_datetime(iso_string: str) -> str:
         return iso_string
 
 
-def transform_power_cut_data(extracted_data: List[Dict]) -> List[Dict]:
+def transform_power_cut_data(raw_extracted_data: List[Dict]) -> List[Dict]:
     """
     Transform National Grid extracted data to standardized format.
     
     Each extracted record may be split into multiple records if multiple postcodes exist.
     
     Args:
-        extracted_data: List of dicts from extract_power_cut_data()
+        raw_extracted_data: List of dicts from extract_power_cut_data()
         
     Returns:
         List of transformed dicts ready for database load
@@ -115,13 +115,13 @@ def transform_power_cut_data(extracted_data: List[Dict]) -> List[Dict]:
         "recording_time": "YYYY-MM-DDTHH:MM:SS" 
     }
     """
-    if not extracted_data:
+    if not raw_extracted_data:
         logger.warning("No extracted data to transform")
         return []
 
     transformed_records = []
 
-    for record in extracted_data:
+    for record in raw_extracted_data:
         try:
             # Parse postcodes into list
             postcodes = parse_postcodes(record.get('affected_postcodes', ''))
@@ -136,7 +136,8 @@ def transform_power_cut_data(extracted_data: List[Dict]) -> List[Dict]:
 
             # Convert datetime formats (keep ISO 8601, remove microseconds)
             outage_date = normalize_datetime(record.get('outage_date', ''))
-            recording_time = normalize_datetime(record.get('recording_time', ''))
+            recording_time = normalize_datetime(
+                record.get('recording_time', ''))
 
             # Create transformed record
             transformed_record = {
@@ -149,12 +150,12 @@ def transform_power_cut_data(extracted_data: List[Dict]) -> List[Dict]:
 
             transformed_records.append(transformed_record)
 
-        except Exception as e:
+        except (KeyError, ValueError, TypeError) as e:
             logger.error(f"Failed to transform record {record}: {e}")
             continue
 
     logger.info(
-        f"Transformed {len(extracted_data)} extracted records into {len(transformed_records)} standardized records")
+        f"Transformed {len(raw_extracted_data)} extracted records into {len(transformed_records)} standardized records")
 
     return transformed_records
 
