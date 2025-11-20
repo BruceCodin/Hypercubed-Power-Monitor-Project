@@ -27,7 +27,7 @@ class TestTransformPostcodeManually:
         '''Test manual postcode transformation with invalid postcodes.'''
         invalid_cases = ["INVALID", 123, None, "BR8 7R", "BR8 7RE1"]
         for input_code in invalid_cases:
-            assert transform_postcode_manually(input_code) is None
+            assert transform_postcode_manually(input_code) == ""
 
 
 class TestTransformPostcodeWithAPI:
@@ -54,7 +54,7 @@ class TestTransformPostcodeWithAPI:
         mock_response.status_code = 404
         mock_get.return_value = mock_response
 
-        assert transform_postcode_with_api("INVALID123", self.logger) is None
+        assert transform_postcode_with_api("INVALID123", self.logger) == ""
 
     @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.requests.get')
     def test_api_offline_fallback_valid(self, mock_get):
@@ -72,7 +72,7 @@ class TestTransformPostcodeWithAPI:
         mock_response.status_code = 503
         mock_get.return_value = mock_response
 
-        assert transform_postcode_with_api("INVALID", self.logger) is None
+        assert transform_postcode_with_api("INVALID", self.logger) == ""
 
 
 class TestTransformPostcodeList:
@@ -86,7 +86,7 @@ class TestTransformPostcodeList:
     def test_transform_postcode_list_valid(self, mock_transform):
         '''Test postcode list transformation.'''
         mock_transform.side_effect = [
-            "BR8 7RE", None, "SW1A 1AA", "EC1A 1BB"
+            "BR8 7RE", "", "SW1A 1AA", "EC1A 1BB"
         ]
         input_postcodes = ["br87re", "invalid", "sw1a1aa", "ec1a1bb"]
         expected = ["BR8 7RE", "SW1A 1AA", "EC1A 1BB"]
@@ -97,7 +97,7 @@ class TestTransformPostcodeList:
     @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.transform_postcode_with_api')
     def test_transform_postcode_list_all_invalid(self, mock_transform):
         '''Test postcode list transformation with all invalid postcodes.'''
-        mock_transform.side_effect = [None, "SW1A 1AA", None]
+        mock_transform.side_effect = ["", "SW1A 1AA", ""]
         input_postcodes = ["invalid1", "SW1A 1AA", "invalid3"]
 
         result = transform_postcode_list(input_postcodes, self.logger)
@@ -121,7 +121,7 @@ class TestTransformSourceProvider:
         '''Test source provider transformation with invalid inputs.'''
         invalid_cases = [123, None, "", []]
         for input_provider in invalid_cases:
-            assert transform_source_provider(input_provider) is None
+            assert transform_source_provider(input_provider) == ""
 
 
 class TestTransformStatus:
@@ -142,7 +142,7 @@ class TestTransformStatus:
         '''Test status transformation with invalid inputs.'''
         invalid_cases = [123, [], {}]
         for input_status in invalid_cases:
-            assert transform_status(input_status) is None
+            assert transform_status(input_status) == ""
 
 
 class TestMainTransform:

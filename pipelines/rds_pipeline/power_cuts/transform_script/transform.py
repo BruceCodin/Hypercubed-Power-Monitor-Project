@@ -26,7 +26,7 @@ import re
 import requests
 
 
-def transform_postcode_with_api(postcode: str, logger: logging.Logger) -> str | None:
+def transform_postcode_with_api(postcode: str, logger: logging.Logger) -> str:
     '''
     Validate and transform postcode unit using postcodes.io API.
     This matches postcode unit inputs such as
@@ -38,7 +38,7 @@ def transform_postcode_with_api(postcode: str, logger: logging.Logger) -> str | 
         logger (logging.Logger): Logger instance for logging messages.
 
     Returns:
-        str | None: The standardized postcode if valid, None otherwise.
+        str: The standardized postcode if valid, empty string otherwise.
     '''
     url = f"https://api.postcodes.io/postcodes/{postcode}"
     logger.info("Validating postcode: %s", postcode)
@@ -46,7 +46,7 @@ def transform_postcode_with_api(postcode: str, logger: logging.Logger) -> str | 
 
     if response.status_code == 404:
         logger.warning("Postcode %s is invalid.", postcode)
-        return None
+        return ""
 
     if response.status_code == 200:
         data = response.json()
@@ -57,14 +57,14 @@ def transform_postcode_with_api(postcode: str, logger: logging.Logger) -> str | 
     logger.error(
         "Error validating postcode %s: %s.", postcode, response.status_code)
     postcode = transform_postcode_manually(postcode)
-    if postcode is None:
+    if postcode == "":
         logger.warning("Postcode %s is invalid (manual check).", postcode)
-        return None
+        return ""
     logger.info("Postcode %s is valid (manual check).", postcode)
     return postcode
 
 
-def transform_postcode_manually(postcode: str) -> str | None:
+def transform_postcode_manually(postcode: str) -> str:
     '''
     Helper fn: transform postcode unit manually if API unavailable.
     Validates with regex (simplest approach to cover most cases).
@@ -77,10 +77,10 @@ def transform_postcode_manually(postcode: str) -> str | None:
         postcode (str): Postcode to validate.
 
     Returns:
-        str | None: Validated and transformed postcode, or None if invalid.
+        str: Validated and transformed postcode, or empty string if invalid.
     '''
     if not isinstance(postcode, str):
-        return None
+        return ""
 
     postcode = postcode.strip().upper()
 
@@ -88,7 +88,7 @@ def transform_postcode_manually(postcode: str) -> str | None:
 
     match = re.match(pattern, postcode)
     if not match:
-        return None
+        return ""
 
     outward, inward = match.groups()
     return f'{outward} {inward}'
@@ -113,7 +113,7 @@ def transform_postcode_list(postcode_list: list[str], logger: logging.Logger) ->
     return transformed_list
 
 
-def transform_source_provider(source_provider: str) -> str | None:
+def transform_source_provider(source_provider: str) -> str:
     '''
     Standardize source provider string to title case.
 
@@ -121,10 +121,10 @@ def transform_source_provider(source_provider: str) -> str | None:
         source_provider (str): The source provider name.
 
     Returns:
-        str: Standardized source provider name or None if invalid.
+        str: Standardized source provider name or empty string if invalid.
     '''
     if not isinstance(source_provider, str):
-        return None
+        return ""
 
     source_provider_words = source_provider.split(" ")
     for i, word in enumerate(source_provider_words):
@@ -132,12 +132,12 @@ def transform_source_provider(source_provider: str) -> str | None:
     source_provider = ' '.join(source_provider_words)
 
     if not source_provider:
-        return None
+        return ""
 
     return source_provider
 
 
-def transform_status(status: str | bool) -> str | None:
+def transform_status(status: str | bool) -> str:
     '''
     Standardize boolean status to "planned" or "unplanned".
     Transform strings to lowercase.
@@ -146,10 +146,10 @@ def transform_status(status: str | bool) -> str | None:
         status (str | bool): The status of the power cut.
 
     Returns:
-        str | None: cleaned status string or None if invalid.
+        str: cleaned status string or empty string if invalid.
     '''
     if status is None:
-        return None
+        return ""
 
     if isinstance(status, bool):
         return "planned" if status else "unplanned"
@@ -157,10 +157,10 @@ def transform_status(status: str | bool) -> str | None:
     if isinstance(status, str):
         return status.strip().lower()
 
-    return None
+    return ""
 
 
-def transform_field(json_input: dict, field_name: str, logger: logging.Logger, transform_fn: callable = None) -> str | None:
+def transform_field(json_input: dict, field_name: str, logger: logging.Logger, transform_fn: callable = None) -> str:
     '''
     Generic field transformation helper.
 
@@ -172,11 +172,11 @@ def transform_field(json_input: dict, field_name: str, logger: logging.Logger, t
             If None, converts datetime to ISO format.
 
     Returns:
-        str | None: Transformed field value or None if invalid.
+        str: Transformed field value or empty string if invalid.
     '''
     if field_name not in json_input:
         logger.warning("Missing %s field. Skipping record.", field_name)
-        return None
+        return ""
 
     if transform_fn:
         if field_name == 'affected_postcodes':
@@ -191,7 +191,7 @@ def transform_field(json_input: dict, field_name: str, logger: logging.Logger, t
     if not field_value:
         logger.warning(
             "No valid %s found. Skipping record.", field_name)
-        return None
+        return ""
 
     return field_value
 
