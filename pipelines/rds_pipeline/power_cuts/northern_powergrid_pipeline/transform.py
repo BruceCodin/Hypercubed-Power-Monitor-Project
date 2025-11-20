@@ -37,6 +37,9 @@ def transform_postcode(postcode: str) -> list[str]:
     Returns:
         list[str]: Single postcode as a list."""
 
+    if not postcode:
+        return []
+
     standard_pc = " ".join(postcode.upper().split())
 
     return [standard_pc]
@@ -54,8 +57,10 @@ def transform_status(status: str) -> str:
 
     if "fault" in status.lower():
         return "Unplanned"
-    else:
+    elif "planned" in status.lower():
         return "Planned"
+    else:
+        return "Unknown"
 
 
 if __name__ == "__main__":
