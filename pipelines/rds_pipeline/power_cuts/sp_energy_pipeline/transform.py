@@ -55,10 +55,10 @@ def standardize_status(planned_value) -> str:
 def normalize_datetime(iso_string: str) -> str:
     """
     Normalize datetime to consistent ISO 8601 format for PostgreSQL.
-    Removes microseconds but keeps ISO format with timezone (YYYY-MM-DDTHH:MM:SS±HH:MM or YYYY-MM-DDTHH:MM:SSZ).
+    Removes microseconds but keeps ISO format (YYYY-MM-DDTHH:MM:SS).
     
     Args:
-        iso_string: ISO format datetime (e.g., '2025-11-20T12:03:47+00:00')
+        iso_string: ISO format datetime (e.g., '2025-11-20T12:03:47.123456+00:00')
         
     Returns:
         Normalized ISO format datetime (e.g., '2025-11-20T12:03:47+00:00')
@@ -67,30 +67,14 @@ def normalize_datetime(iso_string: str) -> str:
         return ''
 
     try:
-        # Remove microseconds if present (PostgreSQL accepts but we normalize)
-        if '.' in iso_string:
-            # Split on . and keep everything before it, including any timezone
-            base_time = iso_string.split('.')[0]
-
-            # Check if there was timezone info after microseconds
-            if '+' in iso_string or 'Z' in iso_string:
-                # Find timezone part (after the microseconds)
-                tz_part = iso_string.split('.')[-1]
-                if '+' in tz_part:
-                    base_time += '+' + tz_part.split('+')[-1]
-                elif 'Z' in tz_part:
-                    base_time += 'Z'
-
-            iso_string = base_time
-
-        # Parse to validate format, then return as ISO format
+        # Replace 'Z' with '+00:00' for fromisoformat compatibility
         dt = datetime.fromisoformat(iso_string.replace('Z', '+00:00'))
-        return dt.isoformat()
+        # Return ISO format with second precision (removes microseconds)
+        return dt.replace(microsecond=0).isoformat()
 
     except (ValueError, AttributeError) as e:
         logger.warning(f"Failed to normalize datetime '{iso_string}': {e}")
         return iso_string
-
 
 def transform_power_cut_data(raw_extracted_data: List[Dict]) -> List[Dict]:
     """
