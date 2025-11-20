@@ -3,6 +3,6 @@ provider "aws" {
 }
 
 resource "aws_ecr_repository" "power-monitor-repo" {
-  name                 = var.ecr_repository_name
+  name         = var.ecr_repository_name
   force_delete = true # useful while in development
 }
