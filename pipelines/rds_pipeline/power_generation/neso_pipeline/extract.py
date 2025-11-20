@@ -1,3 +1,4 @@
+'''Module to extract NESO demand data via API calls'''
 import logging
 import pandas as pd
 import requests
@@ -56,4 +57,3 @@ def parse_neso_demand_data(data: pd.DataFrame) -> pd.DataFrame:
     result_df = data[required_columns]
     logger.info(f"Parsed {len(result_df)} records with required columns")
     return result_df
-
