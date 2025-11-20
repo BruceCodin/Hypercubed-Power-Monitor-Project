@@ -63,9 +63,11 @@ def test_transform_outage_date_pm_format():
 def test_transform_power_cut_data_valid():
     """Test transformation of valid power cut data."""
     data = [{
+        "source_provider": "Northern Ireland Electricity Networks",
         "affected_postcodes": "bt1  1aa;bt2 2bb",
         "status": "Network Fault",
-        "outage_date": "10:30 AM, 15 Jan"
+        "outage_date": "10:30 AM, 15 Jan",
+        "recording_time": "2025-01-15T09:00:00"
     }]
     result = transform_power_cut_data(data)
 
@@ -75,17 +77,27 @@ def test_transform_power_cut_data_valid():
 
 
 def test_transform_power_cut_data_empty_list():
-    """Test transformation of empty list returns None."""
-    assert transform_power_cut_data([]) is None
+    """Test transformation of empty list returns empty list."""
+    assert transform_power_cut_data([]) == []
 
 
 def test_transform_power_cut_data_multiple_entries():
     """Test transformation of multiple power cut entries."""
     data = [
-        {"affected_postcodes": "bt1 1aa", "status": "Fault",
-         "outage_date": "10:00 AM, 15 Jan"},
-        {"affected_postcodes": "bt2 2bb", "status": "Planned Work",
-         "outage_date": "02:00 PM, 16 Jan"}
+        {
+            "source_provider": "Northern Ireland Electricity Networks",
+            "affected_postcodes": "bt1 1aa",
+            "status": "Fault",
+            "outage_date": "10:00 AM, 15 Jan",
+            "recording_time": "2025-01-15T09:00:00"
+        },
+        {
+            "source_provider": "Northern Ireland Electricity Networks",
+            "affected_postcodes": "bt2 2bb",
+            "status": "Planned Work",
+            "outage_date": "02:00 PM, 16 Jan",
+            "recording_time": "2025-01-16T09:00:00"
+        }
     ]
     result = transform_power_cut_data(data)
 
