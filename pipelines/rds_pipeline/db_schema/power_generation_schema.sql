@@ -10,7 +10,8 @@ CREATE TABLE settlements(
     settlement_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     settlement_date TIMESTAMP NOT NULL,
     settlement_period INT NOT NULL,
-    CONSTRAINT settlement_period_check CHECK (settlement_period BETWEEN 1 AND 48)
+    CONSTRAINT settlement_period_check CHECK (settlement_period BETWEEN 1 AND 48),
+    CONSTRAINT unique_settlement UNIQUE (settlement_date, settlement_period)
 );
 
 CREATE TABLE system_price(
@@ -26,7 +27,8 @@ CREATE TABLE carbon_intensity(
     intensity_forecast DECIMAL(10,2) NOT NULL,
     intensity_actual DECIMAL(10,2) NOT NULL,
     intensity_index TEXT NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE
+    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE,
+    CONSTRAINT unique_reading UNIQUE (settlement_id)
 );
 
 CREATE TABLE fuel_type(
