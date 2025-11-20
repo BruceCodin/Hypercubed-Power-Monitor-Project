@@ -72,7 +72,7 @@ def transform_postcode_manually(postcode: str) -> str | None:
     Validates with regex (simplest approach to cover most cases).
     UK postcode format: outward (2-4 chars) + inward (3 chars).
        Outward: 1-2 letters + digit [+ letter] OR digit + letter
-        Inward: digit + 2 letters
+       Inward: digit + 2 letters
     Format: https://ideal-postcodes.co.uk/guides/uk-postcode-format
 
     Args:
