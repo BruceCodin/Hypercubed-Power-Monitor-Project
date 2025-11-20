@@ -1,5 +1,5 @@
 from unittest.mock import patch, MagicMock
-from transform import (
+from pipelines.rds_pipeline.power_cuts.transform_script.transform import (
     transform_postcode_with_api,
     transform_postcode_manually,
     transform_postcode_list,
@@ -31,7 +31,7 @@ class TestTransformPostcodeManually:
 
 class TestTransformPostcodeWithAPI:
     '''Test class for transform_postcode_with_api function.'''
-    @patch('transform.requests.get')
+    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.requests.get')
     def test_api_online_valid(self, mock_get):
         '''Test API validation when online with valid postcode.'''
         mock_response = MagicMock()
@@ -41,7 +41,7 @@ class TestTransformPostcodeWithAPI:
 
         assert transform_postcode_with_api("br87re") == "BR8 7RE"
 
-    @patch('transform.requests.get')
+    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.requests.get')
     def test_api_online_invalid(self, mock_get):
         '''Test API validation when online with invalid postcode (404).'''
         mock_response = MagicMock()
@@ -50,7 +50,7 @@ class TestTransformPostcodeWithAPI:
 
         assert transform_postcode_with_api("INVALID123") is None
 
-    @patch('transform.requests.get')
+    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.requests.get')
     def test_api_offline_fallback_valid(self, mock_get):
         '''Test fallback to manual validation when API offline (5xx error).'''
         mock_response = MagicMock()
@@ -59,7 +59,7 @@ class TestTransformPostcodeWithAPI:
 
         assert transform_postcode_with_api("BR8 7RE") == "BR8 7RE"
 
-    @patch('transform.requests.get')
+    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.requests.get')
     def test_api_offline_fallback_invalid(self, mock_get):
         '''Test fallback to manual validation when API offline with invalid postcode.'''
         mock_response = MagicMock()
@@ -71,7 +71,7 @@ class TestTransformPostcodeWithAPI:
 
 class TestTransformPostcodeList:
     '''Test class for transform_postcode_list function.'''
-    @patch('transform.transform_postcode_with_api')
+    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.transform_postcode_with_api')
     def test_transform_postcode_list_valid(self, mock_transform):
         '''Test postcode list transformation.'''
         mock_transform.side_effect = [
@@ -83,7 +83,7 @@ class TestTransformPostcodeList:
         result = transform_postcode_list(input_postcodes)
         assert result == expected
 
-    @patch('transform.transform_postcode_with_api')
+    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.transform_postcode_with_api')
     def test_transform_postcode_list_all_invalid(self, mock_transform):
         '''Test postcode list transformation with all invalid postcodes.'''
         mock_transform.side_effect = [None, "SW1A 1AA", None]
@@ -186,9 +186,9 @@ class TestMainTransform:
             'recording_time': self._mock_datetime(recording_time)
         }
 
-    @patch('transform.transform_postcode_list')
-    @patch('transform.transform_source_provider')
-    @patch('transform.transform_status')
+    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.transform_postcode_list')
+    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.transform_source_provider')
+    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.transform_status')
     def test_main_transform_valid(self, mock_status, mock_provider, mock_postcode):
         '''Test main transformation with valid input data.'''
         mock_postcode.side_effect = [["BR8 7RE", "SW1A 1AA"], ["EC1A 1BB"]]
