@@ -60,6 +60,9 @@ jobs:
         # If you have a setup.py or pyproject.toml, uncomment the line below
         # pip install -e .
 
+    - name: Set PYTHONPATH
+      run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
+
     - name: Run tests with coverage
       run: |
         # Find all directories containing test files
