@@ -1,4 +1,3 @@
 requests
-pandas
 pylint
 pytest
