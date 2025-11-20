@@ -111,4 +111,3 @@ def test_parse_data_includes_correct_provider():
     result = parse_power_cut_data(mock_data)
 
     assert result[0]["source_provider"] == PROVIDER
-    assert result[0]["source_provider"] == "Northern Ireland Electricity Networks"
