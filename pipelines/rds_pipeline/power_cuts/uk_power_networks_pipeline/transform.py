@@ -74,25 +74,10 @@ def normalize_datetime(iso_string: str) -> str:
         return ''
 
     try:
-        # Remove microseconds if present (PostgreSQL accepts but we normalize)
-        if '.' in iso_string:
-            # Split on . and keep everything before it, including any timezone
-            base_time = iso_string.split('.')[0]
-
-            # Check if there was timezone info after microseconds
-            if '+' in iso_string or 'Z' in iso_string:
-                # Find timezone part (after the microseconds)
-                tz_part = iso_string.split('.')[-1]
-                if '+' in tz_part:
-                    base_time += '+' + tz_part.split('+')[-1]
-                elif 'Z' in tz_part:
-                    base_time += 'Z'
-
-            iso_string = base_time
-
-        # Parse to validate format, then return as ISO format
+        # Replace 'Z' with '+00:00' for fromisoformat compatibility
         dt = datetime.fromisoformat(iso_string.replace('Z', '+00:00'))
-        return dt.isoformat()
+        # Return ISO format with second precision (removes microseconds)
+        return dt.replace(microsecond=0).isoformat()
 
     except (ValueError, AttributeError) as e:
         logger.warning(f"Failed to normalize datetime '{iso_string}': {e}")
