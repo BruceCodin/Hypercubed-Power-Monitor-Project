@@ -56,11 +56,11 @@ def transform_status(status: str) -> str:
     """
 
     if "fault" in status.lower():
-        return "Unplanned"
+        return "unplanned"
     elif "planned" in status.lower():
-        return "Planned"
+        return "planned"
     else:
-        return "Unknown"
+        return "unknown"
 
 
 if __name__ == "__main__":

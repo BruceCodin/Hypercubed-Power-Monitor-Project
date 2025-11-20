@@ -27,18 +27,18 @@ def test_transform_postcode_already_formatted():
 
 def test_transform_status_planned_work():
     """Test planned work status mapping."""
-    assert transform_status("Planned Work on System") == "Planned"
+    assert transform_status("Planned Work on System") == "planned"
 
 
 def test_transform_status_localised_fault():
     """Test localised fault status mapping."""
-    assert transform_status("Localised Fault") == "Unplanned"
+    assert transform_status("Localised Fault") == "unplanned"
 
 
 def test_transform_status_unknown():
-    """Test unknown status returns Unknown."""
-    assert transform_status("Emergency") == "Unknown"
-    assert transform_status("") == "Unknown"
+    """Test unknown status returns unknown."""
+    assert transform_status("Emergency") == "unknown"
+    assert transform_status("") == "unknown"
 
 
 def test_transform_power_cut_data_valid():
@@ -53,7 +53,7 @@ def test_transform_power_cut_data_valid():
     result = transform_power_cut_data(data)
 
     assert result[0]["affected_postcodes"] == ["NE1 4ST"]
-    assert result[0]["status"] == "Planned"
+    assert result[0]["status"] == "planned"
     assert result[0]["outage_date"] == "2025-01-15T10:00:00"
 
 
@@ -68,7 +68,7 @@ def test_transform_power_cut_data_missing_keys():
     result = transform_power_cut_data(data)
 
     assert result[0]["affected_postcodes"] == []
-    assert result[0]["status"] == "Unknown"
+    assert result[0]["status"] == "unknown"
 
 
 def test_transform_power_cut_data_multiple_entries():
@@ -81,6 +81,6 @@ def test_transform_power_cut_data_multiple_entries():
 
     assert len(result) == 2
     assert result[0]["affected_postcodes"] == ["NE1 4ST"]
-    assert result[0]["status"] == "Unplanned"
+    assert result[0]["status"] == "unplanned"
     assert result[1]["affected_postcodes"] == ["DH1 3HP"]
-    assert result[1]["status"] == "Planned"
+    assert result[1]["status"] == "planned"
