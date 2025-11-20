@@ -2,30 +2,28 @@
 
 from unittest.mock import patch, Mock
 import requests
-from pipelines.rds_pipeline.power_cuts.nie_networks_pipeline.extract import (
+from extract import (
     extract_power_cut_data,
     parse_power_cut_data,
     PROVIDER
 )
 
-# Tests for extract_power_cut_data
 
-
-@patch('pipelines.rds_pipeline.power_cuts.nie_networks_pipeline.extract.req.get')
+@patch('extract.req.get')
 def test_extract_successful_api_call(mock_get):
     """Test successful API data extraction."""
     mock_response = Mock()
+    mock_response.status_code = 200
     mock_response.json.return_value = {"outageMessage": []}
     mock_response.raise_for_status = Mock()
     mock_get.return_value = mock_response
 
     result = extract_power_cut_data()
-
     assert result == {"outageMessage": []}
     mock_get.assert_called_once()
 
 
-@patch('pipelines.rds_pipeline.power_cuts.nie_networks_pipeline.extract.req.get')
+@patch('extract.req.get')
 def test_extract_failed_api_call(mock_get):
     """Test failed API call returns None."""
     mock_get.side_effect = requests.exceptions.RequestException("API Error")
@@ -35,7 +33,7 @@ def test_extract_failed_api_call(mock_get):
     assert result is None
 
 
-@patch('pipelines.rds_pipeline.power_cuts.nie_networks_pipeline.extract.req.get')
+@patch('extract.req.get')
 def test_extract_timeout_handling(mock_get):
     """Test timeout handling returns None."""
     mock_get.side_effect = requests.exceptions.Timeout("Timeout")
