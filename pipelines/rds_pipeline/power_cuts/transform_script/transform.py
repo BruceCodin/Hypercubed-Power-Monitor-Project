@@ -6,7 +6,7 @@ Inputs: JSON power cut data with columns:
     "affected_postcodes": list[str],
     "outage_date": datetime,
     "source_provider": str,
-    "status": str(planned, unplanned, ...) | bool,
+    "status": str | bool,
     "recording_time": datetime
 }
 
@@ -15,15 +15,15 @@ Outputs: clean JSON data with columns:
     "affected_postcodes": list[str(postcode unit)],
     "outage_date": datetime(iso format),
     "source_provider": str,
-    "status": str(planned, unplanned),
+    "status": str(default planned, unplanned),
     "recording_time": datetime(iso format)
 }
 '''
 
-import requests
 import logging
 import re
-from datetime import datetime
+
+import requests
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -43,26 +43,26 @@ def transform_postcode_with_api(postcode: str) -> str | None:
         str | None: The standardized postcode if valid, None otherwise.
     '''
     url = f"https://api.postcodes.io/postcodes/{postcode}"
-    logger.info(f"Validating postcode: {postcode}")
-    response = requests.get(url)
+    logger.info("Validating postcode: %s", postcode)
+    response = requests.get(url, timeout=5)
 
     if response.status_code == 404:
-        logger.warning(f"Postcode {postcode} is invalid.")
+        logger.warning("Postcode %s is invalid.", postcode)
         return None
 
     if response.status_code == 200:
         data = response.json()
-        logger.info(f"Postcode {postcode} is valid.")
+        logger.info("Postcode %s is valid.", postcode)
         postcode = data['result']['postcode']
         return postcode
 
     logger.error(
-        f"Error validating postcode {postcode}: {response.status_code}.")
+        "Error validating postcode %s: %s.", postcode, response.status_code)
     postcode = transform_postcode_manually(postcode)
     if postcode is None:
-        logger.warning(f"Postcode {postcode} is invalid (manual check).")
+        logger.warning("Postcode %s is invalid (manual check).", postcode)
         return None
-    logger.info(f"Postcode {postcode} is valid (manual check).")
+    logger.info("Postcode %s is valid (manual check).", postcode)
     return postcode
 
 
@@ -96,8 +96,22 @@ def transform_postcode_manually(postcode: str) -> str | None:
     return f'{outward} {inward}'
 
 
-# outage_date.isoformat()
-# Not required as a function
+def transform_postcode_list(postcode_list: list[str]) -> list[str]:
+    '''
+    Transform a list of postcode units, validating each.
+
+    Args:
+        postcode_list (list[str]): List of postcode strings.
+
+    Returns:
+        list[str]: List of validated and transformed postcode strings.
+    '''
+    transformed_list = []
+    for postcode in postcode_list:
+        transformed_postcode = transform_postcode_with_api(postcode)
+        if transformed_postcode:
+            transformed_list.append(transformed_postcode)
+    return transformed_list
 
 
 def transform_source_provider(source_provider: str) -> str | None:
@@ -113,4 +127,105 @@ def transform_source_provider(source_provider: str) -> str | None:
     if not isinstance(source_provider, str):
         return None
 
-    return source_provider.title()
+    source_provider_words = source_provider.split(" ")
+    for i, word in enumerate(source_provider_words):
+        source_provider_words[i] = word.strip().title()
+    source_provider = ' '.join(source_provider_words)
+
+    if not source_provider:
+        return None
+
+    return source_provider
+
+
+def transform_status(status: str | bool) -> str | None:
+    '''
+    Standardize boolean status to "planned" or "unplanned".
+    Transform strings to lowercase.
+
+    Args:
+        status (str | bool): The status of the power cut.
+
+    Returns:
+        str | None: cleaned status string or None if invalid.
+    '''
+    if status is None:
+        return None
+
+    if isinstance(status, bool):
+        return "planned" if status else "unplanned"
+
+    if isinstance(status, str):
+        return status.strip().lower()
+
+    return None
+
+
+def transform_field(json_input: dict, field_name: str, transform_fn: callable = None) -> str | None:
+    '''
+    Generic field transformation helper.
+
+    Args:
+        json_input (dict): The input JSON record.
+        field_name (str): The name of the field to transform.
+        transform_fn (callable, optional): The transformation function to apply.
+            If None, converts datetime to ISO format.
+
+    Returns:
+        str | None: Transformed field value or None if invalid.
+    '''
+    if field_name not in json_input:
+        logger.warning(f"Missing {field_name} field. Skipping record.")
+        return None
+
+    if transform_fn:
+        field_value = transform_fn(
+            json_input.get(field_name, None))
+    else:
+        field_value = json_input.get(field_name, None)
+        if hasattr(field_value, 'isoformat'):
+            field_value = field_value.isoformat()
+
+    if not field_value:
+        logger.warning(
+            f"No valid {field_name} found. Skipping record.")
+        return None
+
+    return field_value
+
+
+def main_transform(json_list_input: list[dict]) -> list[dict]:
+    '''
+    Main transformation function
+
+    Args:
+        json_list_input (list[dict]): List of input JSON records.
+
+    Returns:
+        list[dict]: List of transformed JSON records.
+    '''
+    fields = [
+        ('affected_postcodes', transform_postcode_list),
+        ('outage_date', None),
+        ('source_provider', transform_source_provider),
+        ('status', transform_status),
+        ('recording_time', None),
+    ]
+
+    transformed_list = []
+
+    for json_input in json_list_input:
+        transformed = {}
+        valid = True
+
+        for field_name, transform_fn in fields:
+            value = transform_field(json_input, field_name, transform_fn)
+            if not value:
+                valid = False
+                break
+            transformed[field_name] = value
+
+        if valid:
+            transformed_list.append(transformed)
+
+    return transformed_list
