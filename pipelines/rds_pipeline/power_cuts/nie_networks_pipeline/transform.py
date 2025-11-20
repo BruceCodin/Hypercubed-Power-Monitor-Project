@@ -19,7 +19,7 @@ def transform_power_cut_data(data: list[dict]) -> list[dict]:
     """Transform function to clean raw json data and output to standard format.
 
     Args:
-        data (list[dict]): Raw data extracted from Northern Powergrid API.
+        data (list[dict]): Raw data extracted from NIE Networks API.
 
     Returns:
         list[dict]: Transformed data in standard format."""
