@@ -23,7 +23,9 @@ CREATE TABLE system_price(
 CREATE TABLE carbon_intensity(
     intensity_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     settlement_id INT NOT NULL,
-    carbon_intensity DECIMAL(10,2) NOT NULL,
+    intensity_forecast DECIMAL(10,2) NOT NULL,
+    intensity_actual DECIMAL(10,2) NOT NULL,
+    intensity_index TEXT NOT NULL,
     FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE
 );
 
