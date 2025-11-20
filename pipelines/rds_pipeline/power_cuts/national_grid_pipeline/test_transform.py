@@ -100,7 +100,7 @@ class TestFullTransformation:
         assert result[0]['recording_time'] == '2025-11-20T11:20:47'
 
     def test_transform_power_cut_data_multiple_postcodes(self):
-        """Test transformation splits multiple postcodes correctly."""
+        """Test transformation converts comma-separated postcodes to list."""
         # Arrange
         extracted_data = [{
             'affected_postcodes': 'SA34 0TH, SA34 0UY, SA34 0XD',

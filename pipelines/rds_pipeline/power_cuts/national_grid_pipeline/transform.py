@@ -69,25 +69,10 @@ def normalize_datetime(iso_string: str) -> str:
         return ''
 
     try:
-        # Remove microseconds if present (PostgreSQL accepts but we normalize)
-        if '.' in iso_string:
-            # Split on . and keep everything before it, including any timezone
-            base_time = iso_string.split('.')[0]
-
-            # Check if there was timezone info after microseconds
-            if '+' in iso_string or 'Z' in iso_string:
-                # Find timezone part (after the microseconds)
-                tz_part = iso_string.split('.')[-1]
-                if '+' in tz_part:
-                    base_time += '+' + tz_part.split('+')[-1]
-                elif 'Z' in tz_part:
-                    base_time += 'Z'
-
-            iso_string = base_time
-
-        # Parse to validate format, then return as ISO format
+        # Replace 'Z' with '+00:00' for fromisoformat compatibility
         dt = datetime.fromisoformat(iso_string.replace('Z', '+00:00'))
-        return dt.isoformat()
+        # Return ISO format with second precision (removes microseconds)
+        return dt.replace(microsecond=0).isoformat()
 
     except (ValueError, AttributeError) as e:
         logger.warning(f"Failed to normalize datetime '{iso_string}': {e}")
@@ -98,7 +83,8 @@ def transform_power_cut_data(raw_extracted_data: List[Dict]) -> List[Dict]:
     """
     Transform National Grid extracted data to standardized format.
     
-    Each extracted record may be split into multiple records if multiple postcodes exist.
+    Converts comma-separated postcode strings to lists while standardizing
+    datetime and status fields.
     
     Args:
         raw_extracted_data: List of dicts from extract_power_cut_data()
