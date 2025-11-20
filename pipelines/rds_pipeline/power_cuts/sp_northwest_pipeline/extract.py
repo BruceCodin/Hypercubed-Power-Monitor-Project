@@ -13,8 +13,6 @@ BASE_URL = "https://www.enwl.co.uk/api/power-outages/search?pageSize=1000&pageNu
 PROVIDER = "SP Electricity North West"
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def extract_power_cut_data() -> Optional[dict]:
