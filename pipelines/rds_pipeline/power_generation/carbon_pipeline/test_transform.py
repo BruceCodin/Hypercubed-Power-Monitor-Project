@@ -1,8 +1,7 @@
 '''Simple test suite for transform module.'''
 import unittest
 import pandas as pd
-from datetime import datetime, date
-from unittest.mock import patch
+from datetime import date
 from transform import (
     add_settlement_period,
     refactor_intensity_column,
@@ -117,10 +116,9 @@ class TestAddDateColumn(unittest.TestCase):
 class TestTransformCarbonData(unittest.TestCase):
     '''Tests for transform_carbon_data function.'''
 
-    @patch('transform.fetch_carbon_intensity_data')
-    def test_transforms_data_successfully(self, mock_fetch):
+    def test_transforms_data_successfully(self):
         '''Test that data is transformed through the entire pipeline.'''
-        mock_fetch.return_value = pd.DataFrame({
+        df = pd.DataFrame({
             'from': ['2025-01-01T00:00Z', '2025-01-01T00:30Z'],
             'to': ['2025-01-01T00:30Z', '2025-01-01T01:00Z'],
             'intensity': [
@@ -129,9 +127,7 @@ class TestTransformCarbonData(unittest.TestCase):
             ]
         })
 
-        from_dt = datetime(2025, 1, 1, 0, 0)
-        to_dt = datetime(2025, 1, 1, 1, 0)
-        result = transform_carbon_data(from_dt, to_dt)
+        result = transform_carbon_data(df)
 
         self.assertIn('date', result.columns)
         self.assertIn('settlement_period', result.columns)
@@ -139,28 +135,17 @@ class TestTransformCarbonData(unittest.TestCase):
         self.assertIn('intensity_actual', result.columns)
         self.assertIn('carbon_index', result.columns)
         self.assertEqual(len(result), 2)
+        self.assertTrue(pd.api.types.is_datetime64_any_dtype(result['date']))
 
-    def test_raises_error_for_invalid_datetime_type(self):
-        '''Test that TypeError is raised for non-datetime input.'''
+    def test_raises_error_for_invalid_dataframe_type(self):
+        '''Test that TypeError is raised for non-DataFrame input.'''
         with self.assertRaises(TypeError):
-            transform_carbon_data("not a datetime", datetime.now())
+            transform_carbon_data("not a dataframe")
 
-    def test_raises_error_when_from_after_to(self):
-        '''Test that ValueError is raised when from_datetime is after to_datetime.'''
-        from_dt = datetime(2025, 1, 2, 0, 0)
-        to_dt = datetime(2025, 1, 1, 0, 0)
-        with self.assertRaises(ValueError):
-            transform_carbon_data(from_dt, to_dt)
-
-    @patch('transform.fetch_carbon_intensity_data')
-    def test_handles_empty_data_from_api(self, mock_fetch):
-        '''Test that empty DataFrame from API is handled gracefully.'''
-        mock_fetch.return_value = pd.DataFrame()
-
-        from_dt = datetime(2025, 1, 1, 0, 0)
-        to_dt = datetime(2025, 1, 1, 1, 0)
-        result = transform_carbon_data(from_dt, to_dt)
-
+    def test_handles_empty_dataframe(self):
+        '''Test that empty DataFrame is handled gracefully.'''
+        df = pd.DataFrame()
+        result = transform_carbon_data(df)
         self.assertTrue(result.empty)
 
 

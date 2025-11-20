@@ -181,7 +181,7 @@ def make_date_datetime(carbon_df: pd.DataFrame) -> pd.DataFrame:
     
     
 if __name__ == "__main__":
-    # Example usage for refactor_intensity_column
+    # For local testing
     from_datetime = datetime(2025, 1, 1, 0, 0)
     to_datetime = datetime(2025, 1, 1, 1, 0)
     carbon_data = fetch_carbon_intensity_data(from_datetime, to_datetime)
