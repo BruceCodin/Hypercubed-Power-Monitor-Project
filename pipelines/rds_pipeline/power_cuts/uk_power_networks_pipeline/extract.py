@@ -30,7 +30,7 @@ def fetch_raw_data(limit: int = 100) -> Optional[Dict]:
     Returns:
         Dictionary containing API response, or None if request fails
     """
-    # Get API key from environment variable (may not be required)
+    # Get API key from environment variable
     api_key = os.getenv('UKPN_API_KEY')
 
     # Try with API key if provided, otherwise try without
