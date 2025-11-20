@@ -175,7 +175,7 @@ def transform_field(json_input: dict, field_name: str, transform_fn: callable = 
         str | None: Transformed field value or None if invalid.
     '''
     if field_name not in json_input:
-        logger.warning(f"Missing {field_name} field. Skipping record.")
+        logger.warning("Missing %s field. Skipping record.", field_name)
         return None
 
     if transform_fn:
@@ -188,7 +188,7 @@ def transform_field(json_input: dict, field_name: str, transform_fn: callable = 
 
     if not field_value:
         logger.warning(
-            f"No valid {field_name} found. Skipping record.")
+            "No valid %s found. Skipping record.", field_name)
         return None
 
     return field_value
