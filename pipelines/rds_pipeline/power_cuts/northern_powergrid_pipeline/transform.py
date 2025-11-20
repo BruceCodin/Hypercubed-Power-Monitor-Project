@@ -1,3 +1,7 @@
+""" Transform module for Northern Powergrid power cut data pipeline.
+This module contains functions to transform raw JSON data extracted from
+the Northern Powergrid API into a standardized format suitable for further processing."""
+
 import logging
 from pprint import pprint
 from extract import (extract_power_cut_data,
