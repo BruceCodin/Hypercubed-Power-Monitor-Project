@@ -131,7 +131,7 @@ class TestTransformStatus:
         '''Test status transformation with invalid inputs.'''
         invalid_cases = [123, [], {}]
         for input_status in invalid_cases:
-            assert transform_status(input_status) == None
+            assert transform_status(input_status) is None
 
 
 class TestMainTransform:
