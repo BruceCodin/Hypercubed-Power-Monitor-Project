@@ -1,11 +1,18 @@
 import logging
 from datetime import datetime
-from pprint import pprint
 from extract import (extract_power_cut_data,
                      parse_power_cut_data)
 
 
 logger = logging.getLogger(__name__)
+
+ENTRY_COLUMNS = [
+    "source_provider",
+    "status",
+    "outage_date",
+    "recording_time",
+    "affected_postcodes",
+]
 
 
 def transform_power_cut_data(data: list[dict]) -> list[dict]:
@@ -19,16 +26,22 @@ def transform_power_cut_data(data: list[dict]) -> list[dict]:
 
     if not data:
         logger.warning("No data to transform.")
-        return None
+        return []
 
     for entry in data:
+
+        if set(entry.keys()) != set(ENTRY_COLUMNS):
+            logger.warning(
+                "Data entry does not match expected columns. Skipping entry.")
+            continue
+
         entry["affected_postcodes"] = transform_postcode(
             entry.get("affected_postcodes", ""))
         entry["status"] = transform_status(entry.get("status", ""))
         entry["outage_date"] = transform_outage_date(
             entry.get("outage_date", ""))
 
-    logger.info("Data transformation complete.")
+    logger.info("Transformed %d entries.", len(data))
     return data
 
 
@@ -37,12 +50,13 @@ def transform_postcode(postcodes: str) -> list[str]:
     By removing extra spaces and converting to uppercase.
 
     Args:
-        postcode (str): Single postcode to standardize.
+        postcodes (str): List of postcodes separated by semicolons.
 
     Returns:
-        list[str]: Single postcode as a list."""
+        list[str]: List of standardized postcodes."""
 
     if not postcodes:
+        logger.warning("No postcodes provided.")
         return []
 
     standard_postcodes = []
@@ -68,10 +82,11 @@ def transform_status(status: str) -> str:
 
     if "fault" in status.lower():
         return "unplanned"
-    elif "planned" in status.lower():
+    if "planned" in status.lower():
         return "planned"
-    else:
-        return "unknown"
+
+    # Return unknown if status cannot be determined
+    return "unknown"
 
 
 def transform_outage_date(date: str) -> str:
@@ -84,27 +99,25 @@ def transform_outage_date(date: str) -> str:
         str: Standardized outage date string in ISO format.
     """
 
-    standard_date = datetime.strptime(date, "%I:%M %p, %d %b")
-    standard_date = standard_date.replace(
-        year=datetime.now().year)  # Add current year
+    # Attempt to parse date in known format and convert to ISO format
+    try:
+        current_year = datetime.now().year
+        date_with_year = f"{date} {current_year}"
+        standard_date = datetime.strptime(date_with_year, "%I:%M %p, %d %b %Y")
+    except (TypeError, ValueError) as e:
+        logger.warning("Error transforming outage date: %s", e)
+        return ""
 
     return standard_date.isoformat()
 
 
 if __name__ == "__main__":
 
-    # Example usage
+    # Example usage for local testing
 
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s')
 
     raw_data = extract_power_cut_data()
-    logger.info("Raw data extracted.")
-
     cleaned_data = parse_power_cut_data(raw_data)
-    logger.info("Raw data parsed.")
-
     standardized_data = transform_power_cut_data(cleaned_data)
-    logger.info("Data transformed to standard format.")
-
-    pprint(standardized_data)
