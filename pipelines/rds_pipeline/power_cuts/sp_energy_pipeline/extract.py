@@ -160,7 +160,7 @@ def transform_record(record: Dict) -> Dict:
 
     return {
         'source_provider': PROVIDER,
-        'status': record.get('status', ''),
+        'status': record.get('planned', ''),
         'outage_date': outage_date,
         'recording_time': datetime.now().isoformat(),
         'affected_postcodes': affected_postcodes.strip()
