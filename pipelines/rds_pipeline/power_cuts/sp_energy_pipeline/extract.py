@@ -165,7 +165,6 @@ def transform_record(record: Dict) -> Dict:
         'recording_time': datetime.now().isoformat(),
         'affected_postcodes': affected_postcodes.strip()
     }
-
 def extract_power_cut_data() -> List[Dict]:
     """
     Main extraction function - orchestrates full extraction process.
