@@ -19,7 +19,7 @@ def parse_postcodes(postcode_string: str) -> List[str]:
     Returns:
         List of cleaned postcode strings
     """
-    if not postcode_string or not postcode_string.strip():
+    if postcode_string is None or not postcode_string.strip():
         return []
 
     # Split by comma and strip whitespace from each postcode
