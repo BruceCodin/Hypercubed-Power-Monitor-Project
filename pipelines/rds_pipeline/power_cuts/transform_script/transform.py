@@ -41,7 +41,6 @@ def transform_postcode_with_api(postcode: str, logger: logging.Logger) -> str:
         str: The standardized postcode if valid, empty string otherwise.
     '''
     url = f"https://api.postcodes.io/postcodes/{postcode}"
-    logger.info("Validating postcode: %s", postcode)
     response = requests.get(url, timeout=5)
 
     if response.status_code == 404:
@@ -50,7 +49,6 @@ def transform_postcode_with_api(postcode: str, logger: logging.Logger) -> str:
 
     if response.status_code == 200:
         data = response.json()
-        logger.info("Postcode %s is valid.", postcode)
         postcode = data['result']['postcode']
         return postcode
 
@@ -180,7 +178,8 @@ def transform_field(json_input: dict, field_name: str, logger: logging.Logger, t
 
     if transform_fn:
         if field_name == 'affected_postcodes':
-            field_value = transform_fn(json_input.get(field_name, None), logger)
+            field_value = transform_fn(
+                json_input.get(field_name, None), logger)
         else:
             field_value = transform_fn(json_input.get(field_name, None))
     else:
@@ -222,7 +221,8 @@ def main_transform(json_list_input: list[dict], logger: logging.Logger) -> list[
         valid = True
 
         for field_name, transform_fn in fields:
-            value = transform_field(json_input, field_name, logger, transform_fn)
+            value = transform_field(
+                json_input, field_name, logger, transform_fn)
             if not value:
                 valid = False
                 break
