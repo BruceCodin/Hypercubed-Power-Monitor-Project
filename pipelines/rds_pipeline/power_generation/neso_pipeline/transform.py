@@ -8,14 +8,12 @@ from extract import fetch_neso_demand_data, parse_neso_demand_data
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# historical_resource_id = "b2bde559-3455-4021-b179-dfe60c0337b0"
-# recent_resource_id = "177f6fa4-ae49-4182-81ea-0c6b35f26ca6"
 
 def transform_neso_data_columns(demand_df: pd.DataFrame) -> pd.DataFrame:
     '''
     Update column names to match database schema
     ND -> national_demand
-    TSD -> time_system_demand
+    TSD -> transmission_system_demand
     SETTLEMENT_DATE -> settlement_date
     SETTLEMENT_PERIOD -> settlement_period
 
@@ -41,7 +39,7 @@ def transform_neso_data_columns(demand_df: pd.DataFrame) -> pd.DataFrame:
         transformed_df = demand_df.rename(columns=column_mapping)
         logger.info(f"Transformed NESO data with {len(transformed_df)} rows")
         return transformed_df
-    except Exception as e:
+    except (KeyError, ValueError) as e:
         logger.error(f"Failed to transform NESO data: {e}")
         raise
 
@@ -62,7 +60,7 @@ def make_date_column_datetime(demand_df: pd.DataFrame) -> pd.DataFrame:
         demand_df['settlement_date'] = pd.to_datetime(demand_df['settlement_date'])
         logger.info("Converted settlement_date to datetime format")
         return demand_df
-    except Exception as e:
+    except (ValueError, TypeError) as e:
         logger.error(f"Failed to convert settlement_date to datetime: {e}")
         raise
 
@@ -73,6 +71,12 @@ def validate_data_types(demand_df: pd.DataFrame) -> bool:
     transmission_system_demand int
     settlement_date datetime
     settlement_period int
+
+    Args:
+        demand_df (pd.DataFrame): DataFrame containing NESO demand data
+    
+    Returns:
+        bool: True if data types are valid, False otherwise
     '''
     expected_types = {
         'national_demand': 'int64',
@@ -98,7 +102,7 @@ def transform_neso_demand_data(demand_df: pd.DataFrame) -> pd.DataFrame:
         demand_df (pd.DataFrame): Raw NESO demand data
     Returns:
         pd.DataFrame: Fully transformed NESO demand data
-    ''' 
+    '''
     
     df = transform_neso_data_columns(demand_df)
     df = make_date_column_datetime(df)
