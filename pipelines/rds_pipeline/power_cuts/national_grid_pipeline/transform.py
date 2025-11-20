@@ -109,10 +109,10 @@ def transform_power_cut_data(extracted_data: List[Dict]) -> List[Dict]:
     Expected output format:
     {
         "affected_postcodes": ["postcode1", "postcode2"],
-        "outage_date": "YYYY-MM-DD HH:MM:SS",
+        "outage_date": "YYYY-MM-DDTHH:MM:SS", 
         "source_provider": str,
         "status": "planned" or "unplanned",
-        "recording_time": "YYYY-MM-DD HH:MM:SS"
+        "recording_time": "YYYY-MM-DDTHH:MM:SS" 
     }
     """
     if not extracted_data:
