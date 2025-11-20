@@ -50,7 +50,15 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pytest pytest-cov
-        find . -name 'requirements.txt' -exec pip install -r {} + 2>/dev/null || echo "No requirements.txt files found"
+        echo "Looking for requirements.txt files..."
+        REQUIREMENTS_FILES=$(find . -name 'requirements.txt')
+        if [ -n "$REQUIREMENTS_FILES" ]; then
+          echo "Found requirements.txt files:"
+          echo "$REQUIREMENTS_FILES"
+          find . -name 'requirements.txt' -exec echo "Installing from: {}" \; -exec pip install -r {} \;
+        else
+          echo "No requirements.txt files found"
+        fi
     
     - name: Set PYTHONPATH
       run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
@@ -68,5 +76,5 @@ jobs:
         
         for dir in $TEST_DIRS; do
           echo "Testing $dir..."
-          pytest "$dir" --cov="$dir" --cov-report=term-missing
+          pytest "$dir" --cov="$dir" --cov-report=term-missing --cov-fail-under=80
         done
