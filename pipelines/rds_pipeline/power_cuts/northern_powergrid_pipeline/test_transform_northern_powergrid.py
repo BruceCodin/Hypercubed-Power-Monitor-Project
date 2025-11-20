@@ -45,9 +45,11 @@ def test_transform_power_cut_data_valid():
     """Test transformation of valid power cut data."""
     data = [
         {
+            "recording_time": "2025-01-15T09:00:00",
             "affected_postcodes": "ne1  4st",
             "status": "Planned Work on System",
-            "outage_date": "2025-01-15T10:00:00"
+            "outage_date": "2025-01-15T10:00:00",
+            "source_provider": "Northern Powergrid"
         }
     ]
     result = transform_power_cut_data(data)
@@ -63,19 +65,32 @@ def test_transform_power_cut_data_empty_list():
 
 
 def test_transform_power_cut_data_missing_keys():
-    """Test transformation with missing keys uses defaults."""
+    """Test transformation with missing keys skips entry."""
     data = [{"outage_date": "2025-01-15T10:00:00"}]
     result = transform_power_cut_data(data)
 
-    assert result[0]["affected_postcodes"] == []
-    assert result[0]["status"] == "unknown"
+    # Entry with missing required keys should remain untransformed
+    assert len(result) == 1
+    assert result[0] == {"outage_date": "2025-01-15T10:00:00"}
 
 
 def test_transform_power_cut_data_multiple_entries():
     """Test transformation of multiple power cut entries."""
     data = [
-        {"affected_postcodes": "ne1 4st", "status": "Localised Fault"},
-        {"affected_postcodes": "dh1   3hp", "status": "Planned Work on System"}
+        {
+            "recording_time": "2025-01-15T09:00:00",
+            "affected_postcodes": "ne1 4st",
+            "status": "Localised Fault",
+            "outage_date": "2025-01-15T10:00:00",
+            "source_provider": "Northern Powergrid"
+        },
+        {
+            "recording_time": "2025-01-15T09:00:00",
+            "affected_postcodes": "dh1   3hp",
+            "status": "Planned Work on System",
+            "outage_date": "2025-01-15T11:00:00",
+            "source_provider": "Northern Powergrid"
+        }
     ]
     result = transform_power_cut_data(data)
 
