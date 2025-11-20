@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import patch, MagicMock
 from pipelines.rds_pipeline.power_cuts.transform_script.transform import (
     transform_postcode_with_api,
@@ -31,6 +32,11 @@ class TestTransformPostcodeManually:
 
 class TestTransformPostcodeWithAPI:
     '''Test class for transform_postcode_with_api function.'''
+
+    def setup_method(self):
+        '''Setup logger for each test.'''
+        self.logger = logging.getLogger(__name__)
+
     @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.requests.get')
     def test_api_online_valid(self, mock_get):
         '''Test API validation when online with valid postcode.'''
@@ -39,7 +45,7 @@ class TestTransformPostcodeWithAPI:
         mock_response.json.return_value = {'result': {'postcode': 'BR8 7RE'}}
         mock_get.return_value = mock_response
 
-        assert transform_postcode_with_api("br87re") == "BR8 7RE"
+        assert transform_postcode_with_api("br87re", self.logger) == "BR8 7RE"
 
     @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.requests.get')
     def test_api_online_invalid(self, mock_get):
@@ -48,7 +54,7 @@ class TestTransformPostcodeWithAPI:
         mock_response.status_code = 404
         mock_get.return_value = mock_response
 
-        assert transform_postcode_with_api("INVALID123") is None
+        assert transform_postcode_with_api("INVALID123", self.logger) is None
 
     @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.requests.get')
     def test_api_offline_fallback_valid(self, mock_get):
@@ -57,7 +63,7 @@ class TestTransformPostcodeWithAPI:
         mock_response.status_code = 500
         mock_get.return_value = mock_response
 
-        assert transform_postcode_with_api("BR8 7RE") == "BR8 7RE"
+        assert transform_postcode_with_api("BR8 7RE", self.logger) == "BR8 7RE"
 
     @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.requests.get')
     def test_api_offline_fallback_invalid(self, mock_get):
@@ -66,11 +72,16 @@ class TestTransformPostcodeWithAPI:
         mock_response.status_code = 503
         mock_get.return_value = mock_response
 
-        assert transform_postcode_with_api("INVALID") is None
+        assert transform_postcode_with_api("INVALID", self.logger) is None
 
 
 class TestTransformPostcodeList:
     '''Test class for transform_postcode_list function.'''
+
+    def setup_method(self):
+        '''Setup logger for each test.'''
+        self.logger = logging.getLogger(__name__)
+
     @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.transform_postcode_with_api')
     def test_transform_postcode_list_valid(self, mock_transform):
         '''Test postcode list transformation.'''
@@ -80,7 +91,7 @@ class TestTransformPostcodeList:
         input_postcodes = ["br87re", "invalid", "sw1a1aa", "ec1a1bb"]
         expected = ["BR8 7RE", "SW1A 1AA", "EC1A 1BB"]
 
-        result = transform_postcode_list(input_postcodes)
+        result = transform_postcode_list(input_postcodes, self.logger)
         assert result == expected
 
     @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.transform_postcode_with_api')
@@ -89,7 +100,7 @@ class TestTransformPostcodeList:
         mock_transform.side_effect = [None, "SW1A 1AA", None]
         input_postcodes = ["invalid1", "SW1A 1AA", "invalid3"]
 
-        result = transform_postcode_list(input_postcodes)
+        result = transform_postcode_list(input_postcodes, self.logger)
         assert result == ["SW1A 1AA"]
 
 
@@ -170,6 +181,10 @@ class TestMainTransform:
         }
     ]
 
+    def setup_method(self):
+        '''Setup logger for each test.'''
+        self.logger = logging.getLogger(__name__)
+
     def _mock_datetime(self, iso_string):
         '''Create a mock datetime object.'''
         mock = MagicMock()
@@ -197,7 +212,7 @@ class TestMainTransform:
 
         input_data = [self._build_input_record(
             *record) for record in self.VALID_RECORDS]
-        result = main_transform(input_data)
+        result = main_transform(input_data, self.logger)
         assert result == self.EXPECTED_VALID
 
     def test_main_transform_invalid(self):
@@ -212,5 +227,5 @@ class TestMainTransform:
                 'recording_time': self._mock_datetime("2024-01-02T10:00:00")
             }
         ]
-        result = main_transform(input_data)
+        result = main_transform(input_data, self.logger)
         assert result == []

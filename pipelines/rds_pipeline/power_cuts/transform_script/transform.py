@@ -25,19 +25,17 @@ import re
 
 import requests
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
-
-def transform_postcode_with_api(postcode: str) -> str | None:
+def transform_postcode_with_api(postcode: str, logger: logging.Logger) -> str | None:
     '''
     Validate and transform postcode unit using postcodes.io API.
-    This matches postcode unit inputs such as 
+    This matches postcode unit inputs such as
     "BR8 7RE", "br87re", "Br8 7rE", etc.
     and returns the standardized format "BR8 7RE".
 
     Args:
         postcode (str): The postcode to validate.
+        logger (logging.Logger): Logger instance for logging messages.
 
     Returns:
         str | None: The standardized postcode if valid, None otherwise.
@@ -96,19 +94,20 @@ def transform_postcode_manually(postcode: str) -> str | None:
     return f'{outward} {inward}'
 
 
-def transform_postcode_list(postcode_list: list[str]) -> list[str]:
+def transform_postcode_list(postcode_list: list[str], logger: logging.Logger) -> list[str]:
     '''
     Transform a list of postcode units, validating each.
 
     Args:
         postcode_list (list[str]): List of postcode strings.
+        logger (logging.Logger): Logger instance for logging messages.
 
     Returns:
         list[str]: List of validated and transformed postcode strings.
     '''
     transformed_list = []
     for postcode in postcode_list:
-        transformed_postcode = transform_postcode_with_api(postcode)
+        transformed_postcode = transform_postcode_with_api(postcode, logger)
         if transformed_postcode:
             transformed_list.append(transformed_postcode)
     return transformed_list
@@ -161,13 +160,14 @@ def transform_status(status: str | bool) -> str | None:
     return None
 
 
-def transform_field(json_input: dict, field_name: str, transform_fn: callable = None) -> str | None:
+def transform_field(json_input: dict, field_name: str, logger: logging.Logger, transform_fn: callable = None) -> str | None:
     '''
     Generic field transformation helper.
 
     Args:
         json_input (dict): The input JSON record.
         field_name (str): The name of the field to transform.
+        logger (logging.Logger): Logger instance for logging messages.
         transform_fn (callable, optional): The transformation function to apply.
             If None, converts datetime to ISO format.
 
@@ -179,8 +179,10 @@ def transform_field(json_input: dict, field_name: str, transform_fn: callable = 
         return None
 
     if transform_fn:
-        field_value = transform_fn(
-            json_input.get(field_name, None))
+        if field_name == 'affected_postcodes':
+            field_value = transform_fn(json_input.get(field_name, None), logger)
+        else:
+            field_value = transform_fn(json_input.get(field_name, None))
     else:
         field_value = json_input.get(field_name, None)
         if hasattr(field_value, 'isoformat'):
@@ -194,12 +196,13 @@ def transform_field(json_input: dict, field_name: str, transform_fn: callable = 
     return field_value
 
 
-def main_transform(json_list_input: list[dict]) -> list[dict]:
+def main_transform(json_list_input: list[dict], logger: logging.Logger) -> list[dict]:
     '''
     Main transformation function
 
     Args:
         json_list_input (list[dict]): List of input JSON records.
+        logger (logging.Logger): Logger instance for logging messages.
 
     Returns:
         list[dict]: List of transformed JSON records.
@@ -219,7 +222,7 @@ def main_transform(json_list_input: list[dict]) -> list[dict]:
         valid = True
 
         for field_name, transform_fn in fields:
-            value = transform_field(json_input, field_name, transform_fn)
+            value = transform_field(json_input, field_name, logger, transform_fn)
             if not value:
                 valid = False
                 break
@@ -229,3 +232,9 @@ def main_transform(json_list_input: list[dict]) -> list[dict]:
             transformed_list.append(transformed)
 
     return transformed_list
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    main_transform([], logger)  # Example call with empty input
