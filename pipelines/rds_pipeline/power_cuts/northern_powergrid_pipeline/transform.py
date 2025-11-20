@@ -2,17 +2,25 @@
 This module contains functions to transform raw JSON data extracted from
 the Northern Powergrid API into a standardized format suitable for further processing."""
 
+from datetime import datetime
 import logging
-from pprint import pprint
 from extract import (extract_power_cut_data,
                      parse_power_cut_data)
 
 
 logger = logging.getLogger(__name__)
 
+ENTRY_COLUMNS = [
+    "recording_time",
+    "outage_date",
+    "affected_postcodes",
+    "status",
+    "source_provider"
+]
+
 
 def transform_power_cut_data(data: list[dict]) -> list[dict]:
-    """Transform function to clean raw json data and output to standard format.
+    """Transform function to clean raw JSON data and output to standard format.
 
     Args:
         data (list[dict]): Raw data extracted from Northern Powergrid API.
@@ -21,12 +29,28 @@ def transform_power_cut_data(data: list[dict]) -> list[dict]:
         list[dict]: Transformed data in standard format."""
 
     if not data:
+        logger.warning("No data to transform.")
         return None
 
     for entry in data:
+
+        # Validate presence of expected keys
+        if any(key not in entry for key in ENTRY_COLUMNS):
+            logger.warning("Missing expected keys in entry: %s", entry)
+            continue
+
+        # Validate and transform date format
+        try:
+            datetime.fromisoformat(entry.get("outage_date"))
+        except (ValueError, TypeError):
+            logger.info("Invalid date format for entry: %s", entry)
+
+        # Transform affected postcodes and status
         entry["affected_postcodes"] = transform_postcode(
             entry.get("affected_postcodes", []))
         entry["status"] = transform_status(entry.get("status", ""))
+
+    logger.info("Transformed %d power cut records.", len(data))
 
     return data
 
@@ -46,6 +70,7 @@ def transform_postcode(postcode: str) -> list[str]:
 
     standard_pc = " ".join(postcode.upper().split())
 
+    # Return as a list to maintain consistency with expected data structure
     return [standard_pc]
 
 
@@ -61,18 +86,20 @@ def transform_status(status: str) -> str:
 
     if "fault" in status.lower():
         return "unplanned"
-    elif "planned" in status.lower():
+    if "planned" in status.lower():
         return "planned"
-    else:
-        return "unknown"
+
+    # If status is unrecognized, return 'unknown'
+    return "unknown"
 
 
 if __name__ == "__main__":
+
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s - %(levelname)s - %(message)s")
 
     # Example usage
 
     raw_data = extract_power_cut_data()
     cleaned_data = parse_power_cut_data(raw_data)
     standardized_data = transform_power_cut_data(cleaned_data)
-
-    pprint(standardized_data)
