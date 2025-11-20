@@ -17,10 +17,8 @@ class TestRecordParsing:
         raw_data = {
             "total_count": 2,
             "results": [
-                {"fields": {"postcode_sector": [
-                    "TD12 4"], "status": "Awaiting"}},
-                {"fields": {"postcode_sector": [
-                    "EH6 5"], "status": "In Progress"}}
+                {"fields": {"postcode_sector": ["TD12 4"], "planned": True}},
+                {"fields": {"postcode_sector": ["EH6 5"], "planned": False}}
             ]
         }
 
@@ -54,7 +52,7 @@ class TestRecordValidation:
         record = {
             "postcode_sector": ["TD12 4"],
             "date_of_reported_fault": "2025-11-17T08:24:11+00:00",
-            "status": "Awaiting"
+            "planned": False
         }
 
         # Act
@@ -104,7 +102,7 @@ class TestRecordTransformation:
         record = {
             "postcode_sector": input_postcodes,
             "date_of_reported_fault": "2025-11-17T08:24:11+00:00",
-            "status": "Awaiting"
+            "planned": True
         }
 
         # Act
@@ -119,7 +117,7 @@ class TestRecordTransformation:
         record = {
             "postcode_sector": ["TD12 4"],
             "date_of_reported_fault": "2025-11-17T08:24:11+00:00",
-            "status": "Awaiting"
+            "planned": False
         }
         expected_keys = {"source_provider", "status", "outage_date",
                          "recording_time", "affected_postcodes"}
@@ -130,6 +128,6 @@ class TestRecordTransformation:
         # Assert
         assert set(result.keys()) == expected_keys
         assert result["source_provider"] == "SP Energy Networks"
-        assert result["status"] == "Awaiting"
+        assert result["status"] == False 
         assert result["outage_date"] == "2025-11-17T08:24:11+00:00"
         assert "T" in result["recording_time"]
