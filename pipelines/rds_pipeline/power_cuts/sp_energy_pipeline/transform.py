@@ -55,7 +55,7 @@ def standardize_status(planned_value) -> str:
 def normalize_datetime(iso_string: str) -> str:
     """
     Normalize datetime to consistent ISO 8601 format for PostgreSQL.
-    Removes microseconds but keeps ISO format (YYYY-MM-DDTHH:MM:SS).
+    Removes microseconds but keeps ISO format with timezone (YYYY-MM-DDTHH:MM:SS±HH:MM or YYYY-MM-DDTHH:MM:SSZ).
     
     Args:
         iso_string: ISO format datetime (e.g., '2025-11-20T12:03:47+00:00')
