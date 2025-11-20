@@ -13,40 +13,6 @@ def get_db_connection():
     except psycopg2.Error as e:
         print(f"Error connecting to the database: {e}")
         return None
-    
-# def load_settlement_data_to_db(connection, settlement_df):
-#     '''
-#     Load the settlement data into the RDS database and returns settlement_id.
-#     If data already exists return settlement_id
-#     '''
-#     if connection is None:
-#         print("Failed to connect to the database. Data load aborted.")
-#         return None
-#     cursor = connection.cursor()
-#     insert_query ='''
-#                     INSERT INTO settlements (settlement_date, settlement_period)
-#                     VALUES (%s, %s)
-#                     ON CONFLICT (settlement_date, settlement_period) DO NOTHING
-#                     RETURNING settlement_id;
-#                 '''
-#     #execute insert for each row
-#     settlement_ids = []
-#     for index, row in settlement_df.iterrows():
-#         cursor.execute(insert_query, (row['date'], row['settlement_period']))
-#         result = cursor.fetchone()
-#         if result:
-#             settlement_ids.append(result[0])
-#         else:
-#             # If no new row was inserted, fetch the existing settlement_id
-#             cursor.execute('''
-#                 SELECT settlement_id FROM settlements
-#                 WHERE settlement_date = %s AND settlement_period = %s;
-#             ''', (row['date'], row['settlement_period']))
-#             existing_id = cursor.fetchone()
-#             if existing_id:
-#                 settlement_ids.append(existing_id[0])
-#         return settlement_ids
-
 
 def load_settlement_data_to_db(connection, settlement_df):
     '''
