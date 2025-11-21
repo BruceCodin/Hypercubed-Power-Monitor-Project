@@ -5,9 +5,7 @@ import os
 import logging
 from datetime import datetime
 from typing import List, Dict, Optional
-from pprint import pprint
 import requests
-from dotenv import load_dotenv
 
 # API configuration
 BASE_URL = "https://ukpowernetworks.opendatasoft.com/api/explore/v2.1"
@@ -156,7 +154,7 @@ def transform_record(record: Dict) -> Dict:
     }
 
 
-def extract_power_cut_data() -> List[Dict]:
+def extract_data_uk_pow() -> List[Dict]:
     """
     Main extraction function - orchestrates full extraction process.
     
@@ -190,6 +188,9 @@ def extract_power_cut_data() -> List[Dict]:
 
 
 if __name__ == "__main__":
+    from pprint import pprint
+    from dotenv import load_dotenv
+
     # Load environment variables from .env file
     load_dotenv()
 
@@ -200,12 +201,11 @@ if __name__ == "__main__":
     )
 
     logger.info("Starting UK Power Networks power cuts extraction...")
-    power_cuts = extract_power_cut_data()
+    power_cuts = extract_data_uk_pow()
 
     if power_cuts:
         logger.info(f"Extraction complete! Found {len(power_cuts)} power cuts")
         # Print first 10 records for inspection
-        print("\n" + "="*80)
         print(f"Sample of first {min(10, len(power_cuts))} records:")
         print("="*80)
         pprint(power_cuts[:10])

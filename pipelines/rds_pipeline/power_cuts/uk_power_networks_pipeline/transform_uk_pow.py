@@ -84,12 +84,12 @@ def normalize_datetime(iso_string: str) -> str:
         return iso_string
 
 
-def transform_power_cut_data(raw_extracted_data: List[Dict]) -> List[Dict]:
+def transform_data_uk_pow(raw_extracted_data: List[Dict]) -> List[Dict]:
     """
     Transform UK Power Networks extracted data to standardized format.
     
     Args:
-        raw_extracted_data: List of dicts from extract_power_cut_data()
+        raw_extracted_data: List of dicts from extract_data_uk_pow()
         
     Returns:
         List of transformed dicts ready for database load
@@ -151,7 +151,7 @@ def transform_power_cut_data(raw_extracted_data: List[Dict]) -> List[Dict]:
 if __name__ == "__main__":
     # Example usage for local testing
     from pprint import pprint
-    from extract import extract_power_cut_data
+    from extract_uk_pow import extract_data_uk_pow
     from dotenv import load_dotenv
 
     # Load environment variables
@@ -165,10 +165,10 @@ if __name__ == "__main__":
     logger.info("Starting UK Power Networks power cuts transformation...")
 
     # Extract data
-    extracted_data = extract_power_cut_data()
+    extracted_data = extract_data_uk_pow()
 
     # Transform data
-    transformed_data = transform_power_cut_data(extracted_data)
+    transformed_data = transform_data_uk_pow(extracted_data)
 
     if transformed_data:
         logger.info(
