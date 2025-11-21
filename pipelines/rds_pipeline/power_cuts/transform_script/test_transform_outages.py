@@ -1,6 +1,8 @@
+# pylint: skip-file
+# pragma: no cover
 import logging
 from unittest.mock import patch, MagicMock
-from pipelines.rds_pipeline.power_cuts.transform_script.transform import (
+from transform_outages import (
     transform_postcode_manually,
     transform_postcode_list,
     transform_source_provider,
