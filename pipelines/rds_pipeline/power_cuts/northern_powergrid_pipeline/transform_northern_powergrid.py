@@ -18,42 +18,6 @@ ENTRY_COLUMNS = [
 ]
 
 
-def transform_power_cut_data(data: list[dict]) -> list[dict]:
-    """Transform function to clean raw JSON data and output to standard format.
-
-    Args:
-        data (list[dict]): Raw data extracted from Northern Powergrid API.
-
-    Returns:
-        list[dict]: Transformed data in standard format."""
-
-    if not data:
-        logger.warning("No data to transform.")
-        return None
-
-    for entry in data:
-
-        # Validate presence of expected keys
-        if any(key not in entry for key in ENTRY_COLUMNS):
-            logger.warning("Missing expected keys in entry: %s", entry)
-            continue
-
-        # Validate and transform date format
-        try:
-            datetime.fromisoformat(entry.get("outage_date"))
-        except (ValueError, TypeError):
-            logger.info("Invalid date format for entry: %s", entry)
-
-        # Transform affected postcodes and status
-        entry["affected_postcodes"] = transform_postcode(
-            entry.get("affected_postcodes", []))
-        entry["status"] = transform_status(entry.get("status", ""))
-
-    logger.info("Transformed %d power cut records.", len(data))
-
-    return data
-
-
 def transform_postcode(postcode: str) -> list[str]:
     """Helper function to standardize postcode format.
     By removing extra spaces and converting to uppercase.
@@ -92,25 +56,40 @@ def transform_status(status: str) -> str:
     return "unknown"
 
 
-def transform_northern_powergrid_data(parsed_data: list[dict]) -> Optional[list[dict]]:
-    """
-    Main transformation function - orchestrates full transformation process.
+def transform_northern_powergrid_data(data: list[dict]) -> list[dict]:
+    """Main transform function to clean raw JSON data and output to standard format.
 
     Args:
-        parsed_data (list[dict]): Parsed data from extract_northern_powergrid module.
+        data (list[dict]): Raw data extracted from Northern Powergrid API.
 
     Returns:
-        list[dict]: List of cleaned power cut records as dictionaries
-    """
+        list[dict]: Transformed data in standard format."""
 
-    if not parsed_data:
-        logger.warning("No parsed data provided for transformation.")
-        return []
+    if not data:
+        logger.warning("No data to transform.")
+        return None
 
-    # Transform records
-    transformed_data = transform_power_cut_data(parsed_data)
+    for entry in data:
 
-    return transformed_data
+        # Validate presence of expected keys
+        if any(key not in entry for key in ENTRY_COLUMNS):
+            logger.warning("Missing expected keys in entry: %s", entry)
+            continue
+
+        # Validate and transform date format
+        try:
+            datetime.fromisoformat(entry.get("outage_date"))
+        except (ValueError, TypeError):
+            logger.info("Invalid date format for entry: %s", entry)
+
+        # Transform affected postcodes and status
+        entry["affected_postcodes"] = transform_postcode(
+            entry.get("affected_postcodes", []))
+        entry["status"] = transform_status(entry.get("status", ""))
+
+    logger.info("Transformed %d power cut records.", len(data))
+
+    return data
 
 
 if __name__ == "__main__":
