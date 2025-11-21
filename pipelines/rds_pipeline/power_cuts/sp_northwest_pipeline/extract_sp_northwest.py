@@ -55,7 +55,7 @@ def parse_power_cut_data(data: dict) -> list[dict]:
     for fault in data['Items']:
         parsed_data.append({
             "source_provider": PROVIDER,
-            "status": fault.get("Type"),
+            "status": fault.get("faultType"),
             "outage_date": fault.get("date"),
             "recording_time": datetime.now().isoformat(),
             "affected_postcodes": fault.get("AffectedPostcodes")

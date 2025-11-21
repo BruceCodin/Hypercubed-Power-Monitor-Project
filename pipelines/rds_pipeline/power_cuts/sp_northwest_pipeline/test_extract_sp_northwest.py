@@ -9,12 +9,12 @@ def test_parse_valid_data_with_multiple_items():
     mock_data = {
         "Items": [
             {
-                "Type": "Unplanned",
+                "faultType": "Unplanned",
                 "date": "2025-01-15T10:00:00",
                 "AffectedPostcodes": ["M1", "M2"]
             },
             {
-                "Type": "Planned",
+                "faultType": "Planned",
                 "date": "2025-01-16T09:00:00",
                 "AffectedPostcodes": ["L1"]
             }
@@ -49,7 +49,7 @@ def test_parse_items_with_missing_fields():
     """Test parsing items with missing fields uses None."""
     mock_data = {
         "Items": [
-            {"Type": "Unplanned"},
+            {"faultType": "Unplanned"},
             {"date": "2025-01-15T11:00:00"}
         ]
     }
