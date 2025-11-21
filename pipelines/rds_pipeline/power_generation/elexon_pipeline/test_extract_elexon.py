@@ -2,7 +2,7 @@
 from datetime import datetime
 import pandas as pd
 import pytest
-from extract import fetch_elexon_price_data, parse_elexon_price_data, fetch_elexon_generation_data, parse_elexon_generation_data
+from pipelines.rds_pipeline.power_generation.elexon_pipeline.extract_elexon import fetch_elexon_price_data, parse_elexon_price_data, fetch_elexon_generation_data, parse_elexon_generation_data
 
 
 class TestParseElexonPriceData:

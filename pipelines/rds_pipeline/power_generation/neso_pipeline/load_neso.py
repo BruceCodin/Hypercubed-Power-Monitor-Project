@@ -144,8 +144,8 @@ def load_neso_demand_data_to_db(connection, demand_df: pd.DataFrame, table: str)
         return False
 
 if __name__ == '__main__':
-    from extract import fetch_neso_demand_data, parse_neso_demand_data
-    from transform import transform_neso_demand_data
+    from pipelines.rds_pipeline.power_generation.neso_pipeline.extract_neso import fetch_neso_demand_data, parse_neso_demand_data
+    from pipelines.rds_pipeline.power_generation.neso_pipeline.transform_neso import transform_neso_demand_data
     conn = get_db_connection()
     #historical resource id for NESO demand data
     #historical test
