@@ -93,9 +93,9 @@ def add_date_column_to_generation(generation_df: pd.DataFrame) -> pd.DataFrame:
         raise ValueError("DataFrame must contain 'startTime' column")
 
     try:
-        generation_df['settlement_date'] = pd.to_datetime(generation_df['startTime']).dt.date
-        # Make settlement_date datetime type
-        generation_df['settlement_date'] = pd.to_datetime(generation_df['settlement_date'])
+        generation_df['date'] = pd.to_datetime(generation_df['startTime']).dt.date
+        # Make date datetime type
+        generation_df['date'] = pd.to_datetime(generation_df['date'])
         #Drop startTime column
         generation_df = generation_df.drop(columns=['startTime'])
         #Rename settlementPeriod to settlement_period
