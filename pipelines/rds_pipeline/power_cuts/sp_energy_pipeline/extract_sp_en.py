@@ -6,7 +6,6 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Optional
 import requests
-from dotenv import load_dotenv
 
 # API configuration
 BASE_URL = "https://spenergynetworks.opendatasoft.com/api/explore/v2.1"
@@ -201,6 +200,7 @@ def extract_data_sp_en() -> List[Dict]:
 
 if __name__ == "__main__":
     from pprint import pprint
+    from dotenv import load_dotenv
     
     # Load environment variables from .env file
     load_dotenv()
