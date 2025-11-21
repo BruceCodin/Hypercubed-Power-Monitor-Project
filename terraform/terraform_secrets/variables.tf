@@ -36,3 +36,13 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable sp_energy_api_key {
+  description = "API key for SP Energy"
+  type        = string
+}
+
+variable ukpn_api_key {
+  description = "API key for UK Power Networks"
+  type        = string
+}
