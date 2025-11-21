@@ -28,7 +28,7 @@ import re
 
 def format_name(name: str) -> str:
     '''
-    Format the customer's name to title case and strip extra spaces.
+    Format the customer's first or last name to title case and strip extra spaces.
     Additional check: length of name (not currently set in schema)
     Note: isalpha checks for alphabetic characters only:
         this includes no spaces and not empty.
@@ -37,6 +37,11 @@ def format_name(name: str) -> str:
 
     Returns:
         str: Formatted name.
+
+    Raises:
+        ValueError: If name is not a string, 
+            contains non-alphabetic characters,
+            or exceeds maximum length.
     '''
     if not isinstance(name, str):
         raise ValueError("Name must be a string datatype.")
@@ -52,7 +57,6 @@ def format_name(name: str) -> str:
         raise ValueError(f"Name exceeds maximum length ({max_length}).")
 
     return name
-# use for first and last name
 
 
 def format_email(email: str) -> str:
@@ -64,6 +68,11 @@ def format_email(email: str) -> str:
 
     Returns:
         str: Formatted email address.
+
+    Raises:
+        ValueError: If email is not a string,
+            is empty after stripping spaces,
+            or does not match basic email format.
     '''
     if not isinstance(email, str):
         raise ValueError("Email must be a string datatype.")
@@ -91,6 +100,11 @@ def format_postcode(postcode: str) -> str:
 
     Returns:
         str: Formatted postcode.
+
+    Raises:
+        ValueError: If postcode is not a string,
+            is invalid according to postcodes.io API,
+            or is invalid according to regex pattern.
     '''
 
     if not isinstance(postcode, str):
@@ -121,8 +135,35 @@ def format_postcode(postcode: str) -> str:
 
 
 def transform(event: dict) -> dict:
+    '''
+    Transform function to validate and format customer data fields.
+
+    Args:
+        event (dict): Input customer data.
+
+    Returns:
+        dict: Transformed customer data with formatted fields.
+
+    Raises:
+        ValueError: If any required field is missing from event,
+        or if any field fails validation (via helpers).
+    '''
     customer_data = event.copy()
-    ...
+    formatters = {
+        'first_name': format_name,
+        'last_name': format_name,
+        'email': format_email,
+        'postcode': format_postcode
+    }
+
+    for field in formatters.keys():
+        if not customer_data.get(field):
+            raise ValueError(f"Missing required field: {field}.")
+
+    for field, formatter in formatters.items():
+        customer_data[field] = formatter(customer_data[field])
+
+    return customer_data
 
 
 def load(customer_data):

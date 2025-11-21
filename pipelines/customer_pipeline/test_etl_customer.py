@@ -4,7 +4,8 @@ from unittest.mock import patch
 from etl_customer import (
     format_name,
     format_email,
-    format_postcode
+    format_postcode,
+    transform
 )
 
 
@@ -143,3 +144,40 @@ class TestFormatPostcode:
         with pytest.raises(ValueError) as excinfo:
             format_postcode(12345)
         assert str(excinfo.value) == "Postcode must be a string datatype."
+
+
+class TestTransform:
+    '''Tests for the transform function in etl_customer module.'''
+
+    @patch('etl_customer.format_name')
+    @patch('etl_customer.format_email')
+    @patch('etl_customer.format_postcode')
+    def test_transform_valid(
+            self,
+            mock_format_postcode,
+            mock_format_email,
+            mock_format_name):
+        event = {
+            'first_name': ' john ',
+            'last_name': ' DOE ',
+            'email': 'abc@123.com',
+            'postcode': 'EC1A 1BB'
+        }
+        mock_format_name.side_effect = lambda x: x.strip().title()
+        mock_format_email.side_effect = lambda x: x.strip().lower()
+        mock_format_postcode.side_effect = lambda x: x.strip().upper()
+        transformed_event = transform(event)
+        assert transformed_event['first_name'] == 'John'
+        assert transformed_event['last_name'] == 'Doe'
+        assert transformed_event['email'] == 'abc@123.com'
+        assert transformed_event['postcode'] == 'EC1A 1BB'
+
+    def test_transform_missing_field(self):
+        event = {
+            'first_name': 'John',
+            'last_name': 'Doe',
+            'postcode': 'EC1A 1BB'
+        }
+        with pytest.raises(ValueError) as excinfo:
+            transform(event)
+        assert str(excinfo.value) == "Missing required field: email."
