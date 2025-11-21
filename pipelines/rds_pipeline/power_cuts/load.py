@@ -9,6 +9,10 @@ from dotenv import load_dotenv
 #
 ###
 
+# National Grid Pipeline
+from national_grid_pipeline.extract_national_grid import extract_data_national_grid
+from national_grid_pipeline.transform_national_grid import transform_data_national_grid
+
 load_dotenv()
 
 
@@ -86,11 +90,36 @@ if __name__ == "__main__":
                         format='%(asctime)s | %(levelname)s | %(filename)s | %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')
 
-    raw_data = extract_power_cut_data()
-    transformed_data = transform_power_cut_data(raw_data)
+    # raw_data = extract_power_cut_data()
+    # transformed_data = transform_power_cut_data(raw_data)
 
+    # db_conn = connect_to_database()
+
+    # insert_data(db_conn, transformed_data)
+
+    # db_conn.close()
+
+    # Load: National Grid Data Pipeline
+    logging.info("Extracting National Grid power cuts data...")
+    raw_data_national_grid = extract_data_national_grid()
+
+    logging.info(f"Extracted {len(raw_data_national_grid)} raw records from National Grid")
+
+    logging.info("Transforming National Grid data...")
+    transformed_data_national_grid = transform_data_national_grid(raw_data_national_grid)
+
+    logging.info(
+        f"Transformed {len(transformed_data_national_grid)} records from National Grid")
+
+    # Connect to database and load data
     db_conn = connect_to_database()
+    logging.info("Connected to database")
 
-    insert_data(db_conn, transformed_data)
+    insert_data(db_conn, transformed_data_national_grid)
 
+
+
+    # Connection Closed
     db_conn.close()
+    logging.info("Database connection closed")
+
