@@ -2,6 +2,7 @@
 import logging
 import psycopg2
 from psycopg2.extras import execute_values
+import pandas as pd
 #pylint: disable = logging-fstring-interpolation
 logger = logging.getLogger(__name__)
 
@@ -27,57 +28,50 @@ def get_db_connection():
         logger.error(f"Operational error connecting to database: {e}")
         return None
 
-def load_settlement_data_to_db(connection, settlement_df):
+def load_settlement_data_to_db(connection, settlement_df: pd.DataFrame) -> list:
     '''
-    Load settlement data and return settlement_ids mapped to each row.
-    Returns IDs for both new and existing records.
+    Load the settlement data into the RDS database and returns settlement_ids.
+    Efficiently handles both new inserts and existing records.
+
+    Args:
+        connection: psycopg2 database connection object
+        settlement_df (pd.DataFrame): DataFrame containing settlement data
+    
+    Returns:
+        list: List of settlement_ids corresponding to the inserted/updated records
     '''
     if connection is None:
         logger.error("No database connection provided. Data load aborted.")
         return None
 
     try:
-        logger.info(f"Loading settlement data for {len(settlement_df)} records")
+        logger.info(f"Loading {len(settlement_df)} settlement records")
         cursor = connection.cursor()
 
-        # Get UNIQUE settlement combinations (preserve order)
-        # Create tuples of (date, settlement_period)
-        settlement_tuples = list(settlement_df[['settlement_date',
-                                                'settlement_period']].itertuples(index=False,
-                                                                                  name=None))
-
-        # Remove duplicates while preserving order
-        seen = set()
-        unique_settlements = []
-        for settlement in settlement_tuples:
-            if settlement not in seen:
-                seen.add(settlement)
-                unique_settlements.append(settlement)
-
-        logger.info(f"Inserting {len(unique_settlements)} unique settlements")
+        # Prepare data as list of tuples
+        data = [(row['settlement_date'], row['settlement_period']) for _, row in settlement_df.iterrows()]
 
         insert_query = '''
             INSERT INTO settlements (settlement_date, settlement_period)
             VALUES %s
             ON CONFLICT (settlement_date, settlement_period)
             DO UPDATE SET settlement_date = EXCLUDED.settlement_date
-            RETURNING settlement_id, settlement_date, settlement_period;
+            RETURNING settlement_id;
         '''
 
-        results = execute_values(cursor, insert_query, unique_settlements, fetch=True)
+        # execute_values is much faster than looping
+        settlement_ids = execute_values(
+            cursor,
+            insert_query,
+            data,
+            fetch=True
+        )
+
         connection.commit()
+        logger.info(f"Successfully loaded {len(settlement_ids)} settlement records")
 
-        # Create mapping: {(date, period): settlement_id}
-        settlement_map = {(row[1], row[2]): row[0] for row in results}
-
-        # Map back to original DataFrame order
-        settlement_ids = [
-            settlement_map[(row['settlement_date'], row['settlement_period'])]
-            for _, row in settlement_df.iterrows()
-        ]
-
-        logger.info(f"Successfully loaded {len(results)} settlement records")
-        return settlement_ids
+        # Extract IDs from result tuples
+        return [row[0] for row in settlement_ids]
 
     except psycopg2.IntegrityError as e:
         connection.rollback()
@@ -85,10 +79,10 @@ def load_settlement_data_to_db(connection, settlement_df):
         return None
     except KeyError as e:
         connection.rollback()
-        logger.error(f"Missing column in settlement data: {e}")
+        logger.error(f"Missing column: {e}")
         return None
 
-def load_neso_demand_data_to_db(connection, demand_df, table):
+def load_neso_demand_data_to_db(connection, demand_df: pd.DataFrame, table: str) -> bool:
     '''
     Load NESO demand data into the database.
     First load settlements to get settlement_ids, then load demand data.
@@ -98,6 +92,7 @@ def load_neso_demand_data_to_db(connection, demand_df, table):
         demand_df (pd.DataFrame): Transformed NESO demand data with columns:
                                   'settlement_date', 'settlement_period',
                                   'national_demand', 'transmission_system_demand'
+        table (str): Target table name for demand data (historic_demand or recent_demand)
 
     Returns:
         bool: True if successful, False otherwise
