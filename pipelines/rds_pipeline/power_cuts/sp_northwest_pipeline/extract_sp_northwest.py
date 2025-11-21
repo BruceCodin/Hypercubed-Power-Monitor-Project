@@ -1,4 +1,4 @@
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name, line-too-long
 
 """Module to extract power cut data from North West Electricity (SP Energy Networks) API.
 Seems to update ~ every 5 minutes."""
@@ -77,7 +77,7 @@ def extract_data_sp_northwest() -> List[Dict]:
     if data:
         parsed_data = parse_power_cut_data(data)
         return parsed_data
-    
+
     logger.warning("Data parsing failed or no data available.")
     return None
 
