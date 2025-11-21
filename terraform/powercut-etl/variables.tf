@@ -16,7 +16,7 @@ variable "ecr_repository_name" {
 variable "lambda_function_name" {
   description = "Name of the Lambda function"
   type        = string
-  default     = "power-monitor-powercuts-etl"
+  default     = "c20-power-monitor-powercuts-etl-lambda"
 }
 
 variable "lambda_timeout" {
