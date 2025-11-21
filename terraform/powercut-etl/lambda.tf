@@ -32,6 +32,34 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   role       = aws_iam_role.lambda_execution_role.name
 }
 
+# Policy to allow Lambda to pull images from ECR
+resource "aws_iam_role_policy" "lambda_ecr_policy" {
+  name = "lambda-ecr-access-policy"
+  role = aws_iam_role.lambda_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:BatchCheckLayerAvailability"
+        ]
+        Resource = aws_ecr_repository.power_monitor_repo.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # Policy to allow Lambda to access Secrets Manager
 resource "aws_iam_role_policy" "lambda_secrets_policy" {
   name = "lambda-secrets-access-policy"
