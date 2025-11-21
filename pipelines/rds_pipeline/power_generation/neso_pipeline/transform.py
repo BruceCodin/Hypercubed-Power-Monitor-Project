@@ -94,7 +94,7 @@ def validate_data_types(demand_df: pd.DataFrame) -> bool:
             logger.error(f"Column {column} has type {demand_df[column].dtype}, expected {expected_type}")
             return False
     logger.info("All data types are valid")
-    return True
+    return demand_df
 
 def transform_neso_demand_data(demand_df: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -108,6 +108,7 @@ def transform_neso_demand_data(demand_df: pd.DataFrame) -> pd.DataFrame:
     
     df = transform_neso_data_columns(demand_df)
     df = make_date_column_datetime(df)
-    if not validate_data_types(df):
+    df = validate_data_types(df)
+    if not isinstance(df, pd.DataFrame):
         raise ValueError("Data validation failed")
     return df
