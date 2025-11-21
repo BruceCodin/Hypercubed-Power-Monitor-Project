@@ -1,7 +1,6 @@
 import logging
 from unittest.mock import patch, MagicMock
 from pipelines.rds_pipeline.power_cuts.transform_script.transform import (
-    transform_postcode_with_api,
     transform_postcode_manually,
     transform_postcode_list,
     transform_source_provider,
@@ -30,51 +29,6 @@ class TestTransformPostcodeManually:
             assert transform_postcode_manually(input_code) == ""
 
 
-class TestTransformPostcodeWithAPI:
-    '''Test class for transform_postcode_with_api function.'''
-
-    def setup_method(self):
-        '''Setup logger for each test.'''
-        self.logger = logging.getLogger(__name__)
-
-    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.requests.get')
-    def test_api_online_valid(self, mock_get):
-        '''Test API validation when online with valid postcode.'''
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {'result': {'postcode': 'BR8 7RE'}}
-        mock_get.return_value = mock_response
-
-        assert transform_postcode_with_api("br87re", self.logger) == "BR8 7RE"
-
-    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.requests.get')
-    def test_api_online_invalid(self, mock_get):
-        '''Test API validation when online with invalid postcode (404).'''
-        mock_response = MagicMock()
-        mock_response.status_code = 404
-        mock_get.return_value = mock_response
-
-        assert transform_postcode_with_api("INVALID123", self.logger) == ""
-
-    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.requests.get')
-    def test_api_offline_fallback_valid(self, mock_get):
-        '''Test fallback to manual validation when API offline (5xx error).'''
-        mock_response = MagicMock()
-        mock_response.status_code = 500
-        mock_get.return_value = mock_response
-
-        assert transform_postcode_with_api("BR8 7RE", self.logger) == "BR8 7RE"
-
-    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.requests.get')
-    def test_api_offline_fallback_invalid(self, mock_get):
-        '''Test fallback to manual validation when API offline with invalid postcode.'''
-        mock_response = MagicMock()
-        mock_response.status_code = 503
-        mock_get.return_value = mock_response
-
-        assert transform_postcode_with_api("INVALID", self.logger) == ""
-
-
 class TestTransformPostcodeList:
     '''Test class for transform_postcode_list function.'''
 
@@ -82,26 +36,28 @@ class TestTransformPostcodeList:
         '''Setup logger for each test.'''
         self.logger = logging.getLogger(__name__)
 
-    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.transform_postcode_with_api')
-    def test_transform_postcode_list_valid(self, mock_transform):
+    def test_transform_postcode_list_valid(self):
         '''Test postcode list transformation.'''
-        mock_transform.side_effect = [
-            "BR8 7RE", "", "SW1A 1AA", "EC1A 1BB"
-        ]
         input_postcodes = ["br87re", "invalid", "sw1a1aa", "ec1a1bb"]
         expected = ["BR8 7RE", "SW1A 1AA", "EC1A 1BB"]
 
         result = transform_postcode_list(input_postcodes, self.logger)
         assert result == expected
 
-    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.transform_postcode_with_api')
-    def test_transform_postcode_list_all_invalid(self, mock_transform):
+    def test_transform_postcode_list_all_invalid(self):
         '''Test postcode list transformation with all invalid postcodes.'''
-        mock_transform.side_effect = ["", "SW1A 1AA", ""]
-        input_postcodes = ["invalid1", "SW1A 1AA", "invalid3"]
+        input_postcodes = ["invalid1", "invalid2", "invalid3"]
 
         result = transform_postcode_list(input_postcodes, self.logger)
-        assert result == ["SW1A 1AA"]
+        assert result == []
+
+    def test_transform_postcode_list_mixed(self):
+        '''Test postcode list transformation with mixed valid/invalid.'''
+        input_postcodes = ["SW1A 1AA", "BADCODE", "EC1A 1BB"]
+        expected = ["SW1A 1AA", "EC1A 1BB"]
+
+        result = transform_postcode_list(input_postcodes, self.logger)
+        assert result == expected
 
 
 class TestTransformSourceProvider:
@@ -229,3 +185,43 @@ class TestMainTransform:
         ]
         result = main_transform(input_data, self.logger)
         assert result == []
+
+    def test_main_transform_missing_field(self):
+        '''Test main transformation with missing required field.'''
+        input_data = [
+            {
+                'affected_postcodes': ["BR8 7RE"],
+                'source_provider': "some provider",
+                'status': True,
+                'recording_time': self._mock_datetime("2024-01-01T09:00:00")
+                # Missing outage_date
+            }
+        ]
+        result = main_transform(input_data, self.logger)
+        assert result == []
+
+    def test_main_transform_partial_invalid_postcodes(self):
+        '''Test main transformation where some postcodes are invalid.'''
+        input_data = [
+            self._build_input_record(
+                ["BR8 7RE", "INVALID", "SW1A 1AA"],
+                "2024-01-01T10:00:00",
+                "some provider",
+                True,
+                "2024-01-01T09:00:00"
+            )
+        ]
+
+        # The record should still be valid with the 2 valid postcodes
+        expected = [
+            {
+                "affected_postcodes": ["BR8 7RE", "SW1A 1AA"],
+                "outage_date": "2024-01-01T10:00:00",
+                "source_provider": "Some Provider",
+                "status": "planned",
+                "recording_time": "2024-01-01T09:00:00"
+            }
+        ]
+
+        result = main_transform(input_data, self.logger)
+        assert result == expected

@@ -23,48 +23,10 @@ Outputs: clean JSON data with columns:
 import logging
 import re
 
-import requests
-
-
-def transform_postcode_with_api(postcode: str, logger: logging.Logger) -> str:
-    '''
-    Validate and transform postcode unit using postcodes.io API.
-    This matches postcode unit inputs such as
-    "BR8 7RE", "br87re", "Br8 7rE", etc.
-    and returns the standardized format "BR8 7RE".
-
-    Args:
-        postcode (str): The postcode to validate.
-        logger (logging.Logger): Logger instance for logging messages.
-
-    Returns:
-        str: The standardized postcode if valid, empty string otherwise.
-    '''
-    url = f"https://api.postcodes.io/postcodes/{postcode}"
-    response = requests.get(url, timeout=5)
-
-    if response.status_code == 404:
-        logger.warning("Postcode %s is invalid.", postcode)
-        return ""
-
-    if response.status_code == 200:
-        data = response.json()
-        postcode = data['result']['postcode']
-        return postcode
-
-    logger.error(
-        "Error validating postcode %s: %s.", postcode, response.status_code)
-    postcode = transform_postcode_manually(postcode)
-    if postcode == "":
-        logger.warning("Postcode %s is invalid (manual check).", postcode)
-        return ""
-    logger.info("Postcode %s is valid (manual check).", postcode)
-    return postcode
-
 
 def transform_postcode_manually(postcode: str) -> str:
     '''
-    Helper fn: transform postcode unit manually if API unavailable.
+    Transform postcode unit manually with regex validation.
     Validates with regex (simplest approach to cover most cases).
     UK postcode format: outward (2-4 chars) + inward (3 chars).
         Outward: 1-2 letters + digit [+ letter] OR digit + letter
@@ -105,9 +67,11 @@ def transform_postcode_list(postcode_list: list[str], logger: logging.Logger) ->
     '''
     transformed_list = []
     for postcode in postcode_list:
-        transformed_postcode = transform_postcode_with_api(postcode, logger)
+        transformed_postcode = transform_postcode_manually(postcode)
         if transformed_postcode:
             transformed_list.append(transformed_postcode)
+        else:
+            logger.warning("Postcode %s is invalid.", postcode)
     return transformed_list
 
 
