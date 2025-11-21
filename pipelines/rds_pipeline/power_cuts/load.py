@@ -38,8 +38,7 @@ from sp_northwest_pipeline.transform_sp_northwest import transform_data_sp_north
 # SSEN Pipeline
 from ssen_pipeline.extract_ssen import extract_power_cut_data as extract_ssen_raw
 from ssen_pipeline.extract_ssen import parse_power_cut_data as parse_ssen_data
-# Note: SSEN transform script is currently empty/placeholder
-# from ssen_pipeline.transform_ssen import transform_ssen_data
+from ssen_pipeline.transform_ssen import transform_ssen_data
 
 # UK Power Networks Pipeline
 from uk_power_networks_pipeline.extract_uk_pow import extract_data_uk_pow
@@ -283,7 +282,7 @@ if __name__ == "__main__":
     # Load: SSEN Data Pipeline
     # ========================================================================
     logging.info("=" * 80)
-    logging.info("SSEN PIPELINE (PLACEHOLDER - Transform not implemented)")
+    logging.info("SSEN PIPELINE")
     logging.info("=" * 80)
 
     try:
@@ -295,17 +294,15 @@ if __name__ == "__main__":
             logging.info(
                 f"Extracted and parsed {len(parsed_data_ssen)} records from SSEN")
 
-            # TODO: Implement transform_ssen_data() function
-            logging.warning(
-                "SSEN transform not implemented. Skipping transformation and insertion.")
+            logging.info("Transforming SSEN data...")
+            transformed_data_ssen = transform_ssen_data(parsed_data_ssen)
 
-            # Placeholder for when transform is implemented:
-            # logging.info("Transforming SSEN data...")
-            # transformed_data_ssen = transform_ssen_data(parsed_data_ssen)
-            # logging.info(f"Transformed {len(transformed_data_ssen)} records from SSEN")
-            # logging.info("Inserting SSEN data into database...")
-            # insert_data(db_conn, transformed_data_ssen)
-            # logging.info("SSEN data insertion complete.")
+            logging.info(
+                f"Transformed {len(transformed_data_ssen)} records from SSEN")
+
+            logging.info("Inserting SSEN data into database...")
+            insert_data(db_conn, transformed_data_ssen)
+            logging.info("SSEN data insertion complete.")
         else:
             logging.warning("No data extracted from SSEN. Skipping.")
     except Exception as e:
