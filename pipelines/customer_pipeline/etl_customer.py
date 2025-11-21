@@ -24,6 +24,10 @@ Output:
 '''
 import requests
 import re
+import os
+import boto3
+import pandas as pd
+import io
 
 
 def format_name(name: str) -> str:
@@ -166,13 +170,66 @@ def transform(event: dict) -> dict:
     return customer_data
 
 
+def get_s3_client():
+    '''
+    Create and return an S3 client using boto3.
+
+    Returns:
+        boto3.client: S3 client object.
+    '''
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+        region_name=os.getenv('AWS_REGION')
+    )
+    return s3_client
+
+
 def load(customer_data: dict) -> None:
     '''
     Load customer data into S3 in parquet format.
+    BytesIO: allows direct translation from pandas dataframe
+        to S3 object, without needing to save a local file first.
 
     Args:
         customer_data (dict): Transformed customer data.
     '''
+    s3_client = get_s3_client()
+    bucket_name = os.getenv('BUCKET_NAME')
+    s3_key = 'customers/customers.parquet'
+
+    try:
+        response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
+        existing_df = pd.read_parquet(io.BytesIO(response['Body'].read()))
+
+    except s3_client.exceptions.NoSuchKey:  # 1st run, file doesn't exist yet
+        existing_df = pd.DataFrame()
+
+    new_df = pd.DataFrame([customer_data])
+
+    if not existing_df.empty:
+        is_duplicate = (
+            (existing_df['first_name'] == customer_data['first_name']) &
+            (existing_df['last_name'] == customer_data['last_name']) &
+            (existing_df['email'] == customer_data['email']) &
+            (existing_df['postcode'] == customer_data['postcode'])
+        ).any()
+
+        if is_duplicate:
+            raise ValueError("Customer data already exists in database")
+
+        combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+
+    else:
+        combined_df = new_df
+
+    buffer = io.BytesIO()
+    combined_df.to_parquet(buffer, index=False, engine='pyarrow')
+    buffer.seek(0)
+
+    s3_client.put_object(Bucket=bucket_name, Key=s3_key,
+                         Body=buffer.getvalue())
 
 
 def lambda_handler(event, context) -> dict:
