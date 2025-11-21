@@ -2,11 +2,12 @@
 import unittest
 import pandas as pd
 from datetime import date
-from pipelines.rds_pipeline.power_generation.elexon_pipeline.transform_elexon import (
+from transform_elexon import (
     update_price_column_names,
     expand_generation_data_column,
     add_date_column_to_generation
 )
+# pylint: skip-file
 
 
 class TestUpdatePriceColumnNames(unittest.TestCase):

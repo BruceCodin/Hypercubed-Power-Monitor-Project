@@ -2,8 +2,8 @@
 from datetime import datetime
 import pandas as pd
 import pytest
-from pipelines.rds_pipeline.power_generation.elexon_pipeline.extract_elexon import fetch_elexon_price_data, parse_elexon_price_data, fetch_elexon_generation_data, parse_elexon_generation_data
-
+from extract_elexon import fetch_elexon_price_data, parse_elexon_price_data, fetch_elexon_generation_data, parse_elexon_generation_data
+# pylint: skip-file
 
 class TestParseElexonPriceData:
     '''Tests for parse_elexon_price_data function'''
