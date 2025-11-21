@@ -1,12 +1,11 @@
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name, line-too-long
 
 """Module to extract power cut data from North West Electricity (SP Energy Networks) API.
 Seems to update ~ every 5 minutes."""
 
 from datetime import datetime
 import logging
-from typing import Optional
-from pprint import pprint
+from typing import Optional, List, Dict
 import requests as req
 
 BASE_URL = "https://www.enwl.co.uk/api/power-outages/search?pageSize=1000&pageNumber=1&includeCurrent=true&includeResolved=false&includeTodaysPlanned=true&includeFuturePlanned=true&includeCancelledPlanned=false"
@@ -55,7 +54,7 @@ def parse_power_cut_data(data: dict) -> list[dict]:
     for fault in data['Items']:
         parsed_data.append({
             "source_provider": PROVIDER,
-            "status": fault.get("Type"),
+            "status": fault.get("faultType"),
             "outage_date": fault.get("date"),
             "recording_time": datetime.now().isoformat(),
             "affected_postcodes": fault.get("AffectedPostcodes")
@@ -65,13 +64,26 @@ def parse_power_cut_data(data: dict) -> list[dict]:
     return parsed_data
 
 
-if __name__ == "__main__":
+def extract_data_sp_northwest() -> List[Dict]:
+    """
+    Main extraction function - orchestrates full extraction process.
 
-    # Example usage for local testing
-
+    Returns:
+        List of power cut records as list dictionaries 
+        similar to JSON format
+    """
     data = extract_power_cut_data()
 
     if data:
         parsed_data = parse_power_cut_data(data)
-        print("Extracted and Parsed Data:")
-        pprint(parsed_data)
+        return parsed_data
+
+    logger.warning("Data parsing failed or no data available.")
+    return None
+
+
+if __name__ == "__main__":
+    from pprint import pprint
+
+    # Example usage for local testing
+    pprint(extract_data_sp_northwest())
