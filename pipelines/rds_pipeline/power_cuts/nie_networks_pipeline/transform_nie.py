@@ -1,7 +1,9 @@
+"""Transform module for NIE Networks power cut data pipeline.
+This module contains functions to transform raw JSON data extracted from
+the NIE Networks API into a standardized format suitable for further processing."""
+
 import logging
 from datetime import datetime
-from extract_nie import (extract_power_cut_data,
-                         parse_power_cut_data)
 
 
 logger = logging.getLogger(__name__)
@@ -111,31 +113,49 @@ def transform_outage_date(date: str) -> str:
     return standard_date.isoformat()
 
 
-def transform_nie_data() -> list[dict]:
-    """Main function to extract, parse, and transform NIE Networks power cut data.
+def transform_nie_data(parsed_data: list[dict]) -> list[dict]:
+    """Main function to transform NIE Networks power cut data.
+
+    Args:
+        parsed_data (list[dict]): Parsed data from extract_nie module.
 
     Returns:
         list[dict]: Transformed power cut data in standard format.
     """
 
-    raw_data = extract_power_cut_data()
-    if raw_data is None:
-        logger.error("Failed to extract NIE Networks data.")
+    if not parsed_data:
+        logger.warning("No parsed data provided for transformation.")
         return []
 
-    parsed_data = parse_power_cut_data(raw_data)
     transformed_data = transform_power_cut_data(parsed_data)
 
     return transformed_data
 
 
 if __name__ == "__main__":
-
     # Example usage for local testing
+    from pprint import pprint
+    from extract_nie import extract_power_cut_data, parse_power_cut_data
 
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s')
 
+    logger.info("Starting NIE Networks power cuts transformation...")
+
+    # Extract and parse data
     raw_data = extract_power_cut_data()
     cleaned_data = parse_power_cut_data(raw_data)
-    standardized_data = transform_power_cut_data(cleaned_data)
+
+    # Transform data
+    standardized_data = transform_nie_data(cleaned_data)
+
+    if standardized_data:
+        logger.info(
+            f"Transformation complete! Transformed {len(standardized_data)} records")
+        print("\n" + "="*80)
+        print(
+            f"Sample of first {min(5, len(standardized_data))} transformed records:")
+        print("="*80)
+        pprint(standardized_data[:5])
+    else:
+        logger.warning("No data transformed")
