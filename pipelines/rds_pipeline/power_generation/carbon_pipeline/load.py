@@ -4,6 +4,7 @@ import psycopg2
 from psycopg2.extras import execute_values
 #pylint: disable=logging-fstring-interpolation
 
+
 logger = logging.getLogger(__name__)
 def get_db_connection():
     '''Establish a connection to the RDS database.'''
@@ -25,6 +26,13 @@ def load_settlement_data_to_db(connection, settlement_df):
     '''
     Load the settlement data into the RDS database and returns settlement_ids.
     Efficiently handles both new inserts and existing records.
+
+    Args:
+        connection: psycopg2 database connection object
+        settlement_df (pd.DataFrame): DataFrame containing settlement data
+    
+    Returns:
+        list: List of settlement_ids corresponding to the inserted/updated records
     '''
     if connection is None:
         logger.error("No database connection provided. Data load aborted.")
@@ -125,8 +133,8 @@ if __name__ == "__main__":
     from datetime import datetime
     # carbon intensity api can only fetch data in month chunks
     raw_data = fetch_carbon_intensity_data(
-        from_datetime = datetime(2025, 2, 1, 0, 0),
-        to_datetime = datetime(2025, 2, 28, 0, 0)
+        from_datetime = datetime(2025, 3, 1, 0, 0),
+        to_datetime = datetime(2025, 3, 28, 0, 0)
     )
     tranform_data = transform_carbon_data(raw_data)
     print(tranform_data.head())
