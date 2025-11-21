@@ -110,12 +110,12 @@ def load_price_data_to_db(connection, price_df: pd.DataFrame):
 
         # Prepare price data with settlement_ids
         data = [
-            (
-                settlement_ids[index],
-                row['system_sell_price']
-            )
-            for index, row in price_df.iterrows()
-        ]
+        (
+            settlement_ids[i],
+            row['system_sell_price']
+        )
+        for i, (_, row) in enumerate(price_df.iterrows())
+    ]
 
         insert_query = '''
             INSERT INTO system_price (settlement_id, system_price)
@@ -225,13 +225,13 @@ def load_generation_data_to_db(connection, generation_df: pd.DataFrame):
 
         # Prepare generation data with both foreign keys
         data = [
-            (
-                settlement_ids[index],
-                fuel_type_ids[index],
-                row['generation']
-            )
-            for index, row in generation_df.iterrows()
-        ]
+        (
+            settlement_ids[i],
+            fuel_type_ids[i],   
+            row['generation']
+        )
+        for i, (_, row) in enumerate(generation_df.iterrows())
+    ]
 
         insert_query = '''
             INSERT INTO generation (settlement_id, fuel_type_id, generation_mw)
