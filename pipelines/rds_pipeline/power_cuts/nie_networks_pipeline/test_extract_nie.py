@@ -4,7 +4,7 @@
 
 from unittest.mock import patch, Mock
 import requests
-from extract_NIE import (
+from extract_nie import (
     extract_power_cut_data,
     parse_power_cut_data,
     PROVIDER
