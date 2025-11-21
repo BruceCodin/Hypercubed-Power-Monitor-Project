@@ -13,6 +13,10 @@ from dotenv import load_dotenv
 from national_grid_pipeline.extract_national_grid import extract_data_national_grid
 from national_grid_pipeline.transform_national_grid import transform_data_national_grid
 
+# Northern Ireland Electricity Networks Pipeline  
+from nie_networks_pipeline.transform_nie import transform_nie_data
+
+# Load environment variables
 load_dotenv()
 
 
@@ -99,6 +103,10 @@ if __name__ == "__main__":
 
     # db_conn.close()
 
+    # Connect to database and load data
+    db_conn = connect_to_database()
+    logging.info("Connected to database")
+
     # Load: National Grid Data Pipeline
     logging.info("Extracting National Grid power cuts data...")
     raw_data_national_grid = extract_data_national_grid()
@@ -111,12 +119,23 @@ if __name__ == "__main__":
     logging.info(
         f"Transformed {len(transformed_data_national_grid)} records from National Grid")
 
-    # Connect to database and load data
-    db_conn = connect_to_database()
-    logging.info("Connected to database")
-
+    logging.info("Inserting National Grid data into database...")
     insert_data(db_conn, transformed_data_national_grid)
+    logging.info("National Grid data insertion complete.")
 
+    # Load: NIE Networks Data Pipeline
+    logging.info("Transforming NIE Networks power cuts data...")
+    transformed_data_nie = transform_nie_data()
+    
+    logging.info(f"Extracted and Transformed {len(transformed_data_nie)} records from NIE Networks")
+
+    logging.info("Inserting NIE Networks data into database...")
+    insert_data(db_conn, transformed_data_nie)
+    logging.info("NIE Networks data insertion complete.")
+
+
+    #Load: Northern Power Networks Data Pipeline
+    # (To be implemented)
 
 
     # Connection Closed
