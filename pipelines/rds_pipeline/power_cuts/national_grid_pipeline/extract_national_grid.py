@@ -5,7 +5,6 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Optional
 import requests
-from pprint import pprint
 
 # API configuration
 BASE_URL = "https://connecteddata.nationalgrid.co.uk/api/3/action/datastore_search"
@@ -127,7 +126,7 @@ def transform_record(record: Dict) -> Dict:
         'recording_time': datetime.now().isoformat()  # String
     }
 
-def extract_power_cut_data() -> List[Dict]:
+def extract_data_national_grid() -> List[Dict]:
     """
     Main extraction function - orchestrates full extraction process.
     
@@ -161,6 +160,8 @@ def extract_power_cut_data() -> List[Dict]:
 
 
 if __name__ == "__main__":
+    from pprint import pprint
+    
     # Example usage for local testing
     logging.basicConfig(
         level=logging.INFO,
@@ -168,7 +169,7 @@ if __name__ == "__main__":
     )
 
     logger.info("Starting National Grid power cuts extraction...")
-    power_cuts = extract_power_cut_data()
+    power_cuts = extract_data_national_grid()
 
     if power_cuts:
         logger.info(f"Extraction complete! Found {len(power_cuts)} power cuts")
