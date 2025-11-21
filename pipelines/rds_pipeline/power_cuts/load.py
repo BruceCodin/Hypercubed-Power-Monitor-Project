@@ -20,7 +20,7 @@ from national_grid_pipeline.extract_national_grid import extract_data_national_g
 from national_grid_pipeline.transform_national_grid import transform_data_national_grid
 
 # NIE Networks Pipeline
-from nie_networks_pipeline.extract_nie import extract_NIE_data
+from nie_networks_pipeline.extract_nie import extract_nie_data
 from nie_networks_pipeline.transform_nie import transform_nie_data
 
 # Northern Powergrid Pipeline
@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
     try:
         logging.info("Extracting NIE Networks power cuts data...")
-        raw_data_nie = extract_NIE_data()
+        raw_data_nie = extract_nie_data()
 
         if raw_data_nie:
             logging.info(
@@ -265,7 +265,8 @@ if __name__ == "__main__":
                 f"Extracted {len(raw_data_sp_nw)} raw records from SP Northwest")
 
             logging.info("Transforming SP Northwest data...")
-            transformed_data_sp_nw = transform_data_sp_northwest(raw_data_sp_nw)
+            transformed_data_sp_nw = transform_data_sp_northwest(
+                raw_data_sp_nw)
 
             logging.info(
                 f"Transformed {len(transformed_data_sp_nw)} records from SP Northwest")
