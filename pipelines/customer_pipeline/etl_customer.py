@@ -166,8 +166,13 @@ def transform(event: dict) -> dict:
     return customer_data
 
 
-def load(customer_data):
-    ...
+def load(customer_data: dict) -> None:
+    '''
+    Load customer data into S3 in parquet format.
+
+    Args:
+        customer_data (dict): Transformed customer data.
+    '''
 
 
 def lambda_handler(event, context) -> dict:
@@ -186,22 +191,4 @@ def lambda_handler(event, context) -> dict:
     # Transform
     customer_data = transform(event)
 
-    if not customer_data['is_valid']:
-        return {
-            "status": 400,
-            "message": f"Validation error: {customer_data['errors']}"
-        }
-
-    # Load
-    load_result = load(customer_data)
-
-    if not load_result['is_successful']:
-        return {
-            "status": 400,
-            "message": f"Load error: {load_result['error']}"
-        }
-
-    return {
-        "status": 200,
-        "message": "Customer data processed successfully."
-    }
+    ...
