@@ -1,6 +1,6 @@
 # pylint: skip-file
 import pytest
-from transform import (
+from transform_uk_pow import (
     parse_postcodes,
     standardize_status,
     normalize_datetime,
