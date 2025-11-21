@@ -79,7 +79,7 @@ def normalize_datetime(iso_string: str) -> str:
         return iso_string
 
 
-def transform_power_cut_data(raw_extracted_data: List[Dict]) -> List[Dict]:
+def transform_data_national_grid(raw_extracted_data: List[Dict]) -> List[Dict]:
     """
     Transform National Grid extracted data to standardized format.
     
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     extracted_data = extract_data_national_grid()
 
     # Transform data
-    transformed_data = transform_power_cut_data(extracted_data)
+    transformed_data = transform_data_national_grid(extracted_data)
 
     if transformed_data:
         logger.info(
