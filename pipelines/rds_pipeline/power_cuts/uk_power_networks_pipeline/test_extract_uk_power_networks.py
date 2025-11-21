@@ -1,5 +1,5 @@
 # pylint: skip-file
-# test_extract.py
+# pragma: no cover
 import pytest
 from extract_uk_power_networks import (
     parse_records,

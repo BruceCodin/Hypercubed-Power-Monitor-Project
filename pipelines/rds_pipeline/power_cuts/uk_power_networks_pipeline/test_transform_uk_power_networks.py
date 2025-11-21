@@ -1,6 +1,7 @@
 # pylint: skip-file
+# pragma: no cover
 import pytest
-from transform import (
+from transform_uk_power_networks import (
     parse_postcodes,
     standardize_status,
     normalize_datetime,

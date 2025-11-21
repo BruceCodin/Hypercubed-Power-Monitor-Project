@@ -1,5 +1,6 @@
 """Unit tests for SP Northwest power cut extraction functions."""
 # pylint: skip-file
+# pragma: no cover
 from extract_sp_northwest import parse_power_cut_data, PROVIDER
 
 
