@@ -54,7 +54,7 @@ def parse_power_cut_data(data: dict) -> list[dict]:
     for fault in data['Faults']:
         parsed_entry = {
             "source_provider": PROVIDER,
-            "status": fault.get("py/object"),
+            "status": fault.get("type"),
             "outage_date": fault.get("loggedAt"),
             "recording_time": datetime.now().isoformat(),
             "affected_postcodes": fault.get("affectedAreas"),
@@ -65,13 +65,31 @@ def parse_power_cut_data(data: dict) -> list[dict]:
     return parsed_data
 
 
+def extract_ssen_data() -> Optional[list[dict]]:
+    """Main function to extract and parse SSEN power cut data.
+
+    Returns:
+        Optional[list[dict]]: List of parsed power cut data dictionaries,
+                              or None if extraction fails.
+    """
+
+    raw_data = extract_power_cut_data()
+
+    if raw_data is None:
+        logger.error("Failed to extract SSEN data.")
+        return None
+
+    parsed_data = parse_power_cut_data(raw_data)
+
+    return parsed_data
+
+
 if __name__ == "__main__":
 
-    # Example usage for local testing
+    from pprint import pprint
 
-    data = extract_power_cut_data()
+    # Example usage
 
-    if data:
-        parsed_data = parse_power_cut_data(data)
-        print("Extracted and Parsed Data:")
-        print(parsed_data)
+    data = extract_ssen_data()
+
+    pprint(data)
