@@ -53,7 +53,9 @@ CREATE TABLE recent_demand(
     settlement_id INT NOT NULL,
     national_demand DECIMAL(10,2) NOT NULL,
     transmission_system_demand DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE
+    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE,
+    CONSTRAINT recent_demand_unique UNIQUE (settlement_id)
+
 );
 
 CREATE TABLE historic_demand(
@@ -61,5 +63,6 @@ CREATE TABLE historic_demand(
     settlement_id INT NOT NULL,
     national_demand DECIMAL(10,2) NOT NULL,
     transmission_system_demand DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE
+    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE,
+    CONSTRAINT historic_demand_unique UNIQUE (settlement_id)
 );
