@@ -7,7 +7,6 @@ from datetime import datetime
 import logging
 from typing import Optional
 import requests as req
-from pprint import pprint
 
 BASE_URL = "https://powercheck.nienetworks.co.uk/NIEPowerCheckerWebAPI/api/faults"
 PROVIDER = "Northern Ireland Electricity Networks"
@@ -72,8 +71,25 @@ def parse_power_cut_data(data: Optional[dict]) -> Optional[list[dict]]:
     return parsed_data
 
 
+def extract_NIE_data() -> Optional[list[dict]]:
+    """
+    Main function to extract and parse NIE Networks power cut data.
+
+    Returns:
+        list[dict]: A list of dictionaries containing parsed power cut information.
+    """
+
+    raw_data = extract_power_cut_data()
+    if raw_data is None:
+        return None
+
+    parsed_data = parse_power_cut_data(raw_data)
+    return parsed_data
+
+
 if __name__ == "__main__":
 
+    from pprint import pprint
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s')
 
