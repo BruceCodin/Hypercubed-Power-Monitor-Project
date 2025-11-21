@@ -55,7 +55,6 @@ def parse_power_cut_data(data: dict) -> list[dict]:
         parsed_entry = {
             "source_provider": PROVIDER,
             "status": fault.get("py/object"),
-            "region_affected": fault.get("name"),
             "outage_date": fault.get("loggedAt"),
             "recording_time": datetime.now().isoformat(),
             "affected_postcodes": fault.get("affectedAreas"),
