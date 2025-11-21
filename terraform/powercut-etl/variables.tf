@@ -37,3 +37,10 @@ variable "secrets_manager_arn" {
   type        = string
   default     = "arn:aws:secretsmanager:eu-west-2:129033205317:secret:c20-power-monitor-db-credentials-TAc5Xx"
 }
+
+# EventBridge Scheduler Configuration
+variable "scheduler_enabled" {
+  description = "Enable or disable the EventBridge scheduler"
+  type        = bool
+  default     = true
+}
