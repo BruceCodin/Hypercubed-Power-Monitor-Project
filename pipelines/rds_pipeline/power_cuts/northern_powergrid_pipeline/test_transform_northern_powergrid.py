@@ -1,8 +1,10 @@
+# pylint: skip-file
+
 """Unit tests for Northern Powergrid power cut transformation functions."""
 
-from transform import (transform_power_cut_data,
-                       transform_postcode,
-                       transform_status)
+from transform_northern_powergrid import (transform_power_cut_data,
+                                          transform_postcode,
+                                          transform_status)
 
 
 def test_transform_postcode_lowercase():
