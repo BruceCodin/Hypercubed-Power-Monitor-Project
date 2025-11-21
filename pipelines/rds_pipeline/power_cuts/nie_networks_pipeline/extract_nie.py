@@ -71,7 +71,7 @@ def parse_power_cut_data(data: Optional[dict]) -> Optional[list[dict]]:
     return parsed_data
 
 
-def extract_NIE_data() -> Optional[list[dict]]:
+def extract_nie_data() -> Optional[list[dict]]:
     """
     Main function to extract and parse NIE Networks power cut data.
 

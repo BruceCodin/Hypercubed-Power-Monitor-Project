@@ -5,8 +5,6 @@ the Northern Powergrid API into a standardized format suitable for further proce
 from datetime import datetime
 import logging
 from typing import Optional
-from extract_northern_powergrid import (extract_power_cut_data,
-                                        parse_power_cut_data)
 
 
 logger = logging.getLogger(__name__)
@@ -18,42 +16,6 @@ ENTRY_COLUMNS = [
     "status",
     "source_provider"
 ]
-
-
-def transform_power_cut_data(data: list[dict]) -> list[dict]:
-    """Transform function to clean raw JSON data and output to standard format.
-
-    Args:
-        data (list[dict]): Raw data extracted from Northern Powergrid API.
-
-    Returns:
-        list[dict]: Transformed data in standard format."""
-
-    if not data:
-        logger.warning("No data to transform.")
-        return None
-
-    for entry in data:
-
-        # Validate presence of expected keys
-        if any(key not in entry for key in ENTRY_COLUMNS):
-            logger.warning("Missing expected keys in entry: %s", entry)
-            continue
-
-        # Validate and transform date format
-        try:
-            datetime.fromisoformat(entry.get("outage_date"))
-        except (ValueError, TypeError):
-            logger.info("Invalid date format for entry: %s", entry)
-
-        # Transform affected postcodes and status
-        entry["affected_postcodes"] = transform_postcode(
-            entry.get("affected_postcodes", []))
-        entry["status"] = transform_status(entry.get("status", ""))
-
-    logger.info("Transformed %d power cut records.", len(data))
-
-    return data
 
 
 def transform_postcode(postcode: str) -> list[str]:
@@ -94,36 +56,66 @@ def transform_status(status: str) -> str:
     return "unknown"
 
 
-def transform_northern_powergrid_data() -> Optional[list[dict]]:
-    """
-    Main transformation function - orchestrates full transformation process.
+def transform_northern_powergrid_data(data: list[dict]) -> list[dict]:
+    """Main transform function to clean raw JSON data and output to standard format.
+
+    Args:
+        data (list[dict]): Raw data extracted from Northern Powergrid API.
 
     Returns:
-        list[dict]: List of cleaned power cut records as dictionaries
-    """
+        list[dict]: Transformed data in standard format."""
 
-    # Extract raw data
-    raw_data = extract_power_cut_data()
-    if not raw_data:
-        logger.warning("No data extracted from API")
-        return []
+    if not data:
+        logger.warning("No data to transform.")
+        return None
 
-    # Parse records
-    parsed_data = parse_power_cut_data(raw_data)
+    for entry in data:
 
-    # Transform records
-    transformed_data = transform_power_cut_data(parsed_data)
+        # Validate presence of expected keys
+        if any(key not in entry for key in ENTRY_COLUMNS):
+            logger.warning("Missing expected keys in entry: %s", entry)
+            continue
 
-    return transformed_data
+        # Validate and transform date format
+        try:
+            datetime.fromisoformat(entry.get("outage_date"))
+        except (ValueError, TypeError):
+            logger.info("Invalid date format for entry: %s", entry)
+
+        # Transform affected postcodes and status
+        entry["affected_postcodes"] = transform_postcode(
+            entry.get("affected_postcodes", []))
+        entry["status"] = transform_status(entry.get("status", ""))
+
+    logger.info("Transformed %d power cut records.", len(data))
+
+    return data
 
 
 if __name__ == "__main__":
+    # Example usage for local testing
+    from pprint import pprint
+    from extract_northern_powergrid import extract_power_cut_data, parse_power_cut_data
 
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s - %(levelname)s - %(message)s")
 
-    # Example usage
+    logger.info("Starting Northern Powergrid power cuts transformation...")
 
+    # Extract and parse data
     raw_data = extract_power_cut_data()
     cleaned_data = parse_power_cut_data(raw_data)
-    standardized_data = transform_power_cut_data(cleaned_data)
+
+    # Transform data
+    standardized_data = transform_northern_powergrid_data(cleaned_data)
+
+    if standardized_data:
+        logger.info(
+            f"Transformation complete! Transformed {len(standardized_data)} records")
+        print("\n" + "="*80)
+        print(
+            f"Sample of first {min(5, len(standardized_data))} transformed records:")
+        print("="*80)
+        pprint(standardized_data[:5])
+    else:
+        logger.warning("No data transformed")
