@@ -2,6 +2,7 @@
 import logging
 import psycopg2
 from psycopg2.extras import execute_values
+#pylint: disable=logging-fstring-interpolation
 
 logger = logging.getLogger(__name__)
 def get_db_connection():
