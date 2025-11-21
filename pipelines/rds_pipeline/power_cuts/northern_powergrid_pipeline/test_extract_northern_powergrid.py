@@ -1,6 +1,8 @@
+# pylint: skip-file
+
 """Unit tests for Northern Powergrid power cut extraction functions."""
 
-from extract import parse_power_cut_data, PROVIDER
+from extract_northern_powergrid import parse_power_cut_data, PROVIDER
 
 
 def test_parse_valid_data_with_multiple_items():
