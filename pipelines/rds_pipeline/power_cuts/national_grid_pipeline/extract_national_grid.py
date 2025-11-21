@@ -5,7 +5,6 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Optional
 import requests
-from pprint import pprint
 
 # API configuration
 BASE_URL = "https://connecteddata.nationalgrid.co.uk/api/3/action/datastore_search"
@@ -161,6 +160,8 @@ def extract_data_national_grid() -> List[Dict]:
 
 
 if __name__ == "__main__":
+    from pprint import pprint
+    
     # Example usage for local testing
     logging.basicConfig(
         level=logging.INFO,
