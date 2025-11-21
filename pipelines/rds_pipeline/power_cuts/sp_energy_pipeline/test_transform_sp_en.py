@@ -1,11 +1,11 @@
 # pylint: skip-file
 # test_transform.py
 import pytest
-from transform import (
+from transform_sp_en import (
     parse_postcodes,
     standardize_status,
     normalize_datetime,
-    transform_power_cut_data
+    transform_data_sp_en
 )
 
 
@@ -78,7 +78,7 @@ class TestDatetimeNormalization:
 class TestFullTransformation:
     """Tests for complete transformation pipeline"""
 
-    def test_transform_power_cut_data_single_postcode(self):
+    def test_transform_data_sp_en_single_postcode(self):
         """Test transformation with single postcode record."""
         # Arrange
         extracted_data = [{
@@ -90,7 +90,7 @@ class TestFullTransformation:
         }]
 
         # Act
-        result = transform_power_cut_data(extracted_data)
+        result = transform_data_sp_en(extracted_data)
 
         # Assert
         assert len(result) == 1
@@ -99,7 +99,7 @@ class TestFullTransformation:
         assert result[0]['outage_date'] == '2025-11-20T12:03:47+00:00'
         assert result[0]['recording_time'] == '2025-11-20T13:29:27'
 
-    def test_transform_power_cut_data_multiple_postcodes(self):
+    def test_transform_data_sp_en_multiple_postcodes(self):
         """Test transformation with multiple comma-separated postcodes."""
         # Arrange
         extracted_data = [{
@@ -111,7 +111,7 @@ class TestFullTransformation:
         }]
 
         # Act
-        result = transform_power_cut_data(extracted_data)
+        result = transform_data_sp_en(extracted_data)
 
         # Assert
         assert len(result) == 1
@@ -120,7 +120,7 @@ class TestFullTransformation:
             'LL65 3', 'LL65 4', 'LL71 7']
         assert result[0]['status'] == 'planned'
 
-    def test_transform_power_cut_data_skips_invalid_records(self):
+    def test_transform_data_sp_en_skips_invalid_records(self):
         """Test transformation skips records with no postcodes."""
         # Arrange
         extracted_data = [
@@ -141,16 +141,16 @@ class TestFullTransformation:
         ]
 
         # Act
-        result = transform_power_cut_data(extracted_data)
+        result = transform_data_sp_en(extracted_data)
 
         # Assert
         assert len(result) == 1
         assert result[0]['affected_postcodes'] == ['G66 4']
 
-    def test_transform_power_cut_data_handles_empty_input(self):
+    def test_transform_data_sp_en_handles_empty_input(self):
         """Test transformation handles empty input list."""
         # Act
-        result = transform_power_cut_data([])
+        result = transform_data_sp_en([])
 
         # Assert
         assert result == []

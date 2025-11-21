@@ -1,7 +1,7 @@
 # pylint: skip-file
 # test_extract.py
 import pytest
-from extract import (
+from extract_sp_en import (
     parse_records,
     validate_record,
     transform_record

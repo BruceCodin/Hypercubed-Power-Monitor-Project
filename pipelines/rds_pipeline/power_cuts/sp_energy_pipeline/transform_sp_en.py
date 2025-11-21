@@ -76,12 +76,12 @@ def normalize_datetime(iso_string: str) -> str:
         logger.warning(f"Failed to normalize datetime '{iso_string}': {e}")
         return iso_string
 
-def transform_power_cut_data(raw_extracted_data: List[Dict]) -> List[Dict]:
+def transform_data_sp_en(raw_extracted_data: List[Dict]) -> List[Dict]:
     """
     Transform SP Energy Networks extracted data to standardized format.
     
     Args:
-        raw_extracted_data: List of dicts from extract_power_cut_data()
+        raw_extracted_data: List of dicts from extract_data_sp_en()
         
     Returns:
         List of transformed dicts ready for database load
@@ -143,7 +143,7 @@ def transform_power_cut_data(raw_extracted_data: List[Dict]) -> List[Dict]:
 if __name__ == "__main__":
     # Example usage for local testing
     from pprint import pprint
-    from extract import extract_power_cut_data
+    from extract_sp_en import extract_data_sp_en
     from dotenv import load_dotenv
 
     # Load environment variables
@@ -157,10 +157,10 @@ if __name__ == "__main__":
     logger.info("Starting SP Energy Networks power cuts transformation...")
 
     # Extract data
-    extracted_data = extract_power_cut_data()
+    extracted_data = extract_data_sp_en()
 
     # Transform data
-    transformed_data = transform_power_cut_data(extracted_data)
+    transformed_data = transform_data_sp_en(extracted_data)
 
     if transformed_data:
         logger.info(

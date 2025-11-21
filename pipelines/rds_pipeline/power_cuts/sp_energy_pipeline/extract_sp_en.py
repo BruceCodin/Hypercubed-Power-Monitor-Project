@@ -5,9 +5,7 @@ import os
 import logging
 from datetime import datetime
 from typing import List, Dict, Optional
-from pprint import pprint
 import requests
-from dotenv import load_dotenv
 
 # API configuration
 BASE_URL = "https://spenergynetworks.opendatasoft.com/api/explore/v2.1"
@@ -165,7 +163,9 @@ def transform_record(record: Dict) -> Dict:
         'recording_time': datetime.now().isoformat(),
         'affected_postcodes': affected_postcodes.strip()
     }
-def extract_power_cut_data() -> List[Dict]:
+
+
+def extract_data_sp_en() -> List[Dict]:
     """
     Main extraction function - orchestrates full extraction process.
     
@@ -199,6 +199,9 @@ def extract_power_cut_data() -> List[Dict]:
 
 
 if __name__ == "__main__":
+    from pprint import pprint
+    from dotenv import load_dotenv
+    
     # Load environment variables from .env file
     load_dotenv()
 
@@ -209,7 +212,7 @@ if __name__ == "__main__":
     )
 
     logger.info("Starting SP Energy Networks power cuts extraction...")
-    power_cuts = extract_power_cut_data()
+    power_cuts = extract_data_sp_en()
 
     if power_cuts:
         logger.info(f"Extraction complete! Found {len(power_cuts)} power cuts")
