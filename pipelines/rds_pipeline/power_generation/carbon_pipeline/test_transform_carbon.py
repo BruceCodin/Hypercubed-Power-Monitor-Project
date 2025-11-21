@@ -2,7 +2,7 @@
 import unittest
 import pandas as pd
 from datetime import date
-from pipelines.rds_pipeline.power_generation.carbon_pipeline.transform_carbon import (
+from transform_carbon import (
     add_settlement_period,
     refactor_intensity_column,
     add_date_column,
@@ -10,6 +10,7 @@ from pipelines.rds_pipeline.power_generation.carbon_pipeline.transform_carbon im
     update_column_names,
     make_date_datetime
 )
+# pylint: skip-file
 
 
 class TestAddSettlementPeriod(unittest.TestCase):
