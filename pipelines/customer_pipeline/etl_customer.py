@@ -170,7 +170,7 @@ def transform(event: dict) -> dict:
     return customer_data
 
 
-def get_s3_client():
+def get_s3_client() -> boto3.client:
     '''
     Create and return an S3 client using boto3.
 
@@ -186,9 +186,47 @@ def get_s3_client():
     return s3_client
 
 
+def is_duplicate_customer(existing_df: pd.DataFrame, customer_data: dict) -> bool:
+    '''
+    Check if customer already exists in the dataframe.
+
+    Args:
+        existing_df (pd.DataFrame): Existing customer data.
+        customer_data (dict): New customer data to check.
+
+    Returns:
+        bool: True if customer is a duplicate, False otherwise.
+    '''
+    return (
+        (existing_df['first_name'] == customer_data['first_name']) &
+        (existing_df['last_name'] == customer_data['last_name']) &
+        (existing_df['email'] == customer_data['email']) &
+        (existing_df['postcode'] == customer_data['postcode'])
+    ).any()
+
+
+def get_existing_customers(s3_client: boto3.client, bucket_name: str, s3_key: str) -> pd.DataFrame:
+    '''
+    Retrieve existing customer data from S3, or return empty DataFrame if file doesn't exist.
+
+    Args:
+        s3_client: Boto3 S3 client.
+        bucket_name (str): S3 bucket name.
+        s3_key (str): S3 object key.
+
+    Returns:
+        pd.DataFrame: Existing customer data or empty DataFrame.
+    '''
+    try:
+        response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
+        return pd.read_parquet(io.BytesIO(response['Body'].read()))
+    except s3_client.exceptions.NoSuchKey:
+        return pd.DataFrame()
+
+
 def load(customer_data: dict) -> None:
     '''
-    Load customer data into S3 in parquet format.
+    Load customer data into S3 in parquet format if unique.
     BytesIO: allows direct translation from pandas dataframe
         to S3 object, without needing to save a local file first.
 
@@ -199,24 +237,11 @@ def load(customer_data: dict) -> None:
     bucket_name = os.getenv('BUCKET_NAME')
     s3_key = 'customers/customers.parquet'
 
-    try:
-        response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
-        existing_df = pd.read_parquet(io.BytesIO(response['Body'].read()))
-
-    except s3_client.exceptions.NoSuchKey:  # 1st run, file doesn't exist yet
-        existing_df = pd.DataFrame()
-
+    existing_df = get_existing_customers(s3_client, bucket_name, s3_key)
     new_df = pd.DataFrame([customer_data])
 
     if not existing_df.empty:
-        is_duplicate = (
-            (existing_df['first_name'] == customer_data['first_name']) &
-            (existing_df['last_name'] == customer_data['last_name']) &
-            (existing_df['email'] == customer_data['email']) &
-            (existing_df['postcode'] == customer_data['postcode'])
-        ).any()
-
-        if is_duplicate:
+        if is_duplicate_customer(existing_df, customer_data):
             raise ValueError("Customer data already exists in database")
 
         combined_df = pd.concat([existing_df, new_df], ignore_index=True)
