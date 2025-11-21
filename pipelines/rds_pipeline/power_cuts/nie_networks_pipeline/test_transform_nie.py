@@ -1,3 +1,5 @@
+# pylint: skip-file
+
 """Unit tests for NIE Networks power cut transformation functions."""
 
 from datetime import datetime
