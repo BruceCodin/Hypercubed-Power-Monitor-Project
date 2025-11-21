@@ -1,6 +1,6 @@
 '''
 Customer ETL Pipeline
-This module contains the ETL process for customer data 
+This module contains the ETL process for customer data
 to be used on a lambda function.
 
 Input: JSON payload upon trigger by streamlit dashboard
@@ -22,12 +22,13 @@ Output:
         "message": str(success or error description (field, type of error etc.))
     }
 '''
-import requests
-import re
 import os
+import re
+from io import BytesIO
+
 import boto3
 import pandas as pd
-import io
+import requests
 
 
 def format_name(name: str) -> str:
@@ -115,7 +116,7 @@ def format_postcode(postcode: str) -> str:
         raise ValueError("Postcode must be a string datatype.")
 
     url = f"https://api.postcodes.io/postcodes/{postcode}"
-    response = requests.get(url)
+    response = requests.get(url, timeout=5)
     if response.status_code == 200:
         data = response.json()
         formatted_postcode = data['result']['postcode']
@@ -160,7 +161,7 @@ def transform(event: dict) -> dict:
         'postcode': format_postcode
     }
 
-    for field in formatters.keys():
+    for field in formatters:
         if not customer_data.get(field):
             raise ValueError(f"Missing required field: {field}.")
 
@@ -208,6 +209,8 @@ def is_duplicate_customer(existing_df: pd.DataFrame, customer_data: dict) -> boo
 def get_existing_customers(s3_client: boto3.client, bucket_name: str, s3_key: str) -> pd.DataFrame:
     '''
     Retrieve existing customer data from S3, or return empty DataFrame if file doesn't exist.
+    BytesIO: allows direct translation from pandas dataframe
+        to S3 object, without needing to save a local file first.
 
     Args:
         s3_client: Boto3 S3 client.
@@ -219,7 +222,7 @@ def get_existing_customers(s3_client: boto3.client, bucket_name: str, s3_key: st
     '''
     try:
         response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
-        return pd.read_parquet(io.BytesIO(response['Body'].read()))
+        return pd.read_parquet(BytesIO(response['Body'].read()))
     except s3_client.exceptions.NoSuchKey:
         return pd.DataFrame()
 
@@ -249,7 +252,7 @@ def load(customer_data: dict) -> None:
     else:
         combined_df = new_df
 
-    buffer = io.BytesIO()
+    buffer = BytesIO()
     combined_df.to_parquet(buffer, index=False, engine='pyarrow')
     buffer.seek(0)
 
@@ -257,20 +260,31 @@ def load(customer_data: dict) -> None:
                          Body=buffer.getvalue())
 
 
-def lambda_handler(event, context) -> dict:
+def lambda_handler(event, _context) -> dict:
     '''
     Lambda function handler for customer ETL pipeline.
+    1. Extract: receive customer data from JSON payload.
+    2. Transform: validate and format data fields.
+    3. Load: move data into the customer database (S3).
 
     Args:
         event (dict): Input JSON payload.
-        context (object): Lambda context object.
+        _context (object): Lambda context object.
 
     Returns:
         dict: Response object containing status and message.
     '''
-    # Extract: event = customer data input
+    try:
+        customer_data = transform(event)
+        load(customer_data)
 
-    # Transform
-    customer_data = transform(event)
+    except ValueError as e:
+        return {
+            'statusCode': 400,
+            'body': f"Error: {str(e)}"
+        }
 
-    ...
+    return {
+        'statusCode': 200,
+        'body': "Customer data processed successfully."
+    }
