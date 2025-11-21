@@ -151,7 +151,7 @@ def transform_power_cut_data(raw_extracted_data: List[Dict]) -> List[Dict]:
 if __name__ == "__main__":
     # Example usage for local testing
     from pprint import pprint
-    from extract import extract_power_cut_data
+    from pipelines.rds_pipeline.power_cuts.uk_power_networks_pipeline.extract_uk_pow import extract_power_cut_data
     from dotenv import load_dotenv
 
     # Load environment variables
