@@ -78,6 +78,8 @@ def validate_data_types(demand_df: pd.DataFrame) -> bool:
     Returns:
         bool: True if data types are valid, False otherwise
     '''
+    # check settlement_period between 1 and 48, remove if not
+    demand_df = demand_df[demand_df['settlement_period'].between(1, 48)]
     expected_types = {
         'national_demand': 'int64',
         'transmission_system_demand': 'int64',
