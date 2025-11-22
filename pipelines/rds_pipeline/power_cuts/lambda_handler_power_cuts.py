@@ -6,7 +6,6 @@ import json
 
 import boto3
 import psycopg2
-from dotenv import load_dotenv
 
 from national_grid_pipeline.extract_national_grid import extract_data_national_grid
 from national_grid_pipeline.transform_national_grid import transform_data_national_grid
