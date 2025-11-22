@@ -2,7 +2,7 @@
 import logging
 from datetime import datetime
 import pandas as pd
-from extract import fetch_carbon_intensity_data
+from extract_carbon import fetch_carbon_intensity_data
 # pylint: disable = logging-fstring-interpolation
 
 # Configure logger
