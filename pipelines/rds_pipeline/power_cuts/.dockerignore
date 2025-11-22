@@ -1,0 +1,15 @@
+# Exclude test files
+test_*.py
+*_test.py
+
+# Exclude development files
+.env
+.env.example
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# Exclude documentation and scripts
+bash_scripts/
+*.md
+*.png
