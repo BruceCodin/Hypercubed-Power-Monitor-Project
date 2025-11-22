@@ -69,14 +69,14 @@ def lambda_handler(event, context):
 
             try:
                 # Uncomment this block to actually send via AWS SES
-                # response = ses_client.send_email(
-                #     Source='alerts@yourdomain.com',
-                #     Destination={'ToAddresses': [email]},
-                #     Message={
-                #         'Subject': {'Data': subject},
-                #         'Body': {'Text': {'Data': body}}
-                #     }
-                # )
+                response = ses_client.send_email(
+                    Source='mohammadmuarijb@yahoo.co.uk',
+                    Destination={'ToAddresses': [email]},
+                    Message={
+                        'Subject': {'Data': subject},
+                        'Body': {'Text': {'Data': body}}
+                    }
+                )
                 print(f"Email sent to {email} for Outage {outage_id}")
 
                 # B. Update the Log Table (The "Mark as Read" step)
