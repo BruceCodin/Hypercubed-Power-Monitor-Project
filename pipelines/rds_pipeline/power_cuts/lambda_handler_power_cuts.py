@@ -29,9 +29,9 @@ from uk_power_networks_pipeline.extract_uk_pow import extract_data_uk_pow
 from uk_power_networks_pipeline.transform_uk_pow import transform_data_uk_pow
 
 
-logging.basicConfig(
-    format='%(asctime)s - %(levelname)s - %(message)s - %(filename)s', level=logging.INFO)
+# Configure logging for Lambda
 logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 SECRETS_ARN = "arn:aws:secretsmanager:eu-west-2:129033205317:secret:c20-power-monitor-db-credentials-TAc5Xx"
 
@@ -131,15 +131,20 @@ def lambda_handler(event, context):
     """AWS Lambda handler function for power cuts ETL pipelines."""
 
     # Load secrets from AWS Secrets Manager and set as environment variables
+    logger.info("Fetching secrets from Secrets Manager")
     secrets = get_secrets()
+    logger.info(f"Retrieved secret keys: {list(secrets.keys())}")
     load_secrets_to_env(secrets)
+    logger.info("Secrets loaded to environment variables")
 
-    logging.info("Starting power cuts ETL execution")
+    logger.info("Starting power cuts ETL execution")
 
     try:
+        logger.info(f"Connecting to database at {os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}")
         db_conn = connect_to_database()
+        logger.info("Database connection successful")
     except Exception as e:
-        logging.error(f"Database connection failed: {e}")
+        logger.error(f"Database connection failed: {e}")
         raise
 
     # National Grid
