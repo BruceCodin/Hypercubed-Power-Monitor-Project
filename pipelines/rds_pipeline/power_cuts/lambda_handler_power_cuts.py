@@ -2,7 +2,9 @@
 
 import logging
 import os
+import json
 
+import boto3
 import psycopg2
 from dotenv import load_dotenv
 
@@ -32,6 +34,39 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s - %(filename)s', level=logging.INFO)
 logger = logging.getLogger()
 
+SECRETS_ARN = "arn:aws:secretsmanager:eu-west-2:129033205317:secret:c20-power-monitor-db-credentials-TAc5Xx"
+
+
+def get_secrets() -> dict:
+    """Retrieve database credentials from AWS Secrets Manager.
+
+    Returns:
+        dict: Dictionary containing database credentials
+    """
+
+    client = boto3.client('secretsmanager')
+
+    response = client.get_secret_value(
+        SecretId=SECRETS_ARN
+    )
+
+    # Decrypts secret using the associated KMS key.
+    secret = response['SecretString']
+    secret_dict = json.loads(secret)
+
+    return secret_dict
+
+
+def load_secrets_to_env(secrets: dict):
+    """Load database credentials from Secrets Manager into environment variables.
+
+    Args:
+        secrets (dict): Dictionary containing database credentials"""
+
+    for key, value in secrets.items():
+        print(key, value)
+        os.environ[key] = str(value)
+
 
 def connect_to_database() -> psycopg2.extensions.connection:
     """Connects to AWS Postgres database using Secrets Manager credentials.
@@ -43,9 +78,9 @@ def connect_to_database() -> psycopg2.extensions.connection:
     conn = psycopg2.connect(
         host=os.getenv("DB_HOST"),
         database=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USERNAME"),
+        user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD"),
-        port=os.getenv("DB_PORT")
+        port=int(os.getenv("DB_PORT")),
     )
 
     return conn
@@ -96,9 +131,17 @@ def insert_data(conn, data):
 def lambda_handler(event, context):
     """AWS Lambda handler function for power cuts ETL pipelines."""
 
-    load_dotenv()
+    # Load secrets from AWS Secrets Manager and set as environment variables
+    secrets = get_secrets()
+    load_secrets_to_env(secrets)
 
-    db_conn = connect_to_database()
+    logging.info("Starting power cuts ETL execution")
+
+    try:
+        db_conn = connect_to_database()
+    except Exception as e:
+        logging.error(f"Database connection failed: {e}")
+        raise
 
     # National Grid
     raw_data = extract_data_national_grid()
@@ -166,6 +209,7 @@ def lambda_handler(event, context):
 
 if __name__ == "__main__":
 
-    # For local testing of the lambda handler
+    # For local testing purposes
+
     response = lambda_handler(None, None)
     print(response)
