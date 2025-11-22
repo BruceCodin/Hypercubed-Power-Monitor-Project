@@ -21,21 +21,25 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pylint
-        # Install requirements, ignoring .venv or other hidden directories
-        if find . -name 'requirements.txt' -not -path '*/.*' | grep -q .; then
-          find . -name 'requirements.txt' -not -path '*/.*' -exec pip install -r {} \;
+        if find . -name 'requirements.txt' | grep -q .; then
+          find . -name 'requirements.txt' -exec pip install -r {} \;
         fi
     
-    - name: Analysing the code with pylint
+    - name: Analyse code with pylint
       run: |
-        # Add current directory to PYTHONPATH for linting too
-        export PYTHONPATH=$PYTHONPATH:. 
-        FILES=$(git ls-files '*.py')
-        if [ -n "$FILES" ]; then
-          pylint $FILES --fail-under=8.0 --output-format=colorized
-        else
+        FILES=$(git ls-files '*.py' | grep -v 'test_')
+        if [ -z "$FILES" ]; then
           echo "No Python files found to lint"
+          exit 0
         fi
+        
+        EXIT_CODE=0
+        for file in $FILES; do
+          echo "Linting $file..."
+          pylint "$file" --fail-under=8.0 --output-format=colorized || EXIT_CODE=$?
+        done
+        
+        exit $EXIT_CODE
 
   test:
     runs-on: ubuntu-latest
@@ -51,29 +55,36 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pytest pytest-cov
-        # Install requirements, ignoring hidden directories
-        if find . -name 'requirements.txt' -not -path '*/.*' | grep -q .; then
-          find . -name 'requirements.txt' -not -path '*/.*' -exec pip install -r {} \;
+        if find . -name 'requirements.txt' | grep -q .; then
+          find . -name 'requirements.txt' -exec pip install -r {} \;
         fi
-        
-        # OPTIONAL BUT RECOMMENDED: 
-        # If you have a setup.py or pyproject.toml, uncomment the line below
-        # pip install -e .
-
+    
+    - name: Set PYTHONPATH
+      run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
+    
     - name: Run tests with coverage
       run: |
-        # Find all directories containing test files
-        TEST_DIRS=$(find . -type f \( -name 'test_*.py' -o -name '*_test.py' \) -exec dirname {} \; | sort -u)
+        # Find all non-test Python files
+        SOURCE_FILES=$(git ls-files '*.py' | grep -v 'test_')
         
-        if [ -n "$TEST_DIRS" ]; then
-          echo "Found test directories:"
-          echo "$TEST_DIRS"
-          
-          # Run pytest for each directory separately
-          for dir in $TEST_DIRS; do
-            echo "Testing $dir..."
-            pytest "$dir" --cov="$dir" --cov-report=term-missing
-          done
-        else
-          echo "No test files found to run"
+        if [ -z "$SOURCE_FILES" ]; then
+          echo "No source files found"
+          exit 0
         fi
+        
+        EXIT_CODE=0
+        for source_file in $SOURCE_FILES; do
+          # Find corresponding test file
+          dir=$(dirname "$source_file")
+          base=$(basename "$source_file" .py)
+          test_file="${dir}/test_${base}.py"
+          
+          if [ -f "$test_file" ]; then
+            echo "Testing $source_file with $test_file..."
+            pytest "$test_file" --cov="$source_file" --cov-report=term-missing || EXIT_CODE=$?
+          else
+            echo "No test file found for $source_file (expected: $test_file)"
+          fi
+        done
+        
+        exit $EXIT_CODE
