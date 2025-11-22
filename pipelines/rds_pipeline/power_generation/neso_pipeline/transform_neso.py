@@ -1,7 +1,7 @@
 '''Transform module for NESO Pipeline.'''
 import logging
 import pandas as pd
-from extract import fetch_neso_demand_data, parse_neso_demand_data
+from extract_neso import fetch_neso_demand_data, parse_neso_demand_data
 # pylint: disable = logging-fstring-interpolation
 
 # Configure logger

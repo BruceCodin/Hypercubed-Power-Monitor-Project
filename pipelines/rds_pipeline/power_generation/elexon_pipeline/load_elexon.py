@@ -256,8 +256,8 @@ def load_generation_data_to_db(connection, generation_df: pd.DataFrame):
 
 
 if __name__ == '__main__':
-    from extract import fetch_elexon_generation_data, parse_elexon_price_data, fetch_elexon_price_data
-    from transform import update_price_column_names,transform_generation_data
+    from extract_elexon import fetch_elexon_generation_data, parse_elexon_price_data, fetch_elexon_price_data
+    from transform_elexon import update_price_column_names,transform_generation_data
     import datetime
     start_time = datetime.datetime(2025, 1, 2)
     end_time = datetime.datetime(2025, 1, 3)
