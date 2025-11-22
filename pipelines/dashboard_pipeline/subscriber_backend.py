@@ -93,7 +93,7 @@ if __name__ == "__main__":
     # Mock data from Streamlit
     form_name = "M Muarij"
     form_email = "mohammadmuarijb@yahoo.co.uk"
-    form_postcodes = ["PL18 9JF", "PL18 9JL"]  # The list from st.multiselect
+    form_postcodes = ["BA2 3HS", "CV34 6RB"]  # The list from st.multiselect
 
     # NOTE: In a real app, you would pass your actual RDS connection object here
     print("Establishing database connection...")
