@@ -1,11 +1,18 @@
+import logging
+import json
+import os
+
 import psycopg2
 import boto3
 
-# Initialize AWS Simple Email Service (SES) client
-# Ensure your Lambda execution role has "ses:SendEmail" permissions
-# Change to your region
 ses_client = boto3.client('ses', region_name='eu-west-2')
 secrets = boto3.client('secretsmanager')
+
+# Configure logging for Lambda
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+SECRETS_ARN = "arn:aws:secretsmanager:eu-west-2:129033205317:secret:c20-power-monitor-db-credentials-TAc5Xx"
 
 
 def get_secrets() -> dict:
@@ -35,7 +42,6 @@ def load_secrets_to_env(secrets: dict):
         secrets (dict): Dictionary containing database credentials"""
 
     for key, value in secrets.items():
-        print(key, value)
         os.environ[key] = str(value)
 
 
@@ -58,7 +64,18 @@ def connect_to_database() -> psycopg2.extensions.connection:
 
 
 def lambda_handler(event, context):
-    conn = get_db_connection()
+    """AWS Lambda function to send outage alerts to subscribed customers.
+    1. Query database for customers needing alerts (anti-spam logic included).
+    2. Send emails via AWS SES.
+    3. Log sent notifications to prevent duplicate alerts.
+    """
+
+    # Load secrets and connect to DB
+    secrets = get_secrets()
+    load_secrets_to_env(secrets)
+
+    # Connect to the database
+    conn = connect_to_database()
     cursor = conn.cursor()
 
     try:
