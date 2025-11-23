@@ -103,8 +103,7 @@ def lambda_handler(event, context):
             ON c.customer_id = log.customer_id 
             AND o.outage_id = log.outage_id
         WHERE 
-            o.status = 'Active' -- Only alert on active outages
-            AND log.notification_id IS NULL -- Only if we haven't emailed them yet
+            log.notification_id IS NULL -- Only if we haven't emailed them yet
         GROUP BY 
             c.customer_id, c.first_name, c.email, o.outage_id, o.outage_date;
         """
