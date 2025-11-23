@@ -29,6 +29,12 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# VPC access permissions for Lambda to manage network interfaces
+resource "aws_iam_role_policy_attachment" "lambda_vpc_execution" {
+  role       = aws_iam_role.lambda_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
 resource "aws_iam_role_policy" "lambda_secrets_policy" {
   name = "${var.service_name}-lambda-secrets-policy"
   role = aws_iam_role.lambda_execution_role.id
@@ -41,7 +47,8 @@ resource "aws_iam_role_policy" "lambda_secrets_policy" {
         Action = [
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret",
-          "ses:SendEmail"
+          "ses:SendEmail",
+          "ses:SendRawEmail"
         ]
         Resource = data.aws_secretsmanager_secret.db_credentials.arn
       }
@@ -84,6 +91,7 @@ resource "aws_lambda_function" "etl_lambda" {
 
   depends_on = [
     aws_iam_role_policy_attachment.lambda_basic_execution,
+    aws_iam_role_policy_attachment.lambda_vpc_execution,
     aws_iam_role_policy.lambda_secrets_policy
   ]
 
