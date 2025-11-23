@@ -40,11 +40,17 @@ resource "aws_iam_role_policy" "lambda_secrets_policy" {
         Effect = "Allow"
         Action = [
           "secretsmanager:GetSecretValue",
-          "secretsmanager:DescribeSecret",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = data.aws_secretsmanager_secret.db_credentials.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "ses:SendEmail",
           "ses:SendRawEmail"
         ]
-        Resource = data.aws_secretsmanager_secret.db_credentials.arn
+        Resource = "*"
       }
     ]
   })
