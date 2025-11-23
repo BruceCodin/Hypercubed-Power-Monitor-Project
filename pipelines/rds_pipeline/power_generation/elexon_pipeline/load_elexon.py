@@ -80,47 +80,40 @@ def load_settlement_data_to_db(connection, settlement_df):
         return None
 
 def load_price_data_to_db(connection, price_df: pd.DataFrame):
-    '''
-    Load price data into RDS database.
-    First loads settlement data to get settlement_ids,
-    then loads price data linked to those settlement_ids.
-
-    Args:
-        connection: psycopg2 connection object
-        price_df: DataFrame with price data including 'date', 'settlement_period',
-                  and 'system_sell_price' columns
-
-    Returns:
-        bool: True if successful, False otherwise
-    '''
+    '''Load price data into RDS database.'''
     if connection is None:
         logger.error("No database connection provided. Data load aborted.")
         return False
 
     try:
         logger.info(f"Starting price data load for {len(price_df)} records")
+        
+        # DEDUPLICATE: Keep only the last occurrence of each (date, settlement_period)
+        price_df = price_df.drop_duplicates(
+            subset=['date', 'settlement_period'],
+            keep='last'
+        )
+        logger.info(f"After deduplication: {len(price_df)} records")
+        
         cursor = connection.cursor()
 
         # Load settlement data and get settlement_ids
         settlement_ids = load_settlement_data_to_db(connection, price_df)
-
         if settlement_ids is None:
             logger.error("Failed to load settlement data. Aborting price data load.")
             return False
 
         # Prepare price data with settlement_ids
         data = [
-        (
-            settlement_ids[i],
-            row['system_sell_price']
-        )
-        for i, (_, row) in enumerate(price_df.iterrows())
-    ]
+            (settlement_ids[i], row['system_sell_price'])
+            for i, (_, row) in enumerate(price_df.iterrows())
+        ]
 
         insert_query = '''
             INSERT INTO system_price (settlement_id, system_price)
             VALUES %s
-            ON CONFLICT (settlement_id) DO NOTHING;
+            ON CONFLICT (settlement_id) 
+            DO UPDATE SET system_price = EXCLUDED.system_price;
         '''
 
         execute_values(cursor, insert_query, data)
@@ -187,56 +180,47 @@ def load_fuel_types_to_db(connection, generation_df: pd.DataFrame):
         return None
 
 def load_generation_data_to_db(connection, generation_df: pd.DataFrame):
-    '''
-    Load generation data into RDS database.
-    First loads settlement data to get settlement_ids,
-    Then loads fuel types to get fuel_type_ids,
-    then loads generation data linked to those settlement_ids.
-
-    Args:
-        connection: psycopg2 connection object
-        generation_df: DataFrame with generation data including 'settlement_date',
-                       'settlement_period', 'fuel_type', and 'generation' columns.
-
-    Returns:
-        bool: True if successful, False otherwise
-    '''
+    '''Load generation data into RDS database.'''
     if connection is None:
         logger.error("No database connection provided. Data load aborted.")
         return False
 
     try:
         logger.info(f"Starting generation data load for {len(generation_df)} records")
+        
+        # DEDUPLICATE: Keep only the last occurrence of each (date, settlement_period, fuel_type)
+        # This handles cases where API returns updated values
+        generation_df = generation_df.drop_duplicates(
+            subset=['date', 'settlement_period', 'fuel_type'],
+            keep='last'  # Keep the most recent value
+        )
+        logger.info(f"After deduplication: {len(generation_df)} records")
+        
         cursor = connection.cursor()
 
         # Load settlements and get settlement_ids
         settlement_ids = load_settlement_data_to_db(connection, generation_df)
-
         if settlement_ids is None:
             logger.error("Failed to load settlement data. Aborting generation data load.")
             return False
 
         # Load fuel types and get fuel_type_ids
         fuel_type_ids = load_fuel_types_to_db(connection, generation_df)
-
         if fuel_type_ids is None:
             logger.error("Failed to load fuel types. Aborting generation data load.")
             return False
 
         # Prepare generation data with both foreign keys
         data = [
-        (
-            settlement_ids[i],
-            fuel_type_ids[i],   
-            row['generation']
-        )
-        for i, (_, row) in enumerate(generation_df.iterrows())
-    ]
+            (settlement_ids[i], fuel_type_ids[i], row['generation'])
+            for i, (_, row) in enumerate(generation_df.iterrows())
+        ]
 
         insert_query = '''
             INSERT INTO generation (settlement_id, fuel_type_id, generation_mw)
             VALUES %s
-            ON CONFLICT (settlement_id, fuel_type_id) DO NOTHING;
+            ON CONFLICT (settlement_id, fuel_type_id) 
+            DO UPDATE SET generation_mw = EXCLUDED.generation_mw;
         '''
 
         execute_values(cursor, insert_query, data)
@@ -253,8 +237,6 @@ def load_generation_data_to_db(connection, generation_df: pd.DataFrame):
         connection.rollback()
         logger.error(f"Missing expected column in generation data: {e}")
         return False
-
-
 if __name__ == '__main__':
     from extract_elexon import fetch_elexon_generation_data, parse_elexon_price_data, fetch_elexon_price_data
     from transform_elexon import update_price_column_names,transform_generation_data
