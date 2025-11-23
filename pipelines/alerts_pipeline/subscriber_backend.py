@@ -2,19 +2,66 @@
 # Name, Email and a list of postcodes that they would like to be notified for...
 # E.g. John Smith, john.smith@example.com, ["SW1A", "EC1A", "W1A"]
 
+import logging
+import os
+import json
+
 import psycopg2  # Standard library for PostgreSQL (RDS)
-import psycopg2  # Standard library for PostgreSQL (RDS)
+import boto3
 
 
-def get_db_connection():
-    """Establishes and returns a connection to the PostgreSQL database."""
-    conn = psycopg2.connect(
-        host="localhost",
-        database="postgres",
-        user="muarijmuarij",
-        password="abc123",
-        port=5432
+SECRETS_ARN = "arn:aws:secretsmanager:eu-west-2:129033205317:secret:c20-power-monitor-db-credentials-TAc5Xx"
+
+
+secrets = boto3.client('secretsmanager')
+logger = logging.getLogger(__name__)
+
+
+def get_secrets() -> dict:
+    """Retrieve database credentials from AWS Secrets Manager.
+
+    Returns:
+        dict: Dictionary containing database credentials
+    """
+
+    client = boto3.client('secretsmanager')
+
+    response = client.get_secret_value(
+        SecretId=SECRETS_ARN
     )
+
+    # Decrypts secret using the associated KMS key.
+    secret = response['SecretString']
+    secret_dict = json.loads(secret)
+
+    return secret_dict
+
+
+def load_secrets_to_env(secrets: dict):
+    """Load database credentials from Secrets Manager into environment variables.
+
+    Args:
+        secrets (dict): Dictionary containing database credentials"""
+
+    for key, value in secrets.items():
+        os.environ[key] = str(value)
+
+
+def connect_to_database() -> psycopg2.extensions.connection:
+    """Connects to AWS Postgres database using Secrets Manager credentials.
+
+    Returns:
+        psycopg2 connection object
+    """
+
+    conn = psycopg2.connect(
+        host=os.getenv("DB_HOST"),
+        database=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        port=int(os.getenv("DB_PORT")),
+    )
+
     return conn
 
 
@@ -90,18 +137,27 @@ def submit_subscription_form(full_name, email, postcode_list, db_connection):
 # This simulates the data coming from your Streamlit form
 if __name__ == "__main__":
 
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+
     # Mock data from Streamlit
     form_name = "M Muarij"
     form_email = "mohammadmuarijb@yahoo.co.uk"
     form_postcodes = ["BA2 3HS", "CV34 6RB"]  # The list from st.multiselect
 
-    # NOTE: In a real app, you would pass your actual RDS connection object here
-    print("Establishing database connection...")
-    connection = get_db_connection()
-    print("Database connection established.")
+    # Load secrets and connect to DB
+    logger.info("Loading secrets from Secrets Manager...")
+    secrets = get_secrets()
+    load_secrets_to_env(secrets)
 
-    print("Submitting subscription form...")
+    logger.info("Establishing database connection...")
+    connection = connect_to_database()
+    logger.info("Database connection established.")
+
+    logger.info("Submitting subscription form...")
     submit_subscription_form(form_name, form_email, form_postcodes, connection)
-    print("Subscription form submitted.")
+    logger.info("Subscription form submitted.")
 
     connection.close()
