@@ -29,12 +29,6 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# VPC access permissions for Lambda to manage network interfaces
-resource "aws_iam_role_policy_attachment" "lambda_vpc_execution" {
-  role       = aws_iam_role.lambda_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-}
-
 resource "aws_iam_role_policy" "lambda_secrets_policy" {
   name = "${var.service_name}-lambda-secrets-policy"
   role = aws_iam_role.lambda_execution_role.id
@@ -75,12 +69,6 @@ resource "aws_lambda_function" "etl_lambda" {
   timeout     = var.lambda_timeout
   memory_size = var.lambda_memory
 
-  # VPC configuration for RDS connectivity
-  vpc_config {
-    subnet_ids         = var.lambda_subnet_ids
-    security_group_ids = var.lambda_security_group_ids
-  }
-
   # Environment variables - Lambda will need to fetch secrets at runtime
   # The application code should retrieve these from Secrets Manager using the ARN
   environment {
@@ -91,7 +79,6 @@ resource "aws_lambda_function" "etl_lambda" {
 
   depends_on = [
     aws_iam_role_policy_attachment.lambda_basic_execution,
-    aws_iam_role_policy_attachment.lambda_vpc_execution,
     aws_iam_role_policy.lambda_secrets_policy
   ]
 
