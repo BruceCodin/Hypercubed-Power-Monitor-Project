@@ -19,7 +19,7 @@ variable "service_name" {
 variable "lambda_timeout" {
   description = "Lambda function timeout in seconds"
   type        = number
-  default     = 180
+  default     = 30
 }
 
 variable "lambda_memory" {
