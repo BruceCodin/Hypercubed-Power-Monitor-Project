@@ -125,7 +125,10 @@ def load_neso_demand_data_to_db(connection, demand_df: pd.DataFrame, table: str)
         insert_query = f'''
             INSERT INTO {table} (settlement_id, national_demand, transmission_system_demand)
             VALUES %s
-            ON CONFLICT (settlement_id) DO NOTHING;
+            ON CONFLICT (settlement_id) 
+            DO UPDATE SET 
+                national_demand = EXCLUDED.national_demand,
+                transmission_system_demand = EXCLUDED.transmission_system_demand;
         '''
 
         execute_values(cursor, insert_query, data)
