@@ -106,7 +106,7 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
 resource "aws_cloudwatch_event_rule" "lambda_schedule" {
  name                = "${var.service_name}-schedule"
  description         = "Trigger ETL Lambda function every 15 minutes"
- schedule_expression = "cron(15 * * * ? *)"
+ schedule_expression = "rate(15 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "lambda_target" {
