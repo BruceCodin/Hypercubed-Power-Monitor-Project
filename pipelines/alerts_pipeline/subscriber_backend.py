@@ -145,7 +145,7 @@ if __name__ == "__main__":
     # Mock data from Streamlit
     form_name = "M Muarij"
     form_email = "mohammadmuarijb@yahoo.co.uk"
-    form_postcodes = ["BA2 3HS", "CV34 6RB"]  # The list from st.multiselect
+    form_postcodes = ["SK5 8DY"]  # The list from st.multiselect
 
     # Load secrets and connect to DB
     logger.info("Loading secrets from Secrets Manager...")
