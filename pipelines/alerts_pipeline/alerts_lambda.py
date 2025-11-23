@@ -5,17 +5,55 @@ import boto3
 # Ensure your Lambda execution role has "ses:SendEmail" permissions
 # Change to your region
 ses_client = boto3.client('ses', region_name='eu-west-2')
+secrets = boto3.client('secretsmanager')
 
 
-def get_db_connection():
-    # In Lambda, store these in Environment Variables
-    conn = psycopg2.connect(
-        host="localhost",
-        database="postgres",
-        user="muarijmuarij",
-        password="abc123",
-        port=5432
+def get_secrets() -> dict:
+    """Retrieve database credentials from AWS Secrets Manager.
+
+    Returns:
+        dict: Dictionary containing database credentials
+    """
+
+    client = boto3.client('secretsmanager')
+
+    response = client.get_secret_value(
+        SecretId=SECRETS_ARN
     )
+
+    # Decrypts secret using the associated KMS key.
+    secret = response['SecretString']
+    secret_dict = json.loads(secret)
+
+    return secret_dict
+
+
+def load_secrets_to_env(secrets: dict):
+    """Load database credentials from Secrets Manager into environment variables.
+
+    Args:
+        secrets (dict): Dictionary containing database credentials"""
+
+    for key, value in secrets.items():
+        print(key, value)
+        os.environ[key] = str(value)
+
+
+def connect_to_database() -> psycopg2.extensions.connection:
+    """Connects to AWS Postgres database using Secrets Manager credentials.
+
+    Returns:
+        psycopg2 connection object
+    """
+
+    conn = psycopg2.connect(
+        host=os.getenv("DB_HOST"),
+        database=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        port=int(os.getenv("DB_PORT")),
+    )
+
     return conn
 
 
