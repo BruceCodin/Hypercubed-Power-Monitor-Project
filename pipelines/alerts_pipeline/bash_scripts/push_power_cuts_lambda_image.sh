@@ -1,5 +1,5 @@
-POWER_CUT_ECR_URL="129033205317.dkr.ecr.eu-west-2.amazonaws.com/c20-power-monitor-powercuts-etl-repo"
-POWER_CUT_ECR_NAME="c20-power-monitor-powercuts-etl-repo"
+POWER_CUT_ECR_URL="129033205317.dkr.ecr.eu-west-2.amazonaws.com/c20-power-monitor-alerts-etl-repo"
+POWER_CUT_ECR_NAME="c20-power-monitor-alerts-etl-repo"
 AWS_REGION="eu-west-2"
 
 # 1. Authenticate Docker to ECR
