@@ -70,12 +70,14 @@ def lambda_handler(event, context):
     3. Log sent notifications to prevent duplicate alerts.
     """
 
-    # Load secrets and connect to DB
+    logger.info("Loading secrets from Secrets Manager...")
     secrets = get_secrets()
     load_secrets_to_env(secrets)
 
-    # Connect to the database
+    logger.info("Establishing database connection...")
     conn = connect_to_database()
+    logger.info("Database connection established.")
+
     cursor = conn.cursor()
 
     try:
@@ -110,7 +112,7 @@ def lambda_handler(event, context):
         cursor.execute(query)
         alerts_to_send = cursor.fetchall()
 
-        print(f"Found {len(alerts_to_send)} pending notifications.")
+        logger.info("Found %d pending notifications.", len(alerts_to_send))
 
         # --- STEP 2: SEND EMAILS AND LOG THEM ---
 
@@ -132,7 +134,7 @@ def lambda_handler(event, context):
                         'Body': {'Text': {'Data': body}}
                     }
                 )
-                print(f"Email sent to {email} for Outage {outage_id}")
+                logger.info("Email sent to %s for Outage %d", email, outage_id)
 
                 # B. Update the Log Table (The "Mark as Read" step)
                 # This ensures they won't be picked up by the query next time (5 mins later)
@@ -147,11 +149,11 @@ def lambda_handler(event, context):
                 conn.commit()
 
             except Exception as e:
-                print(f"Failed to send/log for {email}: {e}")
+                logger.error("Failed to send/log for %s: %s", email, e)
                 conn.rollback()  # Rollback this specific transaction if it fails
 
     except Exception as e:
-        print(f"Critical Database Error: {e}")
+        logger.error("Critical Database Error: %s", e)
     finally:
         cursor.close()
         conn.close()
