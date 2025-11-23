@@ -1,5 +1,6 @@
 '''Load carbon generation data to the RDS database.'''
 import logging
+import os
 import psycopg2
 from psycopg2.extras import execute_values
 #pylint: disable=logging-fstring-interpolation
@@ -106,10 +107,14 @@ def load_carbon_data_to_db(connection, carbon_df):
     ]
 
         insert_query = '''
-            INSERT INTO carbon_intensity (settlement_id, intensity_forecast, intensity_actual, intensity_index)
-            VALUES %s
-            ON CONFLICT (settlement_id) DO NOTHING;
-        '''
+                    INSERT INTO carbon_intensity (settlement_id, intensity_forecast, intensity_actual, intensity_index)
+                    VALUES %s
+                    ON CONFLICT (settlement_id) 
+                    DO UPDATE SET 
+                        intensity_forecast = EXCLUDED.intensity_forecast,
+                        intensity_actual = EXCLUDED.intensity_actual,
+                        intensity_index = EXCLUDED.intensity_index;
+                        '''
 
         execute_values(cursor, insert_query, data)
         connection.commit()
