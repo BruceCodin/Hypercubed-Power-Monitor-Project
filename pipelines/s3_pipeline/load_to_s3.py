@@ -18,9 +18,10 @@ def upload_data_to_s3(data: pd.DataFrame) -> None:
 
     alerts_df = data.copy()
 
-    alerts_df['year'] = pd.to_datetime(alerts_df['recording_time']).dt.year
-    alerts_df['month'] = pd.to_datetime(alerts_df['recording_time']).dt.month
-    alerts_df['day'] = pd.to_datetime(alerts_df['recording_time']).dt.day
+    alerts_df['recording_time'] = pd.to_datetime(alerts_df['recording_time'])
+    alerts_df['year'] = alerts_df['recording_time'].dt.year
+    alerts_df['month'] = alerts_df['recording_time'].dt.month
+    alerts_df['day'] = alerts_df['recording_time'].dt.day
 
     logger.info("Uploading data to S3 at %s...", POWER_CUT_S3_PATH)
     wr.s3.to_parquet(
