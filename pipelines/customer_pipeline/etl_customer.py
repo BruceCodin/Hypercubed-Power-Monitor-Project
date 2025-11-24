@@ -119,16 +119,17 @@ def format_email(email: str) -> str:
     Raises:
         TypeError: If email is not a string.
         ValueError: If email is empty after stripping spaces,
-            or does not match basic email format.
+            or does not match regex email format.
     '''
     if not isinstance(email, str):
         raise TypeError("Email must be a string datatype.")
 
     email = email.strip().lower()
-    if not email:
+    if not email or email == "":
         raise ValueError("Email must be a nonempty string.")
 
-    if "@" not in email or "." not in email.split("@")[-1]:
+    pattern = r'^[a-zA-Z0-9.!#$%&\'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$'
+    if not re.match(pattern, email):
         raise ValueError("Email must be a valid email address.")
 
     return email
