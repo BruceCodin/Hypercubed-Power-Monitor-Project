@@ -8,9 +8,8 @@ import os
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict
 import boto3
-from botocore.exceptions import ClientError
 import psycopg2
 from openai import OpenAI
 
@@ -22,62 +21,45 @@ logger.setLevel(logging.INFO)
 secretsmanager_client = boto3.client('secretsmanager')
 s3_client = boto3.client('s3')
 
+
 # ==============================================================================
 # Get secrets from AWS Secrets Manager
 def get_secret(secret_arn: str) -> Dict:
     """Retrieve a secret from AWS Secrets Manager."""
-    try:
-        response = secretsmanager_client.get_secret_value(SecretId=secret_arn)
-        secret = json.loads(response['SecretString'])
-        logger.info(f"Successfully retrieved secret: {secret_arn}")
-        return secret
-    except ClientError as e:
-        logger.error(f"Failed to retrieve secret {secret_arn}: {e}")
-        raise
+    response = secretsmanager_client.get_secret_value(SecretId=secret_arn)
+    return json.loads(response['SecretString'])
 
 
 def load_secrets():
     """Load all required secrets and set as environment variables."""
-    db_secret_arn = os.environ.get('DB_CREDENTIALS_SECRET_ARN') # Gets these from lambda
-    openai_secret_arn = os.environ.get('OPENAI_SECRET_ARN')
+    db_secret_arn = os.environ['DB_CREDENTIALS_SECRET_ARN']  # Gets these from lambda
+    openai_secret_arn = os.environ['OPENAI_SECRET_ARN']
 
-    if not db_secret_arn or not openai_secret_arn:
-        raise ValueError("Secret ARNs not found in environment variables")
+    # Load DB credentials and OpenAI API key
+    for secret in [get_secret(db_secret_arn), get_secret(openai_secret_arn)]:
+        for key, value in secret.items():
+            os.environ[key] = str(value)
 
-    # Load DB credentials
-    db_credentials = get_secret(db_secret_arn)
-    for key, value in db_credentials.items():
-        os.environ[key] = str(value)
+    logger.info("Secrets loaded")
 
-    # Load OpenAI API key
-    openai_secrets = get_secret(openai_secret_arn)
-    for key, value in openai_secrets.items():
-        os.environ[key] = str(value)
-
-    logger.info("All secrets loaded successfully")
 
 # ==============================================================================
 # Database Connection
 def get_db_connection():
     """Create connection to PostgreSQL RDS database."""
-    try:
-        conn = psycopg2.connect(
-            host=os.environ['DB_HOST'],
-            database=os.environ['DB_NAME'],
-            user=os.environ['DB_USERNAME'],
-            password=os.environ['DB_PASSWORD'],
-            port=os.environ.get('DB_PORT', '5432')
-        )
-        logger.info("Successfully connected to database")
-        return conn
-    except Exception as e:
-        logger.error(f"Database connection failed: {e}")
-        raise
+    conn = psycopg2.connect(
+        host=os.environ['DB_HOST'],
+        database=os.environ['DB_NAME'],
+        user=os.environ['DB_USERNAME'],
+        password=os.environ['DB_PASSWORD'],
+        port=os.environ.get('DB_PORT', '5432')
+    )
+    logger.info("Database connected")
+    return conn
 
 
 # ==============================================================================
 # Data extraction for power outage
-
 def fetch_power_outages(conn, hours: int = 24) -> Dict:
     """Fetch recent power outages from the last X hours."""
     cursor = conn.cursor()
@@ -88,56 +70,47 @@ def fetch_power_outages(conn, hours: int = 24) -> Dict:
             fo.source_provider,
             fo.status,
             fo.outage_date,
-            fo.region_affected,
             COUNT(bap.postcode_affected) as num_postcodes
         FROM FACT_outage fo
         LEFT JOIN BRIDGE_affected_postcodes bap ON fo.outage_id = bap.outage_id
         WHERE fo.recording_time >= %s
-        GROUP BY fo.outage_id, fo.source_provider, fo.status, fo.outage_date, fo.region_affected
+        GROUP BY fo.outage_id, fo.source_provider, fo.status, fo.outage_date
         ORDER BY fo.outage_date DESC
     """
 
-    try:
-        cursor.execute(query, (cutoff_time,))
-        outages = []
-        for row in cursor.fetchall():
-            outages.append({
-                'provider': row[0],
-                'status': row[1],
-                'date': row[2].isoformat() if row[2] else None,
-                'region': row[3],
-                'postcodes_affected': row[4]
-            })
+    cursor.execute(query, (cutoff_time,))
+    outages = []
+    for row in cursor.fetchall():
+        outages.append({
+            'provider': row[0],
+            'status': row[1],
+            'date': row[2].isoformat() if row[2] else None,
+            'postcodes_affected': row[3]
+        })
 
-        # Aggregate statistics
-        stats = {
-            'total_outages': len(outages),
-            'planned': sum(1 for o in outages if o['status'] == 'planned'),
-            'unplanned': sum(1 for o in outages if o['status'] == 'unplanned'),
-            'total_postcodes': sum(o['postcodes_affected'] for o in outages),
-            'by_provider': {}
-        }
+    # Aggregate statistics
+    stats = {
+        'total_outages': len(outages),
+        'planned': sum(1 for o in outages if o['status'] and 'planned' in o['status'].lower()),
+        'unplanned': sum(1 for o in outages if o['status'] and 'unplanned' in o['status'].lower()),
+        'total_postcodes': sum(o['postcodes_affected'] for o in outages),
+        'by_provider': {}
+    }
 
-        for outage in outages:
-            provider = outage['provider']
-            if provider not in stats['by_provider']:
-                stats['by_provider'][provider] = {'count': 0, 'postcodes': 0}
-            stats['by_provider'][provider]['count'] += 1
-            stats['by_provider'][provider]['postcodes'] += outage['postcodes_affected']
+    for outage in outages:
+        provider = outage['provider']
+        if provider not in stats['by_provider']:
+            stats['by_provider'][provider] = {'count': 0, 'postcodes': 0}
+        stats['by_provider'][provider]['count'] += 1
+        stats['by_provider'][provider]['postcodes'] += outage['postcodes_affected']
 
-        logger.info(f"Fetched {len(outages)} power outages")
-        cursor.close()
-        return stats
-
-    except Exception as e:
-        logger.error(f"Failed to fetch power outages: {e}")
-        cursor.close()
-        raise
+    logger.info(f"Fetched {len(outages)} outages")
+    cursor.close()
+    return stats
 
 
 # ==============================================================================
 # Data extraction - Power Generation
-
 def fetch_power_generation(conn, hours: int = 24) -> Dict:
     """Fetch recent power generation data by fuel type."""
     cursor = conn.cursor()
@@ -157,45 +130,35 @@ def fetch_power_generation(conn, hours: int = 24) -> Dict:
         ORDER BY total_generation DESC
     """
 
-    try:
-        cursor.execute(query, (cutoff_time,))
-        generation_data = []
-        total_mw = 0
+    cursor.execute(query, (cutoff_time,))
+    generation_data = []
+    total_mw = 0
 
-        for row in cursor.fetchall():
-            fuel_type, total_gen, avg_gen, readings = row
-            generation_data.append({
-                'fuel_type': fuel_type,
-                'total_mw': float(total_gen),
-                'average_mw': float(avg_gen),
-                'readings': readings
-            })
-            total_mw += float(total_gen)
+    for row in cursor.fetchall():
+        fuel_type, total_gen, avg_gen, readings = row
+        generation_data.append({
+            'fuel_type': fuel_type,
+            'total_mw': float(total_gen),
+            'average_mw': float(avg_gen),
+            'readings': readings
+        })
+        total_mw += float(total_gen)
 
-        # Calculate percentages
-        for item in generation_data:
-            item['percentage'] = round(
-                (item['total_mw'] / total_mw * 100), 2) if total_mw > 0 else 0
+    # Calculate percentages
+    for item in generation_data:
+        item['percentage'] = round(
+            (item['total_mw'] / total_mw * 100), 2) if total_mw > 0 else 0
 
-        stats = {
-            'total_generation_mw': round(total_mw, 2),
-            'by_fuel_type': generation_data
-        }
-
-        logger.info(
-            f"Fetched power generation data: {len(generation_data)} fuel types")
-        cursor.close()
-        return stats
-
-    except Exception as e:
-        logger.error(f"Failed to fetch power generation: {e}")
-        cursor.close()
-        raise
+    logger.info(f"Fetched {len(generation_data)} fuel types")
+    cursor.close()
+    return {
+        'total_generation_mw': round(total_mw, 2),
+        'by_fuel_type': generation_data
+    }
 
 
 # ==============================================================================
 # Data extraction - System Pricing
-
 def fetch_system_pricing(conn, hours: int = 24) -> Dict:
     """Fetch recent system sell prices."""
     cursor = conn.cursor()
@@ -212,30 +175,23 @@ def fetch_system_pricing(conn, hours: int = 24) -> Dict:
         WHERE s.settlement_date >= %s
     """
 
-    try:
-        cursor.execute(query, (cutoff_time,))
-        row = cursor.fetchone()
+    cursor.execute(query, (cutoff_time,))
+    row = cursor.fetchone()
 
-        stats = {
-            'average_price': round(float(row[0]), 2) if row[0] else 0,
-            'min_price': round(float(row[1]), 2) if row[1] else 0,
-            'max_price': round(float(row[2]), 2) if row[2] else 0,
-            'num_periods': row[3]
-        }
+    logger.info(
+        f"Fetched pricing: avg £{round(float(row[0]), 2) if row[0] else 0}/MWh")
+    cursor.close()
 
-        logger.info(f"Fetched pricing data: avg £{stats['average_price']}/MWh")
-        cursor.close()
-        return stats
-
-    except Exception as e:
-        logger.error(f"Failed to fetch system pricing: {e}")
-        cursor.close()
-        raise
+    return {
+        'average_price': round(float(row[0]), 2) if row[0] else 0,
+        'min_price': round(float(row[1]), 2) if row[1] else 0,
+        'max_price': round(float(row[2]), 2) if row[2] else 0,
+        'num_periods': row[3]
+    }
 
 
 # ==============================================================================
 # Data extraction - Carbon Intensity
-
 def fetch_carbon_intensity(conn, hours: int = 24) -> Dict:
     """Fetch recent carbon intensity data."""
     cursor = conn.cursor()
@@ -255,164 +211,120 @@ def fetch_carbon_intensity(conn, hours: int = 24) -> Dict:
         LIMIT 1
     """
 
-    try:
-        cursor.execute(query, (cutoff_time,))
-        row = cursor.fetchone()
+    cursor.execute(query, (cutoff_time,))
+    row = cursor.fetchone()
 
-        if row:
-            stats = {
-                'average_intensity': round(float(row[0]), 2) if row[0] else 0,
-                'min_intensity': round(float(row[1]), 2) if row[1] else 0,
-                'max_intensity': round(float(row[2]), 2) if row[2] else 0,
-                'intensity_index': row[3]
-            }
-        else:
-            stats = {
-                'average_intensity': 0,
-                'min_intensity': 0,
-                'max_intensity': 0,
-                'intensity_index': 'unknown'
-            }
+    if row:
+        stats = {
+            'average_intensity': round(float(row[0]), 2) if row[0] else 0,
+            'min_intensity': round(float(row[1]), 2) if row[1] else 0,
+            'max_intensity': round(float(row[2]), 2) if row[2] else 0,
+            'intensity_index': row[3]
+        }
+    else:
+        stats = {
+            'average_intensity': 0,
+            'min_intensity': 0,
+            'max_intensity': 0,
+            'intensity_index': 'unknown'
+        }
 
-        logger.info(
-            f"Fetched carbon intensity: avg {stats['average_intensity']} gCO2/kWh")
-        cursor.close()
-        return stats
-
-    except Exception as e:
-        logger.error(f"Failed to fetch carbon intensity: {e}")
-        cursor.close()
-        raise
+    logger.info(f"Fetched carbon: {stats['average_intensity']} gCO2/kWh")
+    cursor.close()
+    return stats
 
 
 # ==============================================================================
 # AI Summary Generation
-
 def generate_openai_summary(all_data: Dict) -> str:
     """Generate human-readable summary using OpenAI API."""
-    api_key = os.environ.get('OPENAI_API_KEY')
-    if not api_key:
-        raise ValueError("OpenAI API key not found")
-
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
 
     prompt = f"""You are a UK energy analyst creating an accessible summary for the general public.
 
-Analyze the following UK energy data from the last 24 hours:
+    Analyze the following UK energy data from the last 24 hours:
 
-POWER GENERATION:
-- Total Generation: {all_data['generation']['total_generation_mw']} MW
-- Top Sources: {json.dumps(all_data['generation']['by_fuel_type'][:3], indent=2)}
+    POWER GENERATION:
+    - Total: {all_data['generation']['total_generation_mw']} MW
+    - Top Sources: {json.dumps(all_data['generation']['by_fuel_type'][:3], indent=2)}
 
-CARBON INTENSITY:
-- Average: {all_data['carbon']['average_intensity']} gCO2/kWh
-- Index: {all_data['carbon']['intensity_index']}
-- Range: {all_data['carbon']['min_intensity']} - {all_data['carbon']['max_intensity']} gCO2/kWh
+    CARBON INTENSITY:
+    - Average: {all_data['carbon']['average_intensity']} gCO2/kWh ({all_data['carbon']['intensity_index']})
+    - Range: {all_data['carbon']['min_intensity']} - {all_data['carbon']['max_intensity']} gCO2/kWh
 
-SYSTEM PRICING:
-- Average Price: £{all_data['pricing']['average_price']}/MWh
-- Range: £{all_data['pricing']['min_price']} - £{all_data['pricing']['max_price']}/MWh
+    PRICING:
+    - Average: £{all_data['pricing']['average_price']}/MWh
+    - Range: £{all_data['pricing']['min_price']} - £{all_data['pricing']['max_price']}/MWh
 
-POWER OUTAGES:
-- Total Outages: {all_data['outages']['total_outages']}
-- Planned: {all_data['outages']['planned']}, Unplanned: {all_data['outages']['unplanned']}
-- Postcodes Affected: {all_data['outages']['total_postcodes']}
+    OUTAGES:
+    - Total: {all_data['outages']['total_outages']} (Planned: {all_data['outages']['planned']}, Unplanned: {all_data['outages']['unplanned']})
+    - Postcodes Affected: {all_data['outages']['total_postcodes']}
 
-Generate a concise 3-4 paragraph summary that:
-1. Highlights the overall energy situation in the UK today
-2. Notes any significant trends in generation mix (renewables vs fossil fuels)
-3. Discusses carbon intensity and what it means for the environment
-4. Comments on pricing and any notable patterns
-5. Addresses power outages if significant
-6. Ends with a brief outlook or insight
-
-Use clear, accessible language for a general audience. Be informative but engaging."""
+    Generate a 3-4 paragraph summary covering: energy mix, carbon levels, pricing patterns, and outages. 
+    Use clear language for the general public."""
 
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful UK energy analyst who explains complex data clearly to the general public."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
+                {"role": "system", "content": "You are a UK energy analyst explaining data to the public."},
+                {"role": "user", "content": prompt}
             ],
             temperature=0.7,
             max_tokens=600
         )
 
-        summary = response.choices[0].message.content
         logger.info(
-            f"Generated AI summary - Tokens used: {response.usage.total_tokens}")
-        return summary
+            f"AI summary generated ({response.usage.total_tokens} tokens)")
+        return response.choices[0].message.content
 
     except Exception as e:
-        logger.error(f"OpenAI API failed: {e}")
+        logger.error(f"OpenAI failed: {e}")
         return generate_fallback_summary(all_data)
 
 
 def generate_fallback_summary(all_data: Dict) -> str:
     """Generate basic summary if OpenAI fails."""
-    summary = f"""UK Energy Summary - {datetime.now().strftime('%Y-%m-%d %H:%M')}
+    return f"""UK Energy Summary - {datetime.now().strftime('%Y-%m-%d %H:%M')}
 
-Power Generation: {all_data['generation']['total_generation_mw']} MW total
-Top fuel types: {', '.join([f['fuel_type'] for f in all_data['generation']['by_fuel_type'][:3]])}
-
-Carbon Intensity: {all_data['carbon']['average_intensity']} gCO2/kWh ({all_data['carbon']['intensity_index']})
-
-System Price: £{all_data['pricing']['average_price']}/MWh average
-
-Power Outages: {all_data['outages']['total_outages']} total ({all_data['outages']['unplanned']} unplanned)
-Postcodes affected: {all_data['outages']['total_postcodes']}
-"""
-    return summary
+Generation: {all_data['generation']['total_generation_mw']} MW
+Carbon: {all_data['carbon']['average_intensity']} gCO2/kWh ({all_data['carbon']['intensity_index']})
+Price: £{all_data['pricing']['average_price']}/MWh
+Outages: {all_data['outages']['total_outages']} ({all_data['outages']['unplanned']} unplanned)"""
 
 
 # ==============================================================================
 # S3 Storage Save
-
 def save_summary_to_s3(summary_data: Dict) -> str:
     """Save summary to S3 bucket as JSON file."""
-    bucket_name = os.environ.get('S3_BUCKET_NAME')
-    if not bucket_name:
-        raise ValueError("S3_BUCKET_NAME not found in environment")
-
-    # Create filename with timestamp
+    bucket_name = os.environ['S3_BUCKET_NAME']
     timestamp = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-    s3_key = f"ai_summaries/summary-{timestamp}.json"
+    s3_key = f"summaries/summary-{timestamp}.json"
 
-    try:
-        # Upload to S3
-        s3_client.put_object(
-            Bucket=bucket_name,
-            Key=s3_key,
-            Body=json.dumps(summary_data, indent=2),
-            ContentType='application/json'
-        )
+    body = json.dumps(summary_data, indent=2)
 
-        # Also save as "latest" for easy dashboard access
-        s3_client.put_object(
-            Bucket=bucket_name,
-            Key='summaries/summary-latest.json',
-            Body=json.dumps(summary_data, indent=2),
-            ContentType='application/json'
-        )
+    # Save timestamped version
+    s3_client.put_object(
+        Bucket=bucket_name,
+        Key=s3_key,
+        Body=body,
+        ContentType='application/json'
+    )
 
-        logger.info(f"Summary saved to S3: s3://{bucket_name}/{s3_key}")
-        return s3_key
+    # Also save as "latest" for easy dashboard access
+    s3_client.put_object(
+        Bucket=bucket_name,
+        Key='summaries/summary-latest.json',
+        Body=body,
+        ContentType='application/json'
+    )
 
-    except Exception as e:
-        logger.error(f"Failed to save to S3: {e}")
-        raise
+    logger.info(f"Saved to S3: {s3_key}")
+    return s3_key
 
 
 # ==============================================================================
 # Lambda Handler
-
 def lambda_handler(event, context):
     """AWS Lambda handler - main entry point."""
     logger.info("Starting AI summary generation")
@@ -493,9 +405,9 @@ def lambda_handler(event, context):
 
 # ==============================================================================
 # Local Testing
-
 if __name__ == "__main__":
     from dotenv import load_dotenv
+
     load_dotenv()
 
     logging.basicConfig(
@@ -503,5 +415,42 @@ if __name__ == "__main__":
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
 
-    result = lambda_handler({}, None)
-    print(json.dumps(json.loads(result['body']), indent=2))
+    logger.info("Running AI summary generation locally...")
+
+    try:
+        conn = get_db_connection()
+
+        logger.info("Fetching data from RDS...")
+        outages_data = fetch_power_outages(conn, hours=24)
+        generation_data = fetch_power_generation(conn, hours=24)
+        pricing_data = fetch_system_pricing(conn, hours=24)
+        carbon_data = fetch_carbon_intensity(conn, hours=24)
+
+        conn.close()
+        logger.info("Database connection closed")
+
+        all_data = {
+            'outages': outages_data,
+            'generation': generation_data,
+            'pricing': pricing_data,
+            'carbon': carbon_data
+        }
+
+        logger.info("Generating AI summary...")
+        ai_summary = generate_openai_summary(all_data)
+
+        logger.info("="*80)
+        logger.info("GENERATED SUMMARY:")
+        logger.info(ai_summary)
+        logger.info("="*80)
+
+        print("\n✅ Summary generated successfully!")
+        print(f"\nData processed:")
+        print(f"- Outages: {outages_data['total_outages']}")
+        print(f"- Generation: {generation_data['total_generation_mw']} MW")
+        print(f"- Avg Price: £{pricing_data['average_price']}/MWh")
+        print(f"- Carbon: {carbon_data['average_intensity']} gCO2/kWh")
+
+    except Exception as e:
+        logger.error(f"Local test failed: {e}", exc_info=True)
+        print(f"\n❌ Error: {e}")
