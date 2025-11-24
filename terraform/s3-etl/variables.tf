@@ -26,13 +26,13 @@ variable "lambda_function_name" {
 variable "lambda_timeout" {
   description = "Lambda timeout in seconds"
   type        = number
-  default     = 30  # 30 seconds
+  default     = 180  # 180 seconds
 }
 
 variable "lambda_memory_size" {
   description = "Lambda memory size in MB"
   type        = number
-  default     = 512
+  default     = 1024
 }
 
 # EventBridge Scheduler Configuration
