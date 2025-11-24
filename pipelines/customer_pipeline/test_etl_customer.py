@@ -12,8 +12,7 @@ from etl_customer import (
     get_customer_id,
     load_customer,
     load,
-    lambda_handler,
-    get_and_load_secrets
+    lambda_handler
 )
 
 
