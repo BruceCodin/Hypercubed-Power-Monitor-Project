@@ -8,7 +8,10 @@ from psycopg2.extras import execute_values
 #pylint: disable=logging-fstring-interpolation
 
 
-SECRETS_ARN = "arn:aws:secretsmanager:eu-west-2:129033205317:secret:c20-power-monitor-db-credentials-TAc5Xx"
+SECRETS_ARN = os.environ.get(
+    'SECRETS_ARN',
+    "arn:aws:secretsmanager:eu-west-2:129033205317:secret:c20-power-monitor-db-credentials-TAc5Xx"
+)
 
 logger = logging.getLogger(__name__)
 def get_secrets() -> dict:

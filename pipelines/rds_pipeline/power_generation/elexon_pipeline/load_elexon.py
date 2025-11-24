@@ -10,7 +10,10 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-SECRETS_ARN = "arn:aws:secretsmanager:eu-west-2:129033205317:secret:c20-power-monitor-db-credentials-TAc5Xx"
+SECRETS_ARN = os.environ.get(
+    'SECRETS_ARN',
+    "arn:aws:secretsmanager:eu-west-2:129033205317:secret:c20-power-monitor-db-credentials-TAc5Xx"
+)
 
 
 def get_secrets() -> dict:
