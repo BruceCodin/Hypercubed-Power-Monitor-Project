@@ -1,3 +1,5 @@
+"""Module to extract historical power cut data from AWS RDS Postgres database."""
+
 import json
 import os
 import logging
