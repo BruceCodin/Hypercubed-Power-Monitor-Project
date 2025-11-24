@@ -42,7 +42,8 @@ def get_and_load_secrets() -> None:
     Load into environment variables.
     """
     secrets_arn = os.getenv("SECRETS_ARN")
-    client = boto3.client('secretsmanager')
+    region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION")
+    client = boto3.client('secretsmanager', region_name=region)
     response = client.get_secret_value(SecretId=secrets_arn)
     secret = response['SecretString']
     secret_dict = json.loads(secret)
