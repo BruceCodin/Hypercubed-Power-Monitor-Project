@@ -1,4 +1,5 @@
 # pylint: skip-file
+# pragma: no cover
 import pytest
 from extract_national_grid import (
     parse_records,

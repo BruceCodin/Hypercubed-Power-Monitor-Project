@@ -3,6 +3,8 @@ import unittest
 import pandas as pd
 from transform_neso import transform_neso_data_columns, make_date_column_datetime, validate_data_types
 # pylint: skip-file
+# pragma: no cover
+
 
 class TestTransformNesoDataColumns(unittest.TestCase):
     '''Tests for transform_neso_data_columns function.'''
@@ -31,7 +33,8 @@ class TestTransformNesoDataColumns(unittest.TestCase):
 
         # Check values are preserved
         self.assertEqual(list(result['national_demand']), [1000, 1100, 1200])
-        self.assertEqual(list(result['transmission_system_demand']), [950, 1050, 1150])
+        self.assertEqual(list(result['transmission_system_demand']), [
+                         950, 1050, 1150])
         self.assertEqual(list(result['settlement_period']), [1, 2, 3])
 
     def test_handles_missing_columns_gracefully(self):
@@ -73,7 +76,8 @@ class TestTransformNesoDataColumns(unittest.TestCase):
         result = transform_neso_data_columns(df)
 
         self.assertEqual(result['national_demand'].dtype, df['ND'].dtype)
-        self.assertEqual(result['transmission_system_demand'].dtype, df['TSD'].dtype)
+        self.assertEqual(
+            result['transmission_system_demand'].dtype, df['TSD'].dtype)
 
 
 class TestMakeDateColumnDatetime(unittest.TestCase):
@@ -88,11 +92,14 @@ class TestMakeDateColumnDatetime(unittest.TestCase):
         result = make_date_column_datetime(df)
 
         # Check that settlement_date is datetime type
-        self.assertTrue(pd.api.types.is_datetime64_any_dtype(result['settlement_date']))
+        self.assertTrue(pd.api.types.is_datetime64_any_dtype(
+            result['settlement_date']))
 
         # Check values are correct
-        self.assertEqual(result['settlement_date'].iloc[0], pd.Timestamp('2023-01-01'))
-        self.assertEqual(result['settlement_date'].iloc[1], pd.Timestamp('2023-01-02'))
+        self.assertEqual(result['settlement_date'].iloc[0],
+                         pd.Timestamp('2023-01-01'))
+        self.assertEqual(result['settlement_date'].iloc[1],
+                         pd.Timestamp('2023-01-02'))
 
     def test_raises_error_for_missing_column(self):
         '''Test that KeyError is raised when settlement_date column is missing.'''
@@ -109,7 +116,8 @@ class TestMakeDateColumnDatetime(unittest.TestCase):
             'national_demand': [1000, 1100]
         })
         result = make_date_column_datetime(df)
-        self.assertTrue(pd.api.types.is_datetime64_any_dtype(result['settlement_date']))
+        self.assertTrue(pd.api.types.is_datetime64_any_dtype(
+            result['settlement_date']))
 
 
 class TestValidateDataTypes(unittest.TestCase):
@@ -139,7 +147,8 @@ class TestValidateDataTypes(unittest.TestCase):
     def test_returns_false_for_wrong_data_type(self):
         '''Test that wrong data type returns False.'''
         df = pd.DataFrame({
-            'national_demand': [1000.5, 1100.5, 1200.5],  # float instead of int
+            # float instead of int
+            'national_demand': [1000.5, 1100.5, 1200.5],
             'transmission_system_demand': [950, 1050, 1150],
             'settlement_date': pd.to_datetime(['2023-01-01', '2023-01-02', '2023-01-03']),
             'settlement_period': [1, 2, 3]
@@ -152,7 +161,8 @@ class TestValidateDataTypes(unittest.TestCase):
         df = pd.DataFrame({
             'national_demand': [1000, 1100, 1200],
             'transmission_system_demand': [950, 1050, 1150],
-            'settlement_date': ['2023-01-01', '2023-01-02', '2023-01-03'],  # string instead of datetime
+            # string instead of datetime
+            'settlement_date': ['2023-01-01', '2023-01-02', '2023-01-03'],
             'settlement_period': [1, 2, 3]
         })
         result = validate_data_types(df)
