@@ -1,7 +1,3 @@
-from extract_from_rds import (
-    get_historical_power_cut_data)
-import logging
-
 import pandas as pd
 import awswrangler as wr
 
