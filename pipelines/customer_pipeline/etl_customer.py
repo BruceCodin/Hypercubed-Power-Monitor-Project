@@ -186,7 +186,7 @@ def format_postcode_with_api(postcode: str) -> str:
     '''
     url = f"https://api.postcodes.io/postcodes/{postcode}"
     try:
-        response = requests.get(url, timeout=2)
+        response = requests.get(url, timeout=1)
         if response.status_code == 200:
             data = response.json()
             formatted_postcode = data['result']['postcode']
