@@ -37,34 +37,37 @@ CACHE_TTL_MINUTES = 60
 
 
 def get_and_load_secrets() -> None:
+def get_secrets() -> dict:
     """
-    Retrieve database credentials from AWS Secrets Manager,
-    Load into environment variables.
+    Retrieve database credentials from AWS Secrets Manager.
+
+    Returns:
+        dict: Secrets dictionary containing DB credentials.
     """
     secrets_arn = os.getenv("SECRETS_ARN")
-    region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION")
-    client = boto3.client('secretsmanager', region_name=region)
+    client = boto3.client('secretsmanager')
     response = client.get_secret_value(SecretId=secrets_arn)
     secret = response['SecretString']
     secret_dict = json.loads(secret)
-
-    for key, value in secret_dict.items():
-        os.environ[key] = str(value)
+    return secret_dict
 
 
-def connect_to_database() -> psycopg2.extensions.connection:
+def connect_to_database(secrets: dict) -> psycopg2.extensions.connection:
     """
     Connects to AWS Postgres database using Secrets Manager credentials.
+
+    Args:
+        secrets (dict): Database credentials.
 
     Returns:
         psycopg2 connection object
     """
     conn = psycopg2.connect(
-        host=os.getenv("DB_HOST"),
-        database=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        port=int(os.getenv("DB_PORT")),
+        host=secrets["DB_HOST"],
+        database=secrets["DB_NAME"],
+        user=secrets["DB_USER"],
+        password=secrets["DB_PASSWORD"],
+        port=int(secrets["DB_PORT"]),
     )
     return conn
 
