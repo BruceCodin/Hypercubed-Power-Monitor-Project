@@ -94,9 +94,4 @@ variable "schedule_expression" {
   description = "Schedule expression for generating AI summaries (cron or rate expression)"
   type        = string
   default     = "cron(0 8 * * ? *)"  # Daily at 8:00 AM UTC
-  
-  validation {
-    condition     = can(regex("^(cron|rate)\\(.*\\)$", var.schedule_expression))
-    error_message = "Schedule expression must be a valid cron or rate expression."
-  }
 }
