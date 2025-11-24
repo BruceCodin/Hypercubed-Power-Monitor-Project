@@ -1,7 +1,7 @@
 # pylint: skip-file
 # pragma: no cover
 import pytest
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 import psycopg2
 
 from etl_customer import (
