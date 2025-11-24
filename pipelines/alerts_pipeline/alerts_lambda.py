@@ -35,7 +35,7 @@ def get_secrets() -> dict:
     return secret_dict
 
 
-def load_secrets_to_env(secrets: dict):
+def load_secrets_to_env(secrets: dict) -> None:
     """Load database credentials from Secrets Manager into environment variables.
 
     Args:
@@ -95,11 +95,14 @@ def lambda_handler(event, context):
             o.outage_date,
             STRING_AGG(DISTINCT bsp.postcode, ', ') as postcodes
         FROM FACT_outage o
-        JOIN BRIDGE_affected_postcodes bap ON o.outage_id = bap.outage_id
-        JOIN BRIDGE_subscribed_postcodes bsp ON bap.postcode_affected = bsp.postcode
-        JOIN DIM_customer c ON bsp.customer_id = c.customer_id
+        JOIN BRIDGE_affected_postcodes AS bap 
+            ON o.outage_id = bap.outage_id
+        JOIN BRIDGE_subscribed_postcodes AS bsp 
+            ON bap.postcode_affected = bsp.postcode
+        JOIN DIM_customer AS c 
+            ON bsp.customer_id = c.customer_id
         -- The Anti-Spam Join:
-        LEFT JOIN FACT_notification_log log 
+        LEFT JOIN FACT_notification_log AS log 
             ON c.customer_id = log.customer_id 
             AND o.outage_id = log.outage_id
         WHERE 
