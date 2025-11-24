@@ -1,11 +1,12 @@
-'''Load Elexon generation data to the RDS database.'''
+"""Load Elexon generation data to the RDS database."""
 import logging
-import boto3
 import os
 import json
+import boto3
 import psycopg2
 from psycopg2.extras import execute_values
 import pandas as pd
+#pylint: disable = logging-fstring-interpolation
 
 logger = logging.getLogger(__name__)
 
