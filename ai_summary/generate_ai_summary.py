@@ -38,7 +38,7 @@ def get_secret(secret_arn: str) -> Dict:
 
 def load_secrets():
     """Load all required secrets and set as environment variables."""
-    db_secret_arn = os.environ.get('DB_CREDENTIALS_SECRET_ARN')
+    db_secret_arn = os.environ.get('DB_CREDENTIALS_SECRET_ARN') # Gets these from lambda
     openai_secret_arn = os.environ.get('OPENAI_SECRET_ARN')
 
     if not db_secret_arn or not openai_secret_arn:
@@ -383,7 +383,7 @@ def save_summary_to_s3(summary_data: Dict) -> str:
 
     # Create filename with timestamp
     timestamp = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-    s3_key = f"summaries/summary-{timestamp}.json"
+    s3_key = f"ai_summaries/summary-{timestamp}.json"
 
     try:
         # Upload to S3
