@@ -1,7 +1,9 @@
+"""Transform module for NIE Networks power cut data pipeline.
+This module contains functions to transform raw JSON data extracted from
+the NIE Networks API into a standardized format suitable for further processing."""
+
 import logging
 from datetime import datetime
-from extract_nie import (extract_power_cut_data,
-                         parse_power_cut_data)
 
 
 logger = logging.getLogger(__name__)
@@ -13,36 +15,6 @@ ENTRY_COLUMNS = [
     "recording_time",
     "affected_postcodes",
 ]
-
-
-def transform_power_cut_data(data: list[dict]) -> list[dict]:
-    """Transform function to clean raw json data and output to standard format.
-
-    Args:
-        data (list[dict]): Raw data extracted from NIE Networks API.
-
-    Returns:
-        list[dict]: Transformed data in standard format."""
-
-    if not data:
-        logger.warning("No data to transform.")
-        return []
-
-    for entry in data:
-
-        if set(entry.keys()) != set(ENTRY_COLUMNS):
-            logger.warning(
-                "Data entry does not match expected columns. Skipping entry.")
-            continue
-
-        entry["affected_postcodes"] = transform_postcode(
-            entry.get("affected_postcodes", ""))
-        entry["status"] = transform_status(entry.get("status", ""))
-        entry["outage_date"] = transform_outage_date(
-            entry.get("outage_date", ""))
-
-    logger.info("Transformed %d entries.", len(data))
-    return data
 
 
 def transform_postcode(postcodes: str) -> list[str]:
@@ -111,31 +83,59 @@ def transform_outage_date(date: str) -> str:
     return standard_date.isoformat()
 
 
-def transform_nie_data() -> list[dict]:
-    """Main function to extract, parse, and transform NIE Networks power cut data.
+def transform_nie_data(data: list[dict]) -> list[dict]:
+    """ Main transform function to clean raw json data and output to standard format.
+
+    Args:
+        data (list[dict]): Raw data extracted from NIE Networks API.
 
     Returns:
-        list[dict]: Transformed power cut data in standard format.
-    """
+        list[dict]: Transformed data in standard format."""
 
-    raw_data = extract_power_cut_data()
-    if raw_data is None:
-        logger.error("Failed to extract NIE Networks data.")
+    if not data:
+        logger.warning("No data to transform.")
         return []
 
-    parsed_data = parse_power_cut_data(raw_data)
-    transformed_data = transform_power_cut_data(parsed_data)
+    for entry in data:
 
-    return transformed_data
+        if set(entry.keys()) != set(ENTRY_COLUMNS):
+            logger.warning(
+                "Data entry does not match expected columns. Skipping entry.")
+            continue
+
+        entry["affected_postcodes"] = transform_postcode(
+            entry.get("affected_postcodes", ""))
+        entry["status"] = transform_status(entry.get("status", ""))
+        entry["outage_date"] = transform_outage_date(
+            entry.get("outage_date", ""))
+
+    logger.info("Transformed %d entries.", len(data))
+    return data
 
 
 if __name__ == "__main__":
-
     # Example usage for local testing
+    from pprint import pprint
+    from extract_nie import extract_nie_data
 
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s')
 
-    raw_data = extract_power_cut_data()
-    cleaned_data = parse_power_cut_data(raw_data)
-    standardized_data = transform_power_cut_data(cleaned_data)
+    logger.info("Starting NIE Networks power cuts transformation...")
+
+    # Extract and parse data
+    data = extract_nie_data()
+
+    # Transform data
+    standardized_data = transform_nie_data(data)
+
+    if standardized_data:
+        logger.info(
+            f"Transformation complete! Transformed {len(standardized_data)} records")
+        print("\n" + "="*80)
+        print(
+            f"Sample of first {min(5, len(standardized_data))} transformed records:")
+        print("="*80)
+        pprint(standardized_data[:5])
+    else:
+        logger.warning("No data transformed")

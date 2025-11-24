@@ -3,7 +3,7 @@
 """Unit tests for NIE Networks power cut transformation functions."""
 
 from datetime import datetime
-from transform_nie import (transform_power_cut_data,
+from transform_nie import (transform_nie_data,
                            transform_postcode,
                            transform_status,
                            transform_outage_date)
@@ -62,7 +62,7 @@ def test_transform_outage_date_pm_format():
     assert result == f"{expected_year}-03-20T15:45:00"
 
 
-def test_transform_power_cut_data_valid():
+def test_transform_nie_data_valid():
     """Test transformation of valid power cut data."""
     data = [{
         "source_provider": "Northern Ireland Electricity Networks",
@@ -71,19 +71,19 @@ def test_transform_power_cut_data_valid():
         "outage_date": "10:30 AM, 15 Jan",
         "recording_time": "2025-01-15T09:00:00"
     }]
-    result = transform_power_cut_data(data)
+    result = transform_nie_data(data)
 
     assert result[0]["affected_postcodes"] == ["BT1 1AA", "BT2 2BB"]
     assert result[0]["status"] == "unplanned"
     assert "01-15T10:30:00" in result[0]["outage_date"]
 
 
-def test_transform_power_cut_data_empty_list():
+def test_transform_nie_data_empty_list():
     """Test transformation of empty list returns empty list."""
-    assert transform_power_cut_data([]) == []
+    assert transform_nie_data([]) == []
 
 
-def test_transform_power_cut_data_multiple_entries():
+def test_transform_nie_data_multiple_entries():
     """Test transformation of multiple power cut entries."""
     data = [
         {
@@ -101,7 +101,7 @@ def test_transform_power_cut_data_multiple_entries():
             "recording_time": "2025-01-16T09:00:00"
         }
     ]
-    result = transform_power_cut_data(data)
+    result = transform_nie_data(data)
 
     assert len(result) == 2
     assert result[0]["affected_postcodes"] == ["BT1 1AA"]

@@ -10,26 +10,32 @@ CREATE TABLE settlements(
     settlement_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     settlement_date TIMESTAMP NOT NULL,
     settlement_period INT NOT NULL,
-    CONSTRAINT settlement_period_check CHECK (settlement_period BETWEEN 1 AND 48)
+    CONSTRAINT settlement_period_check CHECK (settlement_period BETWEEN 1 AND 48),
+    CONSTRAINT unique_settlement UNIQUE (settlement_date, settlement_period)
 );
 
 CREATE TABLE system_price(
     price_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     settlement_id INT NOT NULL,
-    system_price DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE
+    system_sell_price DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE,
+    CONSTRAINT unique_price UNIQUE (settlement_id)
 );
 
 CREATE TABLE carbon_intensity(
     intensity_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     settlement_id INT NOT NULL,
-    carbon_intensity DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE
+    intensity_forecast DECIMAL(10,2) NOT NULL,
+    intensity_actual DECIMAL(10,2) NOT NULL,
+    intensity_index TEXT NOT NULL,
+    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE,
+    CONSTRAINT unique_reading UNIQUE (settlement_id)
 );
 
 CREATE TABLE fuel_type(
     fuel_type_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    fuel_type TEXT UNIQUE NOT NULL
+    fuel_type TEXT UNIQUE NOT NULL,
+    CONSTRAINT unique_fuel_type UNIQUE (fuel_type)
 );
 
 CREATE TABLE generation(
@@ -38,7 +44,8 @@ CREATE TABLE generation(
     fuel_type_id INT NOT NULL,
     generation_mw DECIMAL(10,2) NOT NULL,
     FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE,
-    FOREIGN KEY (fuel_type_id) REFERENCES fuel_type(fuel_type_id) ON DELETE CASCADE
+    FOREIGN KEY (fuel_type_id) REFERENCES fuel_type(fuel_type_id) ON DELETE CASCADE,
+    CONSTRAINT unique_generation UNIQUE (settlement_id, fuel_type_id)
 );
 
 CREATE TABLE recent_demand(
@@ -46,7 +53,9 @@ CREATE TABLE recent_demand(
     settlement_id INT NOT NULL,
     national_demand DECIMAL(10,2) NOT NULL,
     transmission_system_demand DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE
+    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE,
+    CONSTRAINT recent_demand_unique UNIQUE (settlement_id)
+
 );
 
 CREATE TABLE historic_demand(
@@ -54,5 +63,6 @@ CREATE TABLE historic_demand(
     settlement_id INT NOT NULL,
     national_demand DECIMAL(10,2) NOT NULL,
     transmission_system_demand DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE
+    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE,
+    CONSTRAINT historic_demand_unique UNIQUE (settlement_id)
 );

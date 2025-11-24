@@ -1,8 +1,8 @@
 '''Simple test suite for NESO transform module.'''
 import unittest
 import pandas as pd
-from transform import transform_neso_data_columns, make_date_column_datetime, validate_data_types
-
+from transform_neso import transform_neso_data_columns, make_date_column_datetime, validate_data_types
+# pylint: skip-file
 
 class TestTransformNesoDataColumns(unittest.TestCase):
     '''Tests for transform_neso_data_columns function.'''

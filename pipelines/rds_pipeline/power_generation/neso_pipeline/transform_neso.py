@@ -1,7 +1,7 @@
 '''Transform module for NESO Pipeline.'''
 import logging
 import pandas as pd
-from extract import fetch_neso_demand_data, parse_neso_demand_data
+from extract_neso import fetch_neso_demand_data, parse_neso_demand_data
 # pylint: disable = logging-fstring-interpolation
 
 # Configure logger
@@ -78,6 +78,8 @@ def validate_data_types(demand_df: pd.DataFrame) -> bool:
     Returns:
         bool: True if data types are valid, False otherwise
     '''
+    # check settlement_period between 1 and 48, remove if not
+    demand_df = demand_df[demand_df['settlement_period'].between(1, 48)]
     expected_types = {
         'national_demand': 'int64',
         'transmission_system_demand': 'int64',
@@ -92,7 +94,7 @@ def validate_data_types(demand_df: pd.DataFrame) -> bool:
             logger.error(f"Column {column} has type {demand_df[column].dtype}, expected {expected_type}")
             return False
     logger.info("All data types are valid")
-    return True
+    return demand_df
 
 def transform_neso_demand_data(demand_df: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -106,6 +108,7 @@ def transform_neso_demand_data(demand_df: pd.DataFrame) -> pd.DataFrame:
     
     df = transform_neso_data_columns(demand_df)
     df = make_date_column_datetime(df)
-    if not validate_data_types(df):
+    df = validate_data_types(df)
+    if not isinstance(df, pd.DataFrame):
         raise ValueError("Data validation failed")
     return df

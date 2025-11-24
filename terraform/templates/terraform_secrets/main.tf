@@ -1,0 +1,21 @@
+provider "aws" {
+  region     = var.aws_region
+}
+
+resource "aws_secretsmanager_secret" "db_credentials" {
+  name        = var.db_secret_name
+  description = "Database credentials for power monitor RDS"
+}
+
+resource "aws_secretsmanager_secret_version" "db_credentials" {
+  secret_id = aws_secretsmanager_secret.db_credentials.id
+  secret_string = jsonencode({
+    DB_HOST           = var.db_host
+    DB_PORT           = var.db_port
+    DB_NAME           = var.db_name
+    DB_USER           = var.db_user
+    DB_PASSWORD       = var.db_password
+    SP_ENERGY_API_KEY = var.sp_energy_api_key
+    UKPN_API_KEY      = var.ukpn_api_key
+  })
+}

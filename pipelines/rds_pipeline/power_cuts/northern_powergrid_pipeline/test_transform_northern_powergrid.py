@@ -2,7 +2,7 @@
 
 """Unit tests for Northern Powergrid power cut transformation functions."""
 
-from transform_northern_powergrid import (transform_power_cut_data,
+from transform_northern_powergrid import (transform_northern_powergrid_data,
                                           transform_postcode,
                                           transform_status)
 
@@ -43,7 +43,7 @@ def test_transform_status_unknown():
     assert transform_status("") == "unknown"
 
 
-def test_transform_power_cut_data_valid():
+def test_transform_northern_powergrid_data_valid():
     """Test transformation of valid power cut data."""
     data = [
         {
@@ -54,29 +54,29 @@ def test_transform_power_cut_data_valid():
             "source_provider": "Northern Powergrid"
         }
     ]
-    result = transform_power_cut_data(data)
+    result = transform_northern_powergrid_data(data)
 
     assert result[0]["affected_postcodes"] == ["NE1 4ST"]
     assert result[0]["status"] == "planned"
     assert result[0]["outage_date"] == "2025-01-15T10:00:00"
 
 
-def test_transform_power_cut_data_empty_list():
+def test_transform_northern_powergrid_data_empty_list():
     """Test transformation of empty list returns None."""
-    assert transform_power_cut_data([]) is None
+    assert transform_northern_powergrid_data([]) is None
 
 
-def test_transform_power_cut_data_missing_keys():
+def test_transform_northern_powergrid_data_missing_keys():
     """Test transformation with missing keys skips entry."""
     data = [{"outage_date": "2025-01-15T10:00:00"}]
-    result = transform_power_cut_data(data)
+    result = transform_northern_powergrid_data(data)
 
     # Entry with missing required keys should remain untransformed
     assert len(result) == 1
     assert result[0] == {"outage_date": "2025-01-15T10:00:00"}
 
 
-def test_transform_power_cut_data_multiple_entries():
+def test_transform_northern_powergrid_data_multiple_entries():
     """Test transformation of multiple power cut entries."""
     data = [
         {
@@ -94,7 +94,7 @@ def test_transform_power_cut_data_multiple_entries():
             "source_provider": "Northern Powergrid"
         }
     ]
-    result = transform_power_cut_data(data)
+    result = transform_northern_powergrid_data(data)
 
     assert len(result) == 2
     assert result[0]["affected_postcodes"] == ["NE1 4ST"]
