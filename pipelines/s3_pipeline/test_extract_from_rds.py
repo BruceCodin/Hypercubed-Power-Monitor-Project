@@ -105,17 +105,16 @@ def test_connect_to_database_returns_connection(mock_connect):
 
 
 @patch('extract_from_rds.get_secrets')
-@patch('extract_from_rds.load_secrets_to_env')
 @patch('extract_from_rds.connect_to_database')
 def test_get_historical_power_cut_data_returns_dataframe(
-        mock_connect, mock_load_env, mock_get_secrets):
+        mock_connect, mock_get_secrets):
     """Test that function returns a pandas DataFrame."""
     mock_get_secrets.return_value = {'DB_HOST': 'localhost'}
 
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_cursor.fetchall.return_value = [
-        (1, 'SSEN', 'Active', '2025-01-15', '10:00:00', 1, 1, 'AB10')
+        (1, 'SSEN', 'Active', '2025-01-15', '10:00:00', 1, 'AB10')
     ]
     mock_conn.cursor.return_value = mock_cursor
     mock_connect.return_value = mock_conn
@@ -125,17 +124,16 @@ def test_get_historical_power_cut_data_returns_dataframe(
 
 
 @patch('extract_from_rds.get_secrets')
-@patch('extract_from_rds.load_secrets_to_env')
 @patch('extract_from_rds.connect_to_database')
 def test_get_historical_power_cut_data_removes_duplicate_columns(
-        mock_connect, mock_load_env, mock_get_secrets):
+        mock_connect, mock_get_secrets):
     """Test that duplicate columns are removed from results."""
     mock_get_secrets.return_value = {'DB_HOST': 'localhost'}
 
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_cursor.fetchall.return_value = [
-        (1, 'SSEN', 'Active', '2025-01-15', '10:00:00', 1, 1, 'AB10')
+        (1, 'SSEN', 'Active', '2025-01-15', '10:00:00', 1, 'AB10')
     ]
     mock_conn.cursor.return_value = mock_cursor
     mock_connect.return_value = mock_conn
@@ -145,10 +143,9 @@ def test_get_historical_power_cut_data_removes_duplicate_columns(
 
 
 @patch('extract_from_rds.get_secrets')
-@patch('extract_from_rds.load_secrets_to_env')
 @patch('extract_from_rds.connect_to_database')
 def test_get_historical_power_cut_data_executes_join_query(
-        mock_connect, mock_load_env, mock_get_secrets):
+        mock_connect, mock_get_secrets):
     """Test that SQL query joins fact_outage and bridge tables."""
     mock_get_secrets.return_value = {'DB_HOST': 'localhost'}
 
@@ -167,17 +164,16 @@ def test_get_historical_power_cut_data_executes_join_query(
 
 
 @patch('extract_from_rds.get_secrets')
-@patch('extract_from_rds.load_secrets_to_env')
 @patch('extract_from_rds.connect_to_database')
 def test_get_historical_power_cut_data_has_correct_columns(
-        mock_connect, mock_load_env, mock_get_secrets):
+        mock_connect, mock_get_secrets):
     """Test that returned DataFrame has expected columns."""
     mock_get_secrets.return_value = {'DB_HOST': 'localhost'}
 
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_cursor.fetchall.return_value = [
-        (1, 'SSEN', 'Active', '2025-01-15', '10:00:00', 1, 1, 'AB10')
+        (1, 'SSEN', 'Active', '2025-01-15', '10:00:00', 1, 'AB10')
     ]
     mock_conn.cursor.return_value = mock_cursor
     mock_connect.return_value = mock_conn
