@@ -28,6 +28,7 @@ import re
 import json
 from datetime import datetime, timedelta
 import boto3
+from botocore.exceptions import ClientError
 import psycopg2
 import requests
 
@@ -36,7 +37,6 @@ POSTCODE_CACHE = {}
 CACHE_TTL_MINUTES = 60
 
 
-def get_and_load_secrets() -> None:
 def get_secrets() -> dict:
     """
     Retrieve database credentials from AWS Secrets Manager.
@@ -310,7 +310,6 @@ def get_customer_id(conn: psycopg2.extensions.connection, customer_data: dict) -
 def load_customer(conn: psycopg2.extensions.connection, customer_data: dict) -> int:
     '''
     Load customer data into DIM_customer table if not already present.
-    Get generated customer_id with lastrowid.
 
     Args:
         conn: psycopg2 connection object
@@ -362,7 +361,8 @@ def load(conn: psycopg2.extensions.connection, customer_data: dict) -> None:
     result = cursor.fetchone()
     cursor.close()
     if result:
-        raise ValueError(f"Postcode subscription already exists for postcode: {customer_data['postcode']}")
+        raise ValueError(
+            f"Postcode subscription already exists for postcode: {customer_data['postcode']}")
 
     cursor.execute('''
         INSERT INTO BRIDGE_subscribed_postcodes (customer_id, postcode)
@@ -385,12 +385,12 @@ def main(logger: logging.Logger, event: dict) -> None:
         event (dict): Input JSON payload.
     '''
     logger.info("Fetching secrets from Secrets Manager")
-    get_and_load_secrets()
+    secrets = get_secrets()
     logger.info("Secrets loaded to environment variables")
 
     logger.info("Connecting to database at %s:%s",
                 os.getenv('DB_HOST'), os.getenv('DB_PORT'))
-    db_conn = connect_to_database()
+    db_conn = connect_to_database(secrets)
     logger.info("Database connection successful")
     try:
         customer_data = transform(event)
@@ -398,6 +398,8 @@ def main(logger: logging.Logger, event: dict) -> None:
         logger.info("Customer data processed successfully.")
     finally:
         db_conn.close()
+
+
 def lambda_handler(event, _context) -> dict:
     '''
     Lambda function handler for customer ETL pipeline.
@@ -427,6 +429,12 @@ def lambda_handler(event, _context) -> dict:
         return {
             'statusCode': 400,
             'body': f"Error: {str(e)}"
+        }
+    except ClientError as e:
+        logger.error("Secrets Manager error: %s", str(e))
+        return {
+            'statusCode': 500,
+            'body': f"Secrets Manager error: {str(e)}"
         }
     except psycopg2.Error as e:
         logger.error("Database error: %s", str(e))

@@ -208,7 +208,7 @@ class TestGetCustomerId:
         }
 
         result = get_customer_id(mock_conn, customer_data)
-        assert result == (42,)
+        assert result == 42
         mock_cursor.execute.assert_called_once()
         mock_cursor.close.assert_called_once()
 
@@ -258,7 +258,7 @@ class TestLoadCustomer:
         mock_get_customer_id.return_value = 0
         mock_conn = Mock()
         mock_cursor = Mock()
-        mock_cursor.lastrowid = 99
+        mock_cursor.fetchone.return_value = (99,)
         mock_conn.cursor.return_value = mock_cursor
 
         customer_data = {
@@ -320,7 +320,7 @@ class TestLoad:
 
         with pytest.raises(ValueError) as excinfo:
             load(mock_conn, customer_data)
-        assert str(excinfo.value) == "Customer data already exists in database"
+        assert str(excinfo.value) == "Postcode subscription already exists for postcode: SW1A 1AA"
         mock_load_customer.assert_called_once()
 
 
@@ -328,11 +328,11 @@ class TestLambdaHandler:
     '''Tests for the lambda_handler function in etl_customer module.'''
 
     @patch('etl_customer.connect_to_database')
-    @patch('etl_customer.get_and_load_secrets')
+    @patch('etl_customer.get_secrets')
     @patch('etl_customer.load')
     @patch('etl_customer.transform')
     def test_lambda_handler_success(self, mock_transform, mock_load,
-                                    mock_get_and_load_secrets, mock_connect):
+                                    mock_get_secrets, mock_connect):
         '''Should return 200 status on successful ETL'''
         mock_event = {
             'first_name': 'John',
@@ -340,7 +340,9 @@ class TestLambdaHandler:
             'email': 'john@example.com',
             'postcode': 'SW1A 1AA'
         }
+        mock_secrets = {'DB_HOST': 'localhost', 'DB_NAME': 'test'}
         mock_conn = Mock()
+        mock_get_secrets.return_value = mock_secrets
         mock_connect.return_value = mock_conn
         mock_transform.return_value = mock_event
         mock_load.return_value = None
@@ -349,21 +351,23 @@ class TestLambdaHandler:
 
         assert response['statusCode'] == 200
         assert response['body'] == "Customer data processed successfully."
-        mock_get_and_load_secrets.assert_called_once()
-        mock_connect.assert_called_once()
+        mock_get_secrets.assert_called_once()
+        mock_connect.assert_called_once_with(mock_secrets)
         mock_transform.assert_called_once_with(mock_event)
         mock_load.assert_called_once_with(mock_conn, mock_event)
         mock_conn.close.assert_called_once()
 
     @patch('etl_customer.connect_to_database')
-    @patch('etl_customer.get_and_load_secrets')
+    @patch('etl_customer.get_secrets')
     @patch('etl_customer.load')
     @patch('etl_customer.transform')
     def test_lambda_handler_transform_failure(self, mock_transform, mock_load,
-                                              mock_get_and_load_secrets, mock_connect):
+                                              mock_get_secrets, mock_connect):
         '''Should return 400 status when transform raises error'''
         mock_event = {'invalid': 'data'}
+        mock_secrets = {'DB_HOST': 'localhost', 'DB_NAME': 'test'}
         mock_conn = Mock()
+        mock_get_secrets.return_value = mock_secrets
         mock_connect.return_value = mock_conn
         mock_transform.side_effect = ValueError("Missing required field: email.")
 
@@ -375,8 +379,8 @@ class TestLambdaHandler:
         mock_load.assert_not_called()
 
     @patch('etl_customer.connect_to_database')
-    @patch('etl_customer.get_and_load_secrets')
-    def test_lambda_handler_database_connection_failure(self, mock_get_and_load_secrets,
+    @patch('etl_customer.get_secrets')
+    def test_lambda_handler_database_connection_failure(self, mock_get_secrets,
                                                        mock_connect):
         '''Should return 500 status when database connection fails'''
         mock_event = {
@@ -385,6 +389,8 @@ class TestLambdaHandler:
             'email': 'john@example.com',
             'postcode': 'SW1A 1AA'
         }
+        mock_secrets = {'DB_HOST': 'localhost', 'DB_NAME': 'test'}
+        mock_get_secrets.return_value = mock_secrets
         mock_connect.side_effect = psycopg2.Error("Connection failed")
 
         response = lambda_handler(mock_event, None)
