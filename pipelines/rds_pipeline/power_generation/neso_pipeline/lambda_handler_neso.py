@@ -4,6 +4,7 @@ Runs once daily to fetch and load power demand data.
 """
 import logging
 from datetime import datetime
+import psycopg2
 from extract_neso import fetch_neso_demand_data, parse_neso_demand_data
 from transform_neso import transform_neso_demand_data
 from load_neso import (
@@ -21,7 +22,7 @@ logger.setLevel(logging.INFO)
 HISTORICAL_RESOURCE_ID = "b2bde559-3455-4021-b179-dfe60c0337b0"
 RECENT_RESOURCE_ID = "177f6fa4-ae49-4182-81ea-0c6b35f26ca6"
 
-def check_historic_data_exists(connection):
+def check_historic_data_exists(connection: psycopg2.extensions.connection) -> bool:
     """
     Check if historic_demand table has any data.
     Returns True if data exists, False if empty.
@@ -45,15 +46,15 @@ def check_historic_data_exists(connection):
         logger.error("Error checking historic data: %s", e)
         return False
 
-def lambda_handler(event, context):  # pylint: disable=unused-argument
+def lambda_handler(_event, _context) -> dict:  # pylint: disable=unused-argument
     """
     Main Lambda handler for NESO demand pipeline.
     - Loads historic data once (if not already loaded)
     - Always loads recent demand data (daily updates)
 
     Args:
-        event: AWS Lambda event object (unused)
-        context: AWS Lambda context object (unused)
+        _event: AWS Lambda event object (unused)
+        _context: AWS Lambda context object (unused)
 
     Returns:
         dict: Response with statusCode and body
