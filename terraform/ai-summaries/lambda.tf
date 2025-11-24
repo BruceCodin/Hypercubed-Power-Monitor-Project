@@ -1,12 +1,11 @@
 # lambda.tf - Lambda Function for AI Summary Generation
 
-
 # Data source to get existing ECR repository
 data "aws_ecr_repository" "ai_summary_repo" {
   name = var.ecr_repository_name
 }
 
-# IAM Role and Policies for Lambda
+# IAM Role and Policies
 resource "aws_iam_role" "lambda_execution_role" {
   name = "power-monitor-ai-summary-lambda-role"
 
@@ -108,6 +107,7 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
   })
 }
 
+
 # Lambda Function Resource
 resource "aws_lambda_function" "ai_summary_generator" {
   function_name = var.lambda_function_name
@@ -124,7 +124,6 @@ resource "aws_lambda_function" "ai_summary_generator" {
       DB_CREDENTIALS_SECRET_ARN = var.db_credentials_secret_arn
       OPENAI_SECRET_ARN         = aws_secretsmanager_secret.openai_key.arn
       S3_BUCKET_NAME            = var.historical_data_bucket_name
-      AWS_REGION                = var.aws_region
     }
   }
 
@@ -152,8 +151,10 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
   }
 }
 
-
+# ==============================================================================
 # Outputs
+# ==============================================================================
+
 output "lambda_function_name" {
   description = "Name of the AI summary Lambda function"
   value       = aws_lambda_function.ai_summary_generator.function_name
