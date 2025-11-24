@@ -67,11 +67,19 @@ def get_historical_power_cut_data() -> pd.DataFrame:
     """
 
     # Load secrets from AWS Secrets Manager
+    logger.info("Loading database secrets from AWS Secrets Manager...")
     secrets = get_secrets()
+    logger.info("Secrets loaded successfully.")
+
+    logger.info("Setting environment variables...")
     load_secrets_to_env(secrets)
+    logger.info("Environment variables set.")
 
     # Connect to the database
+    logger.info("Connecting to the database...")
     conn = connect_to_database()
+    logger.info("Database connection established.")
+
     cursor = conn.cursor()
 
     # Execute query to fetch historical power cut data
