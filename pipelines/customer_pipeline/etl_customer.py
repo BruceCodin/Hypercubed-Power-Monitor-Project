@@ -388,14 +388,12 @@ def main(logger: logging.Logger, event: dict) -> None:
                 os.getenv('DB_HOST'), os.getenv('DB_PORT'))
     db_conn = connect_to_database()
     logger.info("Database connection successful")
-
-    customer_data = transform(event)
-    load(db_conn, customer_data)
-    logger.info("Customer data processed successfully.")
-
-    db_conn.close()
-
-
+    try:
+        customer_data = transform(event)
+        load(db_conn, customer_data)
+        logger.info("Customer data processed successfully.")
+    finally:
+        db_conn.close()
 def lambda_handler(event, _context) -> dict:
     '''
     Lambda function handler for customer ETL pipeline.
