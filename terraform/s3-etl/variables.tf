@@ -9,3 +9,9 @@ variable "s3_bucket_name" {
   type        = string
   default = "c20-power-monitor-s3"
 }
+
+variable "ecr_repository_name" {
+  description = "Name of the ECR repository"
+  type        = string
+  default     = "c20-power-monitor-s3-etl-repo"
+}
