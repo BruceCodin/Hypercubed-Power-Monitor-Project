@@ -1,12 +1,9 @@
-""" Transform module for Northern Powergrid power cut data pipeline.
+""" Transform module for SSEN power cut data pipeline.
 This module contains functions to transform raw JSON data extracted from
 the SSEN API into a standardized format suitable for further processing."""
 
 from datetime import datetime
 import logging
-from typing import Optional
-from extract_ssen import (extract_power_cut_data,
-                          parse_power_cut_data)
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +17,7 @@ ENTRY_COLUMNS = [
 ]
 
 
-def transform_power_cut_data(data: list[dict]) -> list[dict]:
+def transform_ssen_data(data: list[dict]) -> list[dict]:
     """Transform function to clean raw JSON data and output to standard format.
 
     Args:
@@ -68,43 +65,33 @@ def transform_status(status: str) -> str:
 
     if status == "PSI":
         return "planned"
-    else:
-        return "unplanned"
-
-
-def transform_ssen_data() -> Optional[list[dict]]:
-    """
-    Main transformation function - orchestrates full transformation process.
-
-    Returns:
-        list[dict]: List of cleaned power cut records as dictionaries
-    """
-
-    # Extract raw data
-    raw_data = extract_power_cut_data()
-    if not raw_data:
-        logger.warning("No data extracted from API")
-        return []
-
-    # Parse records
-    parsed_data = parse_power_cut_data(raw_data)
-
-    # Transform records
-    transformed_data = transform_power_cut_data(parsed_data)
-
-    return transformed_data
+    return "unplanned"
 
 
 if __name__ == "__main__":
-
+    # Example usage for local testing
     from pprint import pprint
+    from extract_ssen import extract_power_cut_data, parse_power_cut_data
+
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s - %(levelname)s - %(message)s")
 
-    # Example usage
+    logger.info("Starting SSEN power cuts transformation...")
 
+    # Extract and parse data
     raw_data = extract_power_cut_data()
     cleaned_data = parse_power_cut_data(raw_data)
-    standardized_data = transform_power_cut_data(cleaned_data)
 
-    pprint(standardized_data)
+    # Transform data
+    standardized_data = transform_ssen_data(cleaned_data)
+
+    if standardized_data:
+        logger.info(
+            f"Transformation complete! Transformed {len(standardized_data)} records")
+        print("\n" + "="*80)
+        print(
+            f"Sample of first {min(5, len(standardized_data))} transformed records:")
+        print("="*80)
+        pprint(standardized_data[:5])
+    else:
+        logger.warning("No data transformed")
