@@ -6,10 +6,10 @@
 
 resource "aws_ecr_repository" "ai_summary_repo" {
   name         = var.ecr_repository_name
-  force_delete = true  # Allows deletion even if images exist (use with caution in production)
+  force_delete = true
 
   image_scanning_configuration {
-    scan_on_push = true  # Automatically scan images for vulnerabilities
+    scan_on_push = true
   }
 
   tags = {
@@ -17,31 +17,6 @@ resource "aws_ecr_repository" "ai_summary_repo" {
     Environment = "dev"
     Purpose     = "AI Summary Lambda"
   }
-}
-
-# ==============================================================================
-# ECR Lifecycle Policy (Optional - keeps repository clean)
-# ==============================================================================
-
-resource "aws_ecr_lifecycle_policy" "ai_summary_repo_policy" {
-  repository = aws_ecr_repository.ai_summary_repo.name
-
-  policy = jsonencode({
-    rules = [
-      {
-        rulePriority = 1
-        description  = "Keep last 5 images"
-        selection = {
-          tagStatus   = "any"
-          countType   = "imageCountMoreThan"
-          countNumber = 5
-        }
-        action = {
-          type = "expire"
-        }
-      }
-    ]
-  })
 }
 
 # ==============================================================================
