@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ele
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-def lambda_handler(event, context):
+def lambda_handler(_event, _context) -> dict:
     """
     Orchestrates both Carbon and Elexon pipelines.
     Runs them sequentially and reports combined results.
@@ -31,13 +31,13 @@ def lambda_handler(event, context):
 
         # Run Carbon pipeline
         logger.info("\n[1/2] Running Carbon Intensity pipeline...")
-        carbon_result = carbon_handler(event, context)
+        carbon_result = carbon_handler(_event, _context)
         carbon_success = carbon_result['statusCode'] == 200
         logger.info("Carbon result: %s", carbon_result['body'])
 
         # Run Elexon pipeline
         logger.info("\n[2/2] Running Elexon pipeline...")
-        elexon_result = elexon_handler(event, context)
+        elexon_result = elexon_handler(_event, _context)
         elexon_success = elexon_result['statusCode'] == 200
         logger.info("Elexon result: %s", elexon_result['body'])
 
