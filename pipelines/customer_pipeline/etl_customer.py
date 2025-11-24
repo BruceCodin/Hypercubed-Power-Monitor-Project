@@ -25,10 +25,12 @@ Output:
 import os
 import re
 from io import BytesIO
+from typing import Any
 
 import boto3
 import pandas as pd
 import requests
+from botocore.exceptions import ClientError
 
 
 def format_name(name: str) -> str:
@@ -116,14 +118,18 @@ def format_postcode(postcode: str) -> str:
         raise ValueError("Postcode must be a string datatype.")
 
     url = f"https://api.postcodes.io/postcodes/{postcode}"
-    response = requests.get(url, timeout=5)
-    if response.status_code == 200:
-        data = response.json()
-        formatted_postcode = data['result']['postcode']
-        return formatted_postcode
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            formatted_postcode = data['result']['postcode']
+            return formatted_postcode
 
-    if response.status_code == 404:
-        raise ValueError("Postcode is invalid according to postcodes.io API.")
+        if response.status_code == 404:
+            raise ValueError(
+                "Postcode is invalid according to postcodes.io API.")
+    except requests.exceptions.RequestException:
+        pass  # log here
 
     postcode = postcode.strip().upper()
 
@@ -162,7 +168,7 @@ def transform(event: dict) -> dict:
     }
 
     for field in formatters:
-        if not customer_data.get(field):
+        if field not in customer_data:
             raise ValueError(f"Missing required field: {field}.")
 
     for field, formatter in formatters.items():
@@ -171,19 +177,14 @@ def transform(event: dict) -> dict:
     return customer_data
 
 
-def get_s3_client() -> boto3.client:
+def get_s3_client() -> Any:
     '''
     Create and return an S3 client using boto3.
 
     Returns:
-        boto3.client: S3 client object.
+        Any: S3 client object.
     '''
-    s3_client = boto3.client(
-        's3',
-        aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-        aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
-        region_name=os.getenv('AWS_REGION')
-    )
+    s3_client = boto3.client('s3')
     return s3_client
 
 
@@ -206,7 +207,7 @@ def is_duplicate_customer(existing_df: pd.DataFrame, customer_data: dict) -> boo
     ).any()
 
 
-def get_existing_customers(s3_client: boto3.client, bucket_name: str, s3_key: str) -> pd.DataFrame:
+def get_existing_customers(s3_client: Any, bucket_name: str, s3_key: str) -> pd.DataFrame:
     '''
     Retrieve existing customer data from S3, or return empty DataFrame if file doesn't exist.
     BytesIO: allows direct translation from pandas dataframe
@@ -223,8 +224,10 @@ def get_existing_customers(s3_client: boto3.client, bucket_name: str, s3_key: st
     try:
         response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
         return pd.read_parquet(BytesIO(response['Body'].read()))
-    except s3_client.exceptions.NoSuchKey:
-        return pd.DataFrame()
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuchKey':
+            return pd.DataFrame()
+        raise
 
 
 def load(customer_data: dict) -> None:
@@ -238,6 +241,8 @@ def load(customer_data: dict) -> None:
     '''
     s3_client = get_s3_client()
     bucket_name = os.getenv('BUCKET_NAME')
+    if not bucket_name:
+        raise ValueError("BUCKET_NAME environment variable is not set")
     s3_key = 'customers/customers.parquet'
 
     existing_df = get_existing_customers(s3_client, bucket_name, s3_key)
@@ -282,6 +287,11 @@ def lambda_handler(event, _context) -> dict:
         return {
             'statusCode': 400,
             'body': f"Error: {str(e)}"
+        }
+    except (ClientError, requests.exceptions.RequestException) as e:
+        return {
+            'statusCode': 500,
+            'body': f"Internal server error: {str(e)}"
         }
 
     return {

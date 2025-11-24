@@ -1,7 +1,10 @@
+# pylint: skip-file
+# pragma: no cover
 import pytest
 from unittest.mock import patch, Mock
 from io import BytesIO
 import pandas as pd
+from botocore.exceptions import ClientError
 
 from etl_customer import (
     format_name,
@@ -284,8 +287,9 @@ class TestGetExistingCustomers:
     def test_get_existing_customers_nonexistent(self):
         '''Should return empty DataFrame when file doesn't exist'''
         mock_s3_client = Mock()
-        mock_s3_client.exceptions.NoSuchKey = Exception
-        mock_s3_client.get_object.side_effect = Exception('NoSuchKey')
+        error_response = {'Error': {'Code': 'NoSuchKey'}}
+        mock_s3_client.get_object.side_effect = ClientError(
+            error_response, 'GetObject')
 
         result = get_existing_customers(
             mock_s3_client, 'test-bucket', 'customers.parquet')
@@ -325,6 +329,7 @@ class TestGetExistingCustomers:
 class TestLoad:
     '''Tests for the load function in etl_customer module.'''
 
+    @patch.dict('os.environ', {'BUCKET_NAME': 'test-bucket'})
     @patch('etl_customer.get_s3_client')
     @patch('etl_customer.get_existing_customers')
     def test_load_first_customer(self, mock_get_existing, mock_get_s3_client):
@@ -343,6 +348,7 @@ class TestLoad:
 
         assert mock_s3_client.put_object.called
 
+    @patch.dict('os.environ', {'BUCKET_NAME': 'test-bucket'})
     @patch('etl_customer.get_s3_client')
     @patch('etl_customer.get_existing_customers')
     @patch('etl_customer.is_duplicate_customer')
@@ -370,6 +376,7 @@ class TestLoad:
         assert str(excinfo.value) == "Customer data already exists in database"
         assert not mock_s3_client.put_object.called
 
+    @patch.dict('os.environ', {'BUCKET_NAME': 'test-bucket'})
     @patch('etl_customer.get_s3_client')
     @patch('etl_customer.get_existing_customers')
     @patch('etl_customer.is_duplicate_customer')
@@ -432,7 +439,8 @@ class TestLambdaHandler:
     def test_lambda_handler_transform_failure(self, mock_transform, mock_load):
         '''Should return 400 status when transform raises error'''
         mock_event = {'invalid': 'data'}
-        mock_transform.side_effect = ValueError("Missing required field: email.")
+        mock_transform.side_effect = ValueError(
+            "Missing required field: email.")
 
         response = lambda_handler(mock_event, None)
 
