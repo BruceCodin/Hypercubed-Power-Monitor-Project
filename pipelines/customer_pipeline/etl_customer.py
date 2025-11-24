@@ -22,15 +22,21 @@ Output:
         "message": str(success or error description (field, type of error etc.))
     }
 '''
+import logging
 import os
 import re
+from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Any
-import logging
+
 import boto3
 import pandas as pd
 import requests
 from botocore.exceptions import ClientError
+
+# Postcode cache configuration
+POSTCODE_CACHE = {}
+CACHE_TTL_MINUTES = 60
 
 
 def format_name(name: str) -> str:
@@ -46,12 +52,13 @@ def format_name(name: str) -> str:
         str: Formatted name.
 
     Raises:
-        ValueError: If name is not a string, 
-            contains non-alphabetic characters,
+        TypeError: If name is not a string.
+        ValueError: If name is not a single nonempty word, 
+            containing only alphabetic characters,
             or exceeds maximum length.
     '''
     if not isinstance(name, str):
-        raise ValueError("Name must be a string datatype.")
+        raise TypeError("Name must be a string datatype.")
 
     name = name.strip().title()
 
@@ -77,12 +84,12 @@ def format_email(email: str) -> str:
         str: Formatted email address.
 
     Raises:
-        ValueError: If email is not a string,
-            is empty after stripping spaces,
+        TypeError: If email is not a string.
+        ValueError: If email is empty after stripping spaces,
             or does not match basic email format.
     '''
     if not isinstance(email, str):
-        raise ValueError("Email must be a string datatype.")
+        raise TypeError("Email must be a string datatype.")
 
     email = email.strip().lower()
     if not email:
@@ -94,13 +101,24 @@ def format_email(email: str) -> str:
     return email
 
 
-def format_postcode(postcode: str) -> str:
+def clear_expired_cache():
     '''
-    Format and validate the customer's postcode.
-    1. Attempt this first with postcodes.io API. Docs:
-    https://postcodes.io/docs/postcode/lookup/
-    2. If API fails, use regex pattern matching according to this format:
-    https://ideal-postcodes.co.uk/guides/uk-postcode-format
+    Remove expired entries from postcode cache.
+    '''
+    now = datetime.now()
+    expired_keys = [
+        key for key, (_, timestamp) in POSTCODE_CACHE.items()
+        if now - timestamp > timedelta(minutes=CACHE_TTL_MINUTES)
+    ]
+    for key in expired_keys:
+        del POSTCODE_CACHE[key]
+
+
+def format_postcode_with_regex(postcode: str) -> str:
+    '''
+    Helper: format and validate the customer's postcode using regex.
+    Called when API fails or times out.
+    Format with proper spacing: space before the last 3 characters (inward code)
 
     Args:
         postcode (str): The customer's postcode.
@@ -109,39 +127,88 @@ def format_postcode(postcode: str) -> str:
         str: Formatted postcode.
 
     Raises:
-        ValueError: If postcode is not a string,
-            is invalid according to postcodes.io API,
-            or is invalid according to regex pattern.
+        ValueError: If postcode is invalid according to regex pattern.
     '''
+    pattern = r'^([A-Z]{1,2}[0-9][A-Z0-9]?|[A-Z][0-9]{1,2})\s?([0-9][A-Z]{2})$'
+    match = re.match(pattern, postcode)
+    if not match:
+        raise ValueError(
+            "Postcode is invalid according to regex pattern.")
 
-    if not isinstance(postcode, str):
-        raise ValueError("Postcode must be a string datatype.")
+    postcode_cleaned = postcode.replace(' ', '')
+    formatted_postcode = f"{postcode_cleaned[:-3]} {postcode_cleaned[-3:]}"
+    return formatted_postcode
 
+
+def format_postcode_with_api(postcode: str) -> str:
+    '''
+    Helper: format and validate the customer's postcode using postcodes.io API.
+    Called when postcode is not in cache.
+    If successful, caches the result.
+
+    Args:
+        postcode (str): The customer's postcode.
+
+    Returns:
+        str: Formatted postcode or empty string if API fails.
+
+    Raises:
+        ValueError: If postcode is invalid according to postcodes.io API.
+    '''
     url = f"https://api.postcodes.io/postcodes/{postcode}"
     try:
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=2)
         if response.status_code == 200:
             data = response.json()
             formatted_postcode = data['result']['postcode']
+
+            POSTCODE_CACHE[postcode] = (
+                formatted_postcode, datetime.now())
             return formatted_postcode
 
         if response.status_code == 404:
             raise ValueError(
                 "Postcode is invalid according to postcodes.io API.")
+    except requests.exceptions.Timeout:
+        return ""
     except requests.exceptions.RequestException:
-        pass  # log here
+        return ""
+    return ""
 
-    postcode = postcode.strip().upper()
 
-    pattern = r'^([A-Z]{1,2}[0-9][A-Z0-9]?|[A-Z][0-9]{1,2})\s?([0-9][A-Z]{2})$'
-    match = re.match(pattern, postcode)
-    if not match:
-        raise ValueError(
-            "API postcodes.io inaccessible. Postcode is invalid according to regex pattern.")
+def format_postcode(postcode: str) -> str:
+    '''
+    Format and validate the customer's postcode with caching.
+    1. Check cache first (avoids API call for recently validated postcodes)
+    2. Attempt postcodes.io API with short timeout (2 seconds instead of 5)
+    3. If API fails or times out, use regex fallback immediately
 
-    # Format with proper spacing: space before the last 3 characters (inward code)
-    postcode_cleaned = postcode.replace(' ', '')
-    formatted_postcode = f"{postcode_cleaned[:-3]} {postcode_cleaned[-3:]}"
+    Args:
+        postcode (str): The customer's postcode.
+
+    Returns:
+        str: Formatted postcode.
+
+    Raises:
+        TypeError: If postcode is not a string.
+        ValueError: If postcode is invalid according to postcodes.io API,
+            or is invalid according to regex pattern.
+    '''
+    if not isinstance(postcode, str):
+        raise TypeError("Postcode must be a string datatype.")
+
+    postcode_upper = postcode.strip().upper()
+
+    clear_expired_cache()
+    if postcode_upper in POSTCODE_CACHE:
+        cached_result, _ = POSTCODE_CACHE[postcode_upper]
+        return cached_result
+
+    formatted_postcode = format_postcode_with_api(postcode_upper)
+    if formatted_postcode:
+        return formatted_postcode
+
+    formatted_postcode = format_postcode_with_regex(postcode_upper)
     return formatted_postcode
 
 
@@ -156,8 +223,8 @@ def transform(event: dict) -> dict:
         dict: Transformed customer data with formatted fields.
 
     Raises:
-        ValueError: If any required field is missing from event,
-        or if any field fails validation (via helpers).
+        ValueError: If any required field is missing from event.
+        TypeError or ValueError: If any field fails validation (via helpers).
     '''
     customer_data = event.copy()
     formatters = {
@@ -175,17 +242,6 @@ def transform(event: dict) -> dict:
         customer_data[field] = formatter(customer_data[field])
 
     return customer_data
-
-
-def get_s3_client() -> Any:
-    '''
-    Create and return an S3 client using boto3.
-
-    Returns:
-        Any: S3 client object.
-    '''
-    s3_client = boto3.client('s3')
-    return s3_client
 
 
 def is_duplicate_customer(existing_df: pd.DataFrame, customer_data: dict) -> bool:
@@ -207,9 +263,11 @@ def is_duplicate_customer(existing_df: pd.DataFrame, customer_data: dict) -> boo
     ).any()
 
 
-def get_existing_customers(s3_client: Any, bucket_name: str, s3_key: str) -> pd.DataFrame:
+def get_existing_customers(
+    s3_client: Any, bucket_name: str, s3_key: str
+) -> tuple[pd.DataFrame, str | None]:
     '''
-    Retrieve existing customer data from S3, or return empty DataFrame if file doesn't exist.
+    Retrieve existing customer data from S3 with ETag for optimistic locking.
     BytesIO: allows direct translation from pandas dataframe
         to S3 object, without needing to save a local file first.
 
@@ -219,50 +277,106 @@ def get_existing_customers(s3_client: Any, bucket_name: str, s3_key: str) -> pd.
         s3_key (str): S3 object key.
 
     Returns:
-        pd.DataFrame: Existing customer data or empty DataFrame.
+        tuple: (DataFrame, ETag) - ETag is used for version control and preventing race conditions.
     '''
     try:
         response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
-        return pd.read_parquet(BytesIO(response['Body'].read()))
+        df = pd.read_parquet(BytesIO(response['Body'].read()))
+        etag = response['ETag'].strip('"')  # Remove quotes from ETag
+        return df, etag
     except ClientError as e:
         if e.response['Error']['Code'] == 'NoSuchKey':
-            return pd.DataFrame()
+            return pd.DataFrame(), None
         raise
 
 
-def load(customer_data: dict) -> None:
+def prepare_and_serialize_customer_data(existing_df: pd.DataFrame, customer_data: dict) -> bytes:
     '''
-    Load customer data into S3 in parquet format if unique.
-    BytesIO: allows direct translation from pandas dataframe
-        to S3 object, without needing to save a local file first.
+    Combine existing and new customer data, check for duplicates, and serialize to parquet bytes.
+    BytesIO: allows direct translation from pandas dataframe to S3 object,
+        without needing to save a local file first.
 
     Args:
-        customer_data (dict): Transformed customer data.
-    '''
-    s3_client = get_s3_client()
-    bucket_name = os.getenv('BUCKET_NAME')
-    if not bucket_name:
-        raise ValueError("BUCKET_NAME environment variable is not set")
-    s3_key = 'customers/customers.parquet'
+        existing_df (pd.DataFrame): Existing customer data.
+        customer_data (dict): New customer data to add.
 
-    existing_df = get_existing_customers(s3_client, bucket_name, s3_key)
+    Returns:
+        bytes: Serialized parquet data ready for S3 upload.
+
+    Raises:
+        ValueError: If customer already exists in database.
+    '''
     new_df = pd.DataFrame([customer_data])
 
     if not existing_df.empty:
         if is_duplicate_customer(existing_df, customer_data):
             raise ValueError("Customer data already exists in database")
-
         combined_df = pd.concat([existing_df, new_df], ignore_index=True)
-
     else:
         combined_df = new_df
 
     buffer = BytesIO()
     combined_df.to_parquet(buffer, index=False, engine='pyarrow')
-    buffer.seek(0)
+    return buffer.getvalue()
 
-    s3_client.put_object(Bucket=bucket_name, Key=s3_key,
-                         Body=buffer.getvalue())
+
+def upload_with_optimistic_locking(s3_client: Any, bucket_name: str, s3_key: str,
+                                   parquet_bytes: bytes, etag: str | None) -> None:
+    '''
+    Upload parquet data to S3 with optimistic locking to prevent race conditions.
+
+    Args:
+        s3_client: Boto3 S3 client.
+        bucket_name (str): S3 bucket name.
+        s3_key (str): S3 object key.
+        parquet_bytes (bytes): Serialized parquet data.
+        etag (str | None): ETag for conditional write (None if file doesn't exist).
+
+    Raises:
+        ValueError: If write failed due to concurrent modification.
+    '''
+    try:
+        if etag:
+            s3_client.put_object(
+                Bucket=bucket_name,
+                Key=s3_key,
+                Body=parquet_bytes,
+                IfMatch=etag
+            )
+        else:
+            s3_client.put_object(
+                Bucket=bucket_name,
+                Key=s3_key,
+                Body=parquet_bytes,
+                IfNoneMatch='*'
+            )
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'PreconditionFailed':
+            raise ValueError(
+                "Customer data was modified by another process. "
+                "Please retry the operation."
+            ) from e
+        raise
+
+
+def load(customer_data: dict) -> None:
+    '''
+    Load customer data into S3 with optimistic locking to prevent race conditions.
+
+    Args:
+        customer_data (dict): Transformed customer data.
+    '''
+    s3_client = boto3.client('s3')
+    bucket_name = os.getenv('BUCKET_NAME')
+    if not bucket_name:
+        raise ValueError("BUCKET_NAME environment variable is not set")
+    s3_key = 'customers/customers.parquet'
+
+    existing_df, etag = get_existing_customers(s3_client, bucket_name, s3_key)
+    parquet_bytes = prepare_and_serialize_customer_data(
+        existing_df, customer_data)
+    upload_with_optimistic_locking(
+        s3_client, bucket_name, s3_key, parquet_bytes, etag)
 
 
 def lambda_handler(event, _context) -> dict:
@@ -285,9 +399,13 @@ def lambda_handler(event, _context) -> dict:
         customer_data = transform(event)
         load(customer_data)
         logger.info("Customer data processed successfully.")
+        return {
+            'statusCode': 200,
+            'body': "Customer data processed successfully."
+        }
 
-    except ValueError as e:
-        logger.warning("ValueError: %s", str(e))
+    except (ValueError, TypeError) as e:
+        logger.warning("Validation error: %s", str(e))
         return {
             'statusCode': 400,
             'body': f"Error: {str(e)}"
@@ -298,8 +416,3 @@ def lambda_handler(event, _context) -> dict:
             'statusCode': 500,
             'body': f"Internal server error: {str(e)}"
         }
-
-    return {
-        'statusCode': 200,
-        'body': "Customer data processed successfully."
-    }

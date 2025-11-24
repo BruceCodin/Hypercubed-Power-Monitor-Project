@@ -32,7 +32,7 @@ class TestFormatName:
             assert formatted_name == expected
 
     def test_format_name_wrong_datatype(self):
-        with pytest.raises(ValueError) as excinfo:
+        with pytest.raises(TypeError) as excinfo:
             format_name(123)
         assert str(excinfo.value) == "Name must be a string datatype."
 
@@ -64,7 +64,7 @@ class TestFormatEmail:
             assert formatted_email == expected
 
     def test_format_email_wrong_datatype(self):
-        with pytest.raises(ValueError) as excinfo:
+        with pytest.raises(TypeError) as excinfo:
             format_email(123)
         assert str(excinfo.value) == "Email must be a string datatype."
 
@@ -147,10 +147,10 @@ class TestFormatPostcode:
             with pytest.raises(ValueError) as excinfo:
                 format_postcode(postcode)
             assert str(
-                excinfo.value) == "API postcodes.io inaccessible. Postcode is invalid according to regex pattern."
+                excinfo.value) == "Postcode is invalid according to regex pattern."
 
     def test_format_postcode_wrong_datatype(self):
-        with pytest.raises(ValueError) as excinfo:
+        with pytest.raises(TypeError) as excinfo:
             format_postcode(12345)
         assert str(excinfo.value) == "Postcode must be a string datatype."
 
@@ -285,20 +285,21 @@ class TestGetExistingCustomers:
     '''Tests for the get_existing_customers function in etl_customer module.'''
 
     def test_get_existing_customers_nonexistent(self):
-        '''Should return empty DataFrame when file doesn't exist'''
+        '''Should return empty DataFrame and None ETag when file doesn't exist'''
         mock_s3_client = Mock()
         error_response = {'Error': {'Code': 'NoSuchKey'}}
         mock_s3_client.get_object.side_effect = ClientError(
             error_response, 'GetObject')
 
-        result = get_existing_customers(
+        result, etag = get_existing_customers(
             mock_s3_client, 'test-bucket', 'customers.parquet')
 
         assert result.empty
         assert len(result.columns) == 0
+        assert etag is None
 
     def test_get_existing_customers_multiple_records(self):
-        '''Should return DataFrame with multiple records'''
+        '''Should return DataFrame with multiple records and ETag'''
         expected_df = pd.DataFrame([
             {
                 'first_name': 'John',
@@ -318,25 +319,27 @@ class TestGetExistingCustomers:
         expected_df.to_parquet(buffer, index=False, engine='pyarrow')
         buffer.seek(0)
         mock_s3_client = Mock()
-        mock_s3_client.get_object.return_value = {'Body': buffer}
-        result = get_existing_customers(
+        mock_s3_client.get_object.return_value = {
+            'Body': buffer, 'ETag': '"abc123"'}
+        result, etag = get_existing_customers(
             mock_s3_client, 'test-bucket', 'customers.parquet')
 
         pd.testing.assert_frame_equal(result, expected_df)
         assert len(result) == 2
+        assert etag == 'abc123'
 
 
 class TestLoad:
     '''Tests for the load function in etl_customer module.'''
 
     @patch.dict('os.environ', {'BUCKET_NAME': 'test-bucket'})
-    @patch('etl_customer.get_s3_client')
     @patch('etl_customer.get_existing_customers')
-    def test_load_first_customer(self, mock_get_existing, mock_get_s3_client):
+    @patch('etl_customer.boto3.client')
+    def test_load_first_customer(self, mock_boto3_client, mock_get_existing):
         '''Should successfully load first customer'''
         mock_s3_client = Mock()
-        mock_get_s3_client.return_value = mock_s3_client
-        mock_get_existing.return_value = pd.DataFrame()
+        mock_boto3_client.return_value = mock_s3_client
+        mock_get_existing.return_value = (pd.DataFrame(), None)
 
         customer_data = {
             'first_name': 'John',
@@ -349,19 +352,19 @@ class TestLoad:
         assert mock_s3_client.put_object.called
 
     @patch.dict('os.environ', {'BUCKET_NAME': 'test-bucket'})
-    @patch('etl_customer.get_s3_client')
     @patch('etl_customer.get_existing_customers')
     @patch('etl_customer.is_duplicate_customer')
-    def test_load_duplicate_raises_error(self, mock_is_dup, mock_get_existing, mock_get_s3_client):
+    @patch('etl_customer.boto3.client')
+    def test_load_duplicate_raises_error(self, mock_boto3_client, mock_is_dup, mock_get_existing):
         '''Should raise ValueError for duplicate customer'''
         mock_s3_client = Mock()
-        mock_get_s3_client.return_value = mock_s3_client
-        mock_get_existing.return_value = pd.DataFrame([{
+        mock_boto3_client.return_value = mock_s3_client
+        mock_get_existing.return_value = (pd.DataFrame([{
             'first_name': 'John',
             'last_name': 'Doe',
             'email': 'john@example.com',
             'postcode': 'SW1A 1AA'
-        }])
+        }]), 'etag123')
         mock_is_dup.return_value = True
 
         customer_data = {
@@ -377,20 +380,20 @@ class TestLoad:
         assert not mock_s3_client.put_object.called
 
     @patch.dict('os.environ', {'BUCKET_NAME': 'test-bucket'})
-    @patch('etl_customer.get_s3_client')
     @patch('etl_customer.get_existing_customers')
     @patch('etl_customer.is_duplicate_customer')
-    def test_load_appends_new_customer(self, mock_is_dup, mock_get_existing, mock_get_s3_client):
+    @patch('etl_customer.boto3.client')
+    def test_load_appends_new_customer(self, mock_boto3_client, mock_is_dup, mock_get_existing):
         '''Should append new customer to existing data'''
         mock_s3_client = Mock()
-        mock_get_s3_client.return_value = mock_s3_client
+        mock_boto3_client.return_value = mock_s3_client
         existing_df = pd.DataFrame([{
             'first_name': 'Jane',
             'last_name': 'Smith',
             'email': 'jane@example.com',
             'postcode': 'M1 1AA'
         }])
-        mock_get_existing.return_value = existing_df
+        mock_get_existing.return_value = (existing_df, 'etag456')
         mock_is_dup.return_value = False
 
         customer_data = {
