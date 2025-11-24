@@ -15,9 +15,9 @@ def upload_data_to_s3(data: pd.DataFrame) -> None:
 
     alerts_df = data.copy()
 
-    alerts_df['year'] = alerts_df['recording_time'].dt.year
-    alerts_df['month'] = alerts_df['recording_time'].dt.month
-    alerts_df['day'] = alerts_df['recording_time'].dt.day
+    alerts_df['year'] = pd.to_datetime(alerts_df['recording_time']).dt.year
+    alerts_df['month'] = pd.to_datetime(alerts_df['recording_time']).dt.month
+    alerts_df['day'] = pd.to_datetime(alerts_df['recording_time']).dt.day
 
     wr.s3.to_parquet(
         df=alerts_df,
@@ -35,5 +35,12 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s')
 
+    logging.info("Extracting historical power cut data from RDS...")
     data = get_historical_power_cut_data()
+    print(data.head(10))  # Print first 10 records
+    print(data.info())
+    logging.info("Extraction complete")
+
+    logging.info("Uploading data to S3...")
     upload_data_to_s3(data)
+    logging.info("Upload complete.")
