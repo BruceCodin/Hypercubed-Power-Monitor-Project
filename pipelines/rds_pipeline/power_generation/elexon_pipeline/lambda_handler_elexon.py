@@ -4,6 +4,9 @@ Runs every 30 minutes to fetch generation and pricing data.
 Fetches last few hours to keep data current and handle any gaps.
 """
 import logging
+import os
+import json
+import boto3
 from datetime import datetime, timedelta
 
 # Configure logging
@@ -120,13 +123,17 @@ def lambda_handler(event, context):
             update_price_column_names
         )
         from load_elexon import (
-            get_db_connection,
+            connect_to_database,
             load_generation_data_to_db,
-            load_price_data_to_db
+            load_price_data_to_db,
+            get_secrets,
+            load_secrets_to_env
         )
         
         # Get database connection
-        db_connection = get_db_connection()
+        secrets = get_secrets()
+        load_secrets_to_env(secrets)
+        db_connection = connect_to_database()
         if not db_connection:
             raise Exception("Failed to establish database connection")
         
