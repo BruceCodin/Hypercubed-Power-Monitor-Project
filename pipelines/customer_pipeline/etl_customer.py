@@ -25,18 +25,47 @@ Output:
 import logging
 import os
 import re
+import json
 from datetime import datetime, timedelta
-from io import BytesIO
-from typing import Any
-
 import boto3
-import pandas as pd
+import psycopg2
 import requests
-from botocore.exceptions import ClientError
 
 # Postcode cache configuration
 POSTCODE_CACHE = {}
 CACHE_TTL_MINUTES = 60
+
+
+def get_and_load_secrets() -> None:
+    """
+    Retrieve database credentials from AWS Secrets Manager,
+    Load into environment variables.
+    """
+    secrets_arn = os.getenv("SECRETS_ARN")
+    client = boto3.client('secretsmanager')
+    response = client.get_secret_value(SecretId=secrets_arn)
+    secret = response['SecretString']
+    secret_dict = json.loads(secret)
+
+    for key, value in secret_dict.items():
+        os.environ[key] = str(value)
+
+
+def connect_to_database() -> psycopg2.extensions.connection:
+    """
+    Connects to AWS Postgres database using Secrets Manager credentials.
+
+    Returns:
+        psycopg2 connection object
+    """
+    conn = psycopg2.connect(
+        host=os.getenv("DB_HOST"),
+        database=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        port=int(os.getenv("DB_PORT")),
+    )
+    return conn
 
 
 def format_name(name: str) -> str:
@@ -244,139 +273,125 @@ def transform(event: dict) -> dict:
     return customer_data
 
 
-def is_duplicate_customer(existing_df: pd.DataFrame, customer_data: dict) -> bool:
+def get_customer_id(conn: psycopg2.extensions.connection, customer_data: dict) -> int:
     '''
-    Check if customer already exists in the dataframe.
+    Check if customer already exists in the database, 
+    return customer_id if found.
 
     Args:
-        existing_df (pd.DataFrame): Existing customer data.
+        conn: psycopg2 connection object
         customer_data (dict): New customer data to check.
 
     Returns:
-        bool: True if customer is a duplicate, False otherwise.
+        int: customer_id if found, else 0.
     '''
-    return (
-        (existing_df['first_name'] == customer_data['first_name']) &
-        (existing_df['last_name'] == customer_data['last_name']) &
-        (existing_df['email'] == customer_data['email']) &
-        (existing_df['postcode'] == customer_data['postcode'])
-    ).any()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT customer_id FROM DIM_customer
+        WHERE first_name = %s AND last_name = %s AND email = %s
+        LIMIT 1
+    ''', (
+        customer_data['first_name'],
+        customer_data['last_name'],
+        customer_data['email']
+    ))
+    result = cursor.fetchone()
+    cursor.close()
+    if result:
+        return result
+    not_found = 0
+    return not_found
 
 
-def get_existing_customers(
-    s3_client: Any, bucket_name: str, s3_key: str
-) -> tuple[pd.DataFrame, str | None]:
+def load_customer(conn: psycopg2.extensions.connection, customer_data: dict) -> int:
     '''
-    Retrieve existing customer data from S3 with ETag for optimistic locking.
-    BytesIO: allows direct translation from pandas dataframe
-        to S3 object, without needing to save a local file first.
+    Load customer data into DIM_customer table if not already present.
+    Get generated customer_id with lastrowid.
 
     Args:
-        s3_client: Boto3 S3 client.
-        bucket_name (str): S3 bucket name.
-        s3_key (str): S3 object key.
+        conn: psycopg2 connection object
+        customer_data (dict): Transformed customer data.
 
     Returns:
-        tuple: (DataFrame, ETag) - ETag is used for version control and preventing race conditions.
+        int: customer_id of the inserted or existing customer.
     '''
-    try:
-        response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
-        df = pd.read_parquet(BytesIO(response['Body'].read()))
-        etag = response['ETag'].strip('"')  # Remove quotes from ETag
-        return df, etag
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'NoSuchKey':
-            return pd.DataFrame(), None
-        raise
+    customer_id = get_customer_id(conn, customer_data)
+    if not customer_id:
+        cursor = conn.cursor()
+        cursor.execute('''
+        INSERT INTO DIM_customer (first_name, last_name, email)
+        VALUES (%s, %s, %s)
+        ''', (
+            customer_data['first_name'],
+            customer_data['last_name'],
+            customer_data['email']
+        ))
+        customer_id = cursor.lastrowid
+        conn.commit()
+        cursor.close()
+    return customer_id
 
 
-def prepare_and_serialize_customer_data(existing_df: pd.DataFrame, customer_data: dict) -> bytes:
+def load(conn: psycopg2.extensions.connection, customer_data: dict) -> None:
     '''
-    Combine existing and new customer data, check for duplicates, and serialize to parquet bytes.
-    BytesIO: allows direct translation from pandas dataframe to S3 object,
-        without needing to save a local file first.
+    Load customer data into RDS database with duplicate check:
+        DIM_customer table handled in load_customer function.
+        Check for existing postcode subscription in 
+        BRIDGE_subscribed_postcodes table.
 
     Args:
-        existing_df (pd.DataFrame): Existing customer data.
-        customer_data (dict): New customer data to add.
-
-    Returns:
-        bytes: Serialized parquet data ready for S3 upload.
+        conn: psycopg2 connection object
+        customer_data (dict): Transformed customer data.
 
     Raises:
         ValueError: If customer already exists in database.
     '''
-    new_df = pd.DataFrame([customer_data])
+    customer_id = load_customer(conn, customer_data)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT customer_id FROM BRIDGE_subscribed_postcodes
+        WHERE postcode = %s
+        LIMIT 1
+    ''', (customer_data['postcode'],))
+    result = cursor.fetchone()
+    cursor.close()
+    if result:
+        raise ValueError("Customer data already exists in database")
 
-    if not existing_df.empty:
-        if is_duplicate_customer(existing_df, customer_data):
-            raise ValueError("Customer data already exists in database")
-        combined_df = pd.concat([existing_df, new_df], ignore_index=True)
-    else:
-        combined_df = new_df
+    cursor.execute('''
+        INSERT INTO BRIDGE_subscribed_postcodes (customer_id, postcode)
+        VALUES (%s, %s)
+    ''', (
+        customer_id,
+        customer_data['postcode']
+    ))
+    conn.commit()
+    cursor.close()
 
-    buffer = BytesIO()
-    combined_df.to_parquet(buffer, index=False, engine='pyarrow')
-    return buffer.getvalue()
 
-
-def upload_with_optimistic_locking(s3_client: Any, bucket_name: str, s3_key: str,
-                                   parquet_bytes: bytes, etag: str | None) -> None:
+def main(logger: logging.Logger, event: dict) -> None:
     '''
-    Upload parquet data to S3 with optimistic locking to prevent race conditions.
+    Main function for customer ETL pipeline 
+    (within try block of lambda_handler).
 
     Args:
-        s3_client: Boto3 S3 client.
-        bucket_name (str): S3 bucket name.
-        s3_key (str): S3 object key.
-        parquet_bytes (bytes): Serialized parquet data.
-        etag (str | None): ETag for conditional write (None if file doesn't exist).
-
-    Raises:
-        ValueError: If write failed due to concurrent modification.
+        logger (logging.Logger): Logger object for logging.
+        event (dict): Input JSON payload.
     '''
-    try:
-        if etag:
-            s3_client.put_object(
-                Bucket=bucket_name,
-                Key=s3_key,
-                Body=parquet_bytes,
-                IfMatch=etag
-            )
-        else:
-            s3_client.put_object(
-                Bucket=bucket_name,
-                Key=s3_key,
-                Body=parquet_bytes,
-                IfNoneMatch='*'
-            )
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'PreconditionFailed':
-            raise ValueError(
-                "Customer data was modified by another process. "
-                "Please retry the operation."
-            ) from e
-        raise
+    logger.info("Fetching secrets from Secrets Manager")
+    get_and_load_secrets()
+    logger.info("Secrets loaded to environment variables")
 
+    logger.info("Connecting to database at %s:%s",
+                os.getenv('DB_HOST'), os.getenv('DB_PORT'))
+    db_conn = connect_to_database()
+    logger.info("Database connection successful")
 
-def load(customer_data: dict) -> None:
-    '''
-    Load customer data into S3 with optimistic locking to prevent race conditions.
+    customer_data = transform(event)
+    load(db_conn, customer_data)
+    logger.info("Customer data processed successfully.")
 
-    Args:
-        customer_data (dict): Transformed customer data.
-    '''
-    s3_client = boto3.client('s3')
-    bucket_name = os.getenv('BUCKET_NAME')
-    if not bucket_name:
-        raise ValueError("BUCKET_NAME environment variable is not set")
-    s3_key = 'customers/customers.parquet'
-
-    existing_df, etag = get_existing_customers(s3_client, bucket_name, s3_key)
-    parquet_bytes = prepare_and_serialize_customer_data(
-        existing_df, customer_data)
-    upload_with_optimistic_locking(
-        s3_client, bucket_name, s3_key, parquet_bytes, etag)
+    db_conn.close()
 
 
 def lambda_handler(event, _context) -> dict:
@@ -384,7 +399,7 @@ def lambda_handler(event, _context) -> dict:
     Lambda function handler for customer ETL pipeline.
     1. Extract: receive customer data from JSON payload.
     2. Transform: validate and format data fields.
-    3. Load: move data into the customer database (S3).
+    3. Load: move data into the customer database (RDS).
 
     Args:
         event (dict): Input JSON payload.
@@ -395,10 +410,9 @@ def lambda_handler(event, _context) -> dict:
     '''
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
+
     try:
-        customer_data = transform(event)
-        load(customer_data)
-        logger.info("Customer data processed successfully.")
+        main(logger, event)
         return {
             'statusCode': 200,
             'body': "Customer data processed successfully."
@@ -410,9 +424,15 @@ def lambda_handler(event, _context) -> dict:
             'statusCode': 400,
             'body': f"Error: {str(e)}"
         }
-    except (ClientError, requests.exceptions.RequestException) as e:
-        logger.error("Internal server error: %s", str(e))
+    except psycopg2.Error as e:
+        logger.error("Database error: %s", str(e))
         return {
             'statusCode': 500,
-            'body': f"Internal server error: {str(e)}"
+            'body': f"Database error: {str(e)}"
+        }
+    except requests.exceptions.RequestException as e:
+        logger.error("Request error: %s", str(e))
+        return {
+            'statusCode': 500,
+            'body': f"Request error: {str(e)}"
         }

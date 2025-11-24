@@ -1,20 +1,19 @@
 # pylint: skip-file
 # pragma: no cover
 import pytest
-from unittest.mock import patch, Mock
-from io import BytesIO
-import pandas as pd
-from botocore.exceptions import ClientError
+from unittest.mock import patch, Mock, MagicMock
+import psycopg2
 
 from etl_customer import (
     format_name,
     format_email,
     format_postcode,
     transform,
-    is_duplicate_customer,
-    get_existing_customers,
+    get_customer_id,
+    load_customer,
     load,
-    lambda_handler
+    lambda_handler,
+    get_and_load_secrets
 )
 
 
@@ -192,17 +191,16 @@ class TestTransform:
         assert str(excinfo.value) == "Missing required field: email."
 
 
-class TestIsDuplicateCustomer:
-    '''Tests for the is_duplicate_customer function in etl_customer module.'''
+class TestGetCustomerId:
+    '''Tests for the get_customer_id function in etl_customer module.'''
 
-    def test_duplicate_customer_all_fields_match(self):
-        '''Should return True when all customer fields match'''
-        existing_df = pd.DataFrame([{
-            'first_name': 'John',
-            'last_name': 'Doe',
-            'email': 'john@example.com',
-            'postcode': 'SW1A 1AA'
-        }])
+    def test_get_customer_id_found(self):
+        '''Should return customer_id when customer exists in database'''
+        mock_conn = Mock()
+        mock_cursor = Mock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_cursor.fetchone.return_value = (42,)  # Found customer with id 42
+
         customer_data = {
             'first_name': 'John',
             'last_name': 'Doe',
@@ -210,136 +208,85 @@ class TestIsDuplicateCustomer:
             'postcode': 'SW1A 1AA'
         }
 
-        assert is_duplicate_customer(existing_df, customer_data) == True
+        result = get_customer_id(mock_conn, customer_data)
+        assert result == (42,)
+        mock_cursor.execute.assert_called_once()
+        mock_cursor.close.assert_called_once()
 
-    def test_not_duplicate_different_first_name(self):
-        '''Should return False when first_name differs'''
-        existing_df = pd.DataFrame([{
-            'first_name': 'John',
-            'last_name': 'Doe',
-            'email': 'john@example.com',
-            'postcode': 'SW1A 1AA'
-        }])
+    def test_get_customer_id_not_found(self):
+        '''Should return 0 when customer does not exist in database'''
+        mock_conn = Mock()
+        mock_cursor = Mock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_cursor.fetchone.return_value = None  # No customer found
+
         customer_data = {
             'first_name': 'Jane',
-            'last_name': 'Doe',
-            'email': 'john@example.com',
-            'postcode': 'SW1A 1AA'
-        }
-
-        assert is_duplicate_customer(existing_df, customer_data) == False
-
-    def test_not_duplicate_different_last_name(self):
-        '''Should return False when last_name differs'''
-        existing_df = pd.DataFrame([{
-            'first_name': 'John',
-            'last_name': 'Doe',
-            'email': 'john@example.com',
-            'postcode': 'SW1A 1AA'
-        }])
-        customer_data = {
-            'first_name': 'John',
             'last_name': 'Smith',
-            'email': 'john@example.com',
-            'postcode': 'SW1A 1AA'
-        }
-
-        assert is_duplicate_customer(existing_df, customer_data) == False
-
-    def test_not_duplicate_different_email(self):
-        '''Should return False when email differs'''
-        existing_df = pd.DataFrame([{
-            'first_name': 'John',
-            'last_name': 'Doe',
-            'email': 'john@example.com',
-            'postcode': 'SW1A 1AA'
-        }])
-        customer_data = {
-            'first_name': 'John',
-            'last_name': 'Doe',
             'email': 'jane@example.com',
-            'postcode': 'SW1A 1AA'
-        }
-
-        assert is_duplicate_customer(existing_df, customer_data) == False
-
-    def test_not_duplicate_different_postcode(self):
-        '''Should return False when postcode differs'''
-        existing_df = pd.DataFrame([{
-            'first_name': 'John',
-            'last_name': 'Doe',
-            'email': 'john@example.com',
-            'postcode': 'SW1A 1AA'
-        }])
-        customer_data = {
-            'first_name': 'John',
-            'last_name': 'Doe',
-            'email': 'john@example.com',
             'postcode': 'M1 1AA'
         }
 
-        assert is_duplicate_customer(existing_df, customer_data) == False
+        result = get_customer_id(mock_conn, customer_data)
+        assert result == 0
+        mock_cursor.execute.assert_called_once()
+        mock_cursor.close.assert_called_once()
 
 
-class TestGetExistingCustomers:
-    '''Tests for the get_existing_customers function in etl_customer module.'''
+class TestLoadCustomer:
+    '''Tests for the load_customer function in etl_customer module.'''
 
-    def test_get_existing_customers_nonexistent(self):
-        '''Should return empty DataFrame and None ETag when file doesn't exist'''
-        mock_s3_client = Mock()
-        error_response = {'Error': {'Code': 'NoSuchKey'}}
-        mock_s3_client.get_object.side_effect = ClientError(
-            error_response, 'GetObject')
+    @patch('etl_customer.get_customer_id')
+    def test_load_customer_existing(self, mock_get_customer_id):
+        '''Should return existing customer_id without inserting'''
+        mock_get_customer_id.return_value = 42
+        mock_conn = Mock()
 
-        result, etag = get_existing_customers(
-            mock_s3_client, 'test-bucket', 'customers.parquet')
+        customer_data = {
+            'first_name': 'John',
+            'last_name': 'Doe',
+            'email': 'john@example.com',
+            'postcode': 'SW1A 1AA'
+        }
 
-        assert result.empty
-        assert len(result.columns) == 0
-        assert etag is None
+        result = load_customer(mock_conn, customer_data)
+        assert result == 42
+        mock_conn.cursor.assert_not_called()
 
-    def test_get_existing_customers_multiple_records(self):
-        '''Should return DataFrame with multiple records and ETag'''
-        expected_df = pd.DataFrame([
-            {
-                'first_name': 'John',
-                'last_name': 'Doe',
-                'email': 'john@example.com',
-                'postcode': 'SW1A 1AA'
-            },
-            {
-                'first_name': 'Jane',
-                'last_name': 'Smith',
-                'email': 'jane@example.com',
-                'postcode': 'M1 1AA'
-            }
-        ])
+    @patch('etl_customer.get_customer_id')
+    def test_load_customer_new(self, mock_get_customer_id):
+        '''Should insert new customer and return generated customer_id'''
+        mock_get_customer_id.return_value = 0
+        mock_conn = Mock()
+        mock_cursor = Mock()
+        mock_cursor.lastrowid = 99
+        mock_conn.cursor.return_value = mock_cursor
 
-        buffer = BytesIO()
-        expected_df.to_parquet(buffer, index=False, engine='pyarrow')
-        buffer.seek(0)
-        mock_s3_client = Mock()
-        mock_s3_client.get_object.return_value = {
-            'Body': buffer, 'ETag': '"abc123"'}
-        result, etag = get_existing_customers(
-            mock_s3_client, 'test-bucket', 'customers.parquet')
+        customer_data = {
+            'first_name': 'Jane',
+            'last_name': 'Smith',
+            'email': 'jane@example.com',
+            'postcode': 'M1 1AA'
+        }
 
-        pd.testing.assert_frame_equal(result, expected_df)
-        assert len(result) == 2
-        assert etag == 'abc123'
+        result = load_customer(mock_conn, customer_data)
+        assert result == 99
+        mock_cursor.execute.assert_called_once()
+        mock_conn.commit.assert_called_once()
+        mock_cursor.close.assert_called_once()
 
 
 class TestLoad:
     '''Tests for the load function in etl_customer module.'''
 
-    @patch.dict('os.environ', {'BUCKET_NAME': 'test-bucket'})
-    @patch('etl_customer.get_existing_customers')
-    @patch('etl_customer.boto3.client')
-    def test_load_first_customer(self, mock_boto3_client, mock_get_existing):
-        '''Should successfully load first customer'''
-        mock_s3_client = Mock()
-        mock_boto3_client.return_value = mock_s3_client
-        mock_get_existing.return_value = (pd.DataFrame(), None)
+    @patch('etl_customer.load_customer')
+    def test_load_success(self, mock_load_customer):
+        '''Should successfully insert postcode subscription for new customer'''
+        mock_load_customer.return_value = 42
+        mock_conn = Mock()
+        mock_cursor = Mock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_cursor.fetchone.return_value = None  # No existing postcode subscription
 
         customer_data = {
             'first_name': 'John',
@@ -347,25 +294,23 @@ class TestLoad:
             'email': 'john@example.com',
             'postcode': 'SW1A 1AA'
         }
-        load(customer_data)
 
-        assert mock_s3_client.put_object.called
+        load(mock_conn, customer_data)
 
-    @patch.dict('os.environ', {'BUCKET_NAME': 'test-bucket'})
-    @patch('etl_customer.get_existing_customers')
-    @patch('etl_customer.is_duplicate_customer')
-    @patch('etl_customer.boto3.client')
-    def test_load_duplicate_raises_error(self, mock_boto3_client, mock_is_dup, mock_get_existing):
-        '''Should raise ValueError for duplicate customer'''
-        mock_s3_client = Mock()
-        mock_boto3_client.return_value = mock_s3_client
-        mock_get_existing.return_value = (pd.DataFrame([{
-            'first_name': 'John',
-            'last_name': 'Doe',
-            'email': 'john@example.com',
-            'postcode': 'SW1A 1AA'
-        }]), 'etag123')
-        mock_is_dup.return_value = True
+        mock_load_customer.assert_called_once_with(mock_conn, customer_data)
+        # Should execute twice: once for checking BRIDGE_subscribed_postcodes, once for INSERT
+        assert mock_cursor.execute.call_count == 2
+        mock_conn.commit.assert_called_once()
+        assert mock_cursor.close.call_count == 2
+
+    @patch('etl_customer.load_customer')
+    def test_load_duplicate_postcode_raises_error(self, mock_load_customer):
+        '''Should raise ValueError when postcode subscription already exists'''
+        mock_load_customer.return_value = 42
+        mock_conn = Mock()
+        mock_cursor = Mock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_cursor.fetchone.return_value = (42,)  # Postcode subscription exists
 
         customer_data = {
             'first_name': 'John',
@@ -375,51 +320,20 @@ class TestLoad:
         }
 
         with pytest.raises(ValueError) as excinfo:
-            load(customer_data)
+            load(mock_conn, customer_data)
         assert str(excinfo.value) == "Customer data already exists in database"
-        assert not mock_s3_client.put_object.called
-
-    @patch.dict('os.environ', {'BUCKET_NAME': 'test-bucket'})
-    @patch('etl_customer.get_existing_customers')
-    @patch('etl_customer.is_duplicate_customer')
-    @patch('etl_customer.boto3.client')
-    def test_load_appends_new_customer(self, mock_boto3_client, mock_is_dup, mock_get_existing):
-        '''Should append new customer to existing data'''
-        mock_s3_client = Mock()
-        mock_boto3_client.return_value = mock_s3_client
-        existing_df = pd.DataFrame([{
-            'first_name': 'Jane',
-            'last_name': 'Smith',
-            'email': 'jane@example.com',
-            'postcode': 'M1 1AA'
-        }])
-        mock_get_existing.return_value = (existing_df, 'etag456')
-        mock_is_dup.return_value = False
-
-        customer_data = {
-            'first_name': 'John',
-            'last_name': 'Doe',
-            'email': 'john@example.com',
-            'postcode': 'SW1A 1AA'
-        }
-        load(customer_data)
-
-        # Verify combined data saved to S3
-        call_args = mock_s3_client.put_object.call_args
-        body = call_args[1]['Body']
-        df = pd.read_parquet(BytesIO(body))
-
-        assert len(df) == 2
-        assert df.iloc[0]['first_name'] == 'Jane'
-        assert df.iloc[1]['first_name'] == 'John'
+        mock_load_customer.assert_called_once()
 
 
 class TestLambdaHandler:
     '''Tests for the lambda_handler function in etl_customer module.'''
 
+    @patch('etl_customer.connect_to_database')
+    @patch('etl_customer.get_and_load_secrets')
     @patch('etl_customer.load')
     @patch('etl_customer.transform')
-    def test_lambda_handler_success(self, mock_transform, mock_load):
+    def test_lambda_handler_success(self, mock_transform, mock_load,
+                                    mock_get_and_load_secrets, mock_connect):
         '''Should return 200 status on successful ETL'''
         mock_event = {
             'first_name': 'John',
@@ -427,6 +341,8 @@ class TestLambdaHandler:
             'email': 'john@example.com',
             'postcode': 'SW1A 1AA'
         }
+        mock_conn = Mock()
+        mock_connect.return_value = mock_conn
         mock_transform.return_value = mock_event
         mock_load.return_value = None
 
@@ -434,16 +350,23 @@ class TestLambdaHandler:
 
         assert response['statusCode'] == 200
         assert response['body'] == "Customer data processed successfully."
+        mock_get_and_load_secrets.assert_called_once()
+        mock_connect.assert_called_once()
         mock_transform.assert_called_once_with(mock_event)
-        mock_load.assert_called_once_with(mock_event)
+        mock_load.assert_called_once_with(mock_conn, mock_event)
+        mock_conn.close.assert_called_once()
 
+    @patch('etl_customer.connect_to_database')
+    @patch('etl_customer.get_and_load_secrets')
     @patch('etl_customer.load')
     @patch('etl_customer.transform')
-    def test_lambda_handler_transform_failure(self, mock_transform, mock_load):
+    def test_lambda_handler_transform_failure(self, mock_transform, mock_load,
+                                              mock_get_and_load_secrets, mock_connect):
         '''Should return 400 status when transform raises error'''
         mock_event = {'invalid': 'data'}
-        mock_transform.side_effect = ValueError(
-            "Missing required field: email.")
+        mock_conn = Mock()
+        mock_connect.return_value = mock_conn
+        mock_transform.side_effect = ValueError("Missing required field: email.")
 
         response = lambda_handler(mock_event, None)
 
@@ -451,3 +374,21 @@ class TestLambdaHandler:
         assert "Error:" in response['body']
         assert "Missing required field: email." in response['body']
         mock_load.assert_not_called()
+
+    @patch('etl_customer.connect_to_database')
+    @patch('etl_customer.get_and_load_secrets')
+    def test_lambda_handler_database_connection_failure(self, mock_get_and_load_secrets,
+                                                       mock_connect):
+        '''Should return 500 status when database connection fails'''
+        mock_event = {
+            'first_name': 'John',
+            'last_name': 'Doe',
+            'email': 'john@example.com',
+            'postcode': 'SW1A 1AA'
+        }
+        mock_connect.side_effect = psycopg2.Error("Connection failed")
+
+        response = lambda_handler(mock_event, None)
+
+        assert response['statusCode'] == 500
+        assert "Database error:" in response['body']
