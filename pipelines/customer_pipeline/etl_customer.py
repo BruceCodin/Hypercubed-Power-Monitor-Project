@@ -26,7 +26,7 @@ import os
 import re
 from io import BytesIO
 from typing import Any
-
+import logging
 import boto3
 import pandas as pd
 import requests
@@ -279,16 +279,21 @@ def lambda_handler(event, _context) -> dict:
     Returns:
         dict: Response object containing status and message.
     '''
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
     try:
         customer_data = transform(event)
         load(customer_data)
+        logger.info("Customer data processed successfully.")
 
     except ValueError as e:
+        logger.warning("ValueError: %s", str(e))
         return {
             'statusCode': 400,
             'body': f"Error: {str(e)}"
         }
     except (ClientError, requests.exceptions.RequestException) as e:
+        logger.error("Internal server error: %s", str(e))
         return {
             'statusCode': 500,
             'body': f"Internal server error: {str(e)}"
