@@ -1,6 +1,6 @@
 # EventBridge Rule to trigger Lambda at 23:55 daily
 resource "aws_cloudwatch_event_rule" "daily_trigger" {
-  name                = "power-monitor-s3-etl-daily-trigger"
+  name                = "power-monitor-s3-power-gen-etl-daily-trigger"
   description         = "Triggers S3 ETL Lambda function at 23:55 UTC daily"
   schedule_expression = "cron(55 23 * * ? *)"
 

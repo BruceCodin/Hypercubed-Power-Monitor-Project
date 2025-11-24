@@ -3,39 +3,15 @@ data "aws_secretsmanager_secret" "existing_credentials" {
   arn = var.secrets_manager_arn
 }
 
-# IAM Role for Lambda
-resource "aws_iam_role" "lambda_execution_role" {
+# Reference existing IAM Role for Lambda
+data "aws_iam_role" "lambda_execution_role" {
   name = "power-monitor-s3-lambda-execution-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-      }
-    ]
-  })
-
-  tags = {
-    Project     = "PowerMonitor"
-    Environment = "dev"
-  }
-}
-
-# Attach basic Lambda execution policy (for CloudWatch Logs)
-resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-  role       = aws_iam_role.lambda_execution_role.name
 }
 
 # Policy to allow Lambda to pull images from ECR
 resource "aws_iam_role_policy" "lambda_ecr_policy" {
-  name = "lambda-ecr-access-policy"
-  role = aws_iam_role.lambda_execution_role.id
+  name = "lambda-power-gen-ecr-access-policy"
+  role = data.aws_iam_role.lambda_execution_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -62,8 +38,8 @@ resource "aws_iam_role_policy" "lambda_ecr_policy" {
 
 # Policy to allow Lambda to access Secrets Manager
 resource "aws_iam_role_policy" "lambda_secrets_policy" {
-  name = "lambda-secrets-access-policy"
-  role = aws_iam_role.lambda_execution_role.id
+  name = "lambda-power-gen-secrets-access-policy"
+  role = data.aws_iam_role.lambda_execution_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -81,8 +57,8 @@ resource "aws_iam_role_policy" "lambda_secrets_policy" {
 
 # Policy to allow Lambda to write to S3
 resource "aws_iam_role_policy" "lambda_s3_policy" {
-  name = "lambda-s3-write-policy"
-  role = aws_iam_role.lambda_execution_role.id
+  name = "lambda-power-gen-s3-write-policy"
+  role = data.aws_iam_role.lambda_execution_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -97,8 +73,8 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
           "s3:DeleteObject"
         ]
         Resource = [
-          aws_s3_bucket.data_bucket.arn,
-          "${aws_s3_bucket.data_bucket.arn}/*"
+          data.aws_s3_bucket.data_bucket.arn,
+          "${data.aws_s3_bucket.data_bucket.arn}/*"
         ]
       }
     ]
@@ -108,7 +84,7 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
 # Lambda Function
 resource "aws_lambda_function" "power_cuts_etl" {
   function_name = var.lambda_function_name
-  role          = aws_iam_role.lambda_execution_role.arn
+  role          = data.aws_iam_role.lambda_execution_role.arn
   
   # Image from ECR
   package_type = "Image"

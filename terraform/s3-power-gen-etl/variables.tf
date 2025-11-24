@@ -13,14 +13,14 @@ variable "s3_bucket_name" {
 variable "ecr_repository_name" {
   description = "Name of the ECR repository"
   type        = string
-  default     = "c20-power-monitor-s3-etl-repo"
+  default     = "c20-power-monitor-s3-power-gen-etl-repo"
 }
 
 # Lambda Configuration
 variable "lambda_function_name" {
   description = "Name of the Lambda function"
   type        = string
-  default     = "c20-power-monitor-s3-etl-lambda"
+  default     = "c20-power-monitor-s3-power-gen-etl-lambda"
 }
 
 variable "lambda_timeout" {
