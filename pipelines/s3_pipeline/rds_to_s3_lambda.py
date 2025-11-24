@@ -12,14 +12,14 @@ def lambda_handler(event, context):
     """Main Lambda function handler."""
 
     # Fetch historical power cut data
-    logger.info("Fetching historical power cut data from RDS...")
+    logger.info("--- START FETCHING DATA FROM RDS ---")
     data = get_historical_power_cut_data()
-    logger.info("Data fetched successfully.")
+    logger.info("--- DATA FETCHED SUCCESSFULLY FROM RDS ---")
 
     # Upload data to S3
-    logger.info("Uploading data to S3...")
+    logger.info("--- START UPLOADING DATA TO S3 ---")
     upload_data_to_s3(data)
-    logger.info("Data uploaded to S3 successfully.")
+    logger.info("--- DATA UPLOADED SUCCESSFULLY TO S3 ---")
 
     return {
         'statusCode': 200,

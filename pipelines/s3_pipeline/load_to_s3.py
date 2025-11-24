@@ -19,6 +19,7 @@ def upload_data_to_s3(data: pd.DataFrame) -> None:
     alerts_df['month'] = pd.to_datetime(alerts_df['recording_time']).dt.month
     alerts_df['day'] = pd.to_datetime(alerts_df['recording_time']).dt.day
 
+    logger.info(f"Uploading data to S3 at {POWER_CUT_S3_PATH}...")
     wr.s3.to_parquet(
         df=alerts_df,
         path=POWER_CUT_S3_PATH,
@@ -26,6 +27,7 @@ def upload_data_to_s3(data: pd.DataFrame) -> None:
         mode="overwrite",
         partition_cols=['year', 'month', 'day']
     )
+    logger.info("Data uploaded to S3 successfully.")
 
 
 if __name__ == "__main__":

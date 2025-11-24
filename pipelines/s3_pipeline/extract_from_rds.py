@@ -66,7 +66,6 @@ def get_historical_power_cut_data() -> pd.DataFrame:
         pd.DataFrame: DataFrame containing historical power cut data
     """
 
-    # Load secrets from AWS Secrets Manager
     logger.info("Loading database secrets from AWS Secrets Manager...")
     secrets = get_secrets()
     logger.info("Secrets loaded successfully.")
@@ -75,14 +74,13 @@ def get_historical_power_cut_data() -> pd.DataFrame:
     load_secrets_to_env(secrets)
     logger.info("Environment variables set.")
 
-    # Connect to the database
     logger.info("Connecting to the database...")
     conn = connect_to_database()
     logger.info("Database connection established.")
 
     cursor = conn.cursor()
 
-    # Execute query to fetch historical power cut data
+    logger.info("Executing query to fetch historical power cut data...")
     query = """
         SELECT * FROM fact_outage fo
         JOIN bridge_affected_postcodes bap 
@@ -90,6 +88,7 @@ def get_historical_power_cut_data() -> pd.DataFrame:
     """
     cursor.execute(query)
     rows = cursor.fetchall()
+    logger.info("Query executed successfully. Retrieved %d records.", len(rows))
 
     columns = ["outage_id", "source_provider", "status", "outage_date",
                "recording_time", "affected_id", "outage_id", "postcode_affected"]
