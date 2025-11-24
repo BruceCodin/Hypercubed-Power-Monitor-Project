@@ -43,7 +43,7 @@ def get_last_carbon_datetime(connection):
         logger.error("Error getting last carbon datetime: %s", e)
         return None, None
 
-def calculate_fetch_window(last_date, last_period):
+def calculate_fetch_window(last_date: datetime.date, last_period: int) -> tuple:
     """
     Calculate the start and end datetime for fetching data.
     Fetches from last known settlement period to now, or last 7 days on first run.
@@ -73,7 +73,7 @@ def calculate_fetch_window(last_date, last_period):
 
     return start_time, end_time
 
-def lambda_handler(event, context):  # pylint: disable=unused-argument
+def lambda_handler(event: dict, context: dict) -> dict:  # pylint: disable=unused-argument
     """
     Main Lambda handler for Carbon Intensity pipeline.
     Fetches data from last known point in RDS to now.
