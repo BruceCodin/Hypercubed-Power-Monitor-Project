@@ -128,8 +128,8 @@ def load_carbon_data_to_db(connection, carbon_df):
 
 if __name__ == "__main__":
     print("This module is intended to be imported and used within the ETL pipeline.")
-    from extract import fetch_carbon_intensity_data
-    from transform import transform_carbon_data
+    from extract_carbon import fetch_carbon_intensity_data
+    from transform_carbon import transform_carbon_data
     from datetime import datetime
     # carbon intensity api can only fetch data in month chunks
     raw_data = fetch_carbon_intensity_data(
