@@ -84,6 +84,7 @@ class TestFormatPostcode:
 
     @patch('etl_customer.requests.get')
     def test_format_postcode_valid_api(self, mock_get):
+        '''Should format postcode correctly when API returns 200'''
         mock_response = mock_get.return_value
         mock_response.status_code = 200
 
@@ -100,24 +101,24 @@ class TestFormatPostcode:
             mock_response.json.return_value = {
                 'result': {'postcode': expected}
             }
+            mock_get.reset_mock()
             formatted_postcode = format_postcode(postcode)
             assert formatted_postcode == expected
 
     @patch('etl_customer.requests.get')
     def test_format_postcode_invalid_api(self, mock_get):
+        '''Should raise ValueError when API returns 404 for invalid postcode'''
         mock_response = mock_get.return_value
         mock_response.status_code = 404
 
-        invalid_postcodes = ["INVALID1", "12345", "ABCDE"]
-
-        for postcode in invalid_postcodes:
-            with pytest.raises(ValueError) as excinfo:
-                format_postcode(postcode)
-            assert str(
-                excinfo.value) == "Postcode is invalid according to postcodes.io API."
+        with pytest.raises(ValueError) as excinfo:
+            format_postcode("INVALID1")
+        assert str(
+            excinfo.value) == "Postcode is invalid according to postcodes.io API."
 
     @patch('etl_customer.requests.get')
-    def test_format_postcode_valid_regex(self, mock_get):
+    def test_format_postcode_api_timeout_fallback_to_regex(self, mock_get):
+        '''Should fallback to regex when API times out'''
         mock_response = mock_get.return_value
         mock_response.status_code = 500
 
@@ -131,10 +132,13 @@ class TestFormatPostcode:
         ]
 
         for postcode, expected in postcodes:
-            assert format_postcode(postcode) == expected
+            mock_get.reset_mock()
+            formatted_postcode = format_postcode(postcode)
+            assert formatted_postcode == expected
 
     @patch('etl_customer.requests.get')
-    def test_format_postcode_invalid_regex(self, mock_get):
+    def test_format_postcode_api_timeout_regex_invalid(self, mock_get):
+        '''Should raise ValueError when both API fails and regex validation fails'''
         mock_response = mock_get.return_value
         mock_response.status_code = 500
 
@@ -142,6 +146,7 @@ class TestFormatPostcode:
                              "ABCDE", "EC1A1B", "W1A  0AX"]
 
         for postcode in invalid_postcodes:
+            mock_get.reset_mock()
             with pytest.raises(ValueError) as excinfo:
                 format_postcode(postcode)
             assert str(

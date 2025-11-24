@@ -26,15 +26,10 @@ import logging
 import os
 import re
 import json
-from datetime import datetime, timedelta
 import boto3
 from botocore.exceptions import ClientError
 import psycopg2
 import requests
-
-# Postcode cache configuration
-POSTCODE_CACHE = {}
-CACHE_TTL_MINUTES = 60
 
 
 def get_secrets() -> dict:
@@ -135,19 +130,6 @@ def format_email(email: str) -> str:
     return email
 
 
-def clear_expired_cache():
-    '''
-    Remove expired entries from postcode cache.
-    '''
-    now = datetime.now()
-    expired_keys = [
-        key for key, (_, timestamp) in POSTCODE_CACHE.items()
-        if now - timestamp > timedelta(minutes=CACHE_TTL_MINUTES)
-    ]
-    for key in expired_keys:
-        del POSTCODE_CACHE[key]
-
-
 def format_postcode_with_regex(postcode: str) -> str:
     '''
     Helper: format and validate the customer's postcode using regex.
@@ -177,8 +159,7 @@ def format_postcode_with_regex(postcode: str) -> str:
 def format_postcode_with_api(postcode: str) -> str:
     '''
     Helper: format and validate the customer's postcode using postcodes.io API.
-    Called when postcode is not in cache.
-    If successful, caches the result.
+    Called when API validation is needed.
 
     Args:
         postcode (str): The customer's postcode.
@@ -195,9 +176,6 @@ def format_postcode_with_api(postcode: str) -> str:
         if response.status_code == 200:
             data = response.json()
             formatted_postcode = data['result']['postcode']
-
-            POSTCODE_CACHE[postcode] = (
-                formatted_postcode, datetime.now())
             return formatted_postcode
 
         if response.status_code == 404:
@@ -212,10 +190,9 @@ def format_postcode_with_api(postcode: str) -> str:
 
 def format_postcode(postcode: str) -> str:
     '''
-    Format and validate the customer's postcode with caching.
-    1. Check cache first (avoids API call for recently validated postcodes)
-    2. Attempt postcodes.io API with short timeout (2 seconds instead of 5)
-    3. If API fails or times out, use regex fallback immediately
+    Format and validate the customer's postcode.
+    1. Attempt postcodes.io API with short timeout (1 second)
+    2. If API fails or times out, use regex fallback immediately
 
     Args:
         postcode (str): The customer's postcode.
@@ -231,17 +208,11 @@ def format_postcode(postcode: str) -> str:
     if not isinstance(postcode, str):
         raise TypeError("Postcode must be a string datatype.")
 
-    postcode_upper = postcode.strip().upper()
-
-    clear_expired_cache()
-    if postcode_upper in POSTCODE_CACHE:
-        cached_result, _ = POSTCODE_CACHE[postcode_upper]
-        return cached_result
-
-    formatted_postcode = format_postcode_with_api(postcode_upper)
+    formatted_postcode = format_postcode_with_api(postcode)
     if formatted_postcode:
         return formatted_postcode
 
+    postcode_upper = postcode.strip().upper()
     formatted_postcode = format_postcode_with_regex(postcode_upper)
     return formatted_postcode
 
