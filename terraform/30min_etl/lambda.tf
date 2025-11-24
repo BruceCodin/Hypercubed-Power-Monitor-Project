@@ -51,7 +51,8 @@ resource "aws_lambda_function" "power_monitor_30min" {
 
   environment {
     variables = {
-      ENVIRONMENT = "production"
+      ENVIRONMENT    = "production"
+      SECRETS_ARN    = "arn:aws:secretsmanager:${var.aws_region}:129033205317:secret:c20-power-monitor-db-credentials-TAc5Xx"
     }
   }
 

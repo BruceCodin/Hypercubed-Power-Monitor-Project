@@ -5,7 +5,7 @@ variable "aws_region" {
 }
 
 variable "ecr_repository_name" {
-  description = "Name of the ECR repository for Neso ETL Lambda Docker image"
+  description = "Name of the ECR repository for 30_min ETL Lambda Docker image"
   type        = string
   default     = "c20-power-monitor-30min-etl-repo"
 }
