@@ -322,12 +322,13 @@ def load_customer(conn: psycopg2.extensions.connection, customer_data: dict) -> 
         cursor.execute('''
         INSERT INTO DIM_customer (first_name, last_name, email)
         VALUES (%s, %s, %s)
+        RETURNING customer_id
         ''', (
             customer_data['first_name'],
             customer_data['last_name'],
             customer_data['email']
         ))
-        customer_id = cursor.lastrowid
+        customer_id = cursor.fetchone()[0]
         conn.commit()
         cursor.close()
     return customer_id
