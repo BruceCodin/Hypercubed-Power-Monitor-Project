@@ -77,7 +77,7 @@ def get_last_price_datetime(connection):
         logger.error(f"Error getting last price datetime: {e}")
         return None, None
 
-def calculate_fetch_window(last_date, last_period, data_type="generation"):
+def calculate_fetch_window(last_date, data_type="generation"):
     """
     Calculate the start and end datetime for fetching data.
     
