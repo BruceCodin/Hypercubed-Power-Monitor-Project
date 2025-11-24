@@ -53,34 +53,6 @@ variable "db_credentials_secret_arn" {
   sensitive   = true
 }
 
-# S3 Configuration (Managed by Data Team)
-# ==============================================================================
-
-variable "historical_data_bucket_name" {
-  description = "Name of S3 bucket containing historical energy data (managed by data team)"
-  type        = string
-}
-
-variable "athena_results_bucket_name" {
-  description = "Name of S3 bucket for Athena query results (managed by data team)"
-  type        = string
-}
-
-# Glue/Athena Configuration (Managed by Data Team)
-# ==============================================================================
-
-variable "glue_database_name" {
-  description = "Name of the Glue database for historical energy data (managed by data team)"
-  type        = string
-  default     = "energy_monitor_db"
-}
-
-variable "athena_workgroup_name" {
-  description = "Name of the Athena workgroup for querying historical data (managed by data team)"
-  type        = string
-  default     = "energy-monitor-workgroup"
-}
-
 # EventBridge Scheduler Configuration
 # ==============================================================================
 
