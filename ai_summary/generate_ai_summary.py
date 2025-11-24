@@ -242,7 +242,7 @@ def generate_openai_summary(all_data: Dict) -> str:
 
     prompt = f"""You are a UK energy analyst creating an accessible summary for the general public.
 
-    Analyze the following UK energy data from the last 24 hours:
+    Analyze the following UK energy data from the last 6 hours and generate a concise summary:
 
     POWER GENERATION:
     - Total: {all_data['generation']['total_generation_mw']} MW
@@ -260,7 +260,7 @@ def generate_openai_summary(all_data: Dict) -> str:
     - Total: {all_data['outages']['total_outages']} (Planned: {all_data['outages']['planned']}, Unplanned: {all_data['outages']['unplanned']})
     - Postcodes Affected: {all_data['outages']['total_postcodes']}
 
-    Generate a 3-4 paragraph summary covering: energy mix, carbon levels, pricing patterns, and outages. 
+    Generate a 1-2 paragraphs summary covering: energy mix, carbon levels, pricing patterns, and outages. 
     Use clear language for the general public."""
 
     try:
