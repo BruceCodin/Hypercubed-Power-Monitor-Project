@@ -358,7 +358,7 @@ def load(conn: psycopg2.extensions.connection, customer_data: dict) -> None:
     result = cursor.fetchone()
     cursor.close()
     if result:
-        raise ValueError("Customer data already exists in database")
+        raise ValueError(f"Postcode subscription already exists for postcode: {customer_data['postcode']}")
 
     cursor.execute('''
         INSERT INTO BRIDGE_subscribed_postcodes (customer_id, postcode)
