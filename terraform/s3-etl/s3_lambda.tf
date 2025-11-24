@@ -79,6 +79,31 @@ resource "aws_iam_role_policy" "lambda_secrets_policy" {
   })
 }
 
+# Policy to allow Lambda to write to S3
+resource "aws_iam_role_policy" "lambda_s3_policy" {
+  name = "lambda-s3-write-policy"
+  role = aws_iam_role.lambda_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:PutObjectAcl",
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.data_bucket.arn,
+          "${aws_s3_bucket.data_bucket.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
 # Lambda Function
 resource "aws_lambda_function" "power_cuts_etl" {
   function_name = var.lambda_function_name
