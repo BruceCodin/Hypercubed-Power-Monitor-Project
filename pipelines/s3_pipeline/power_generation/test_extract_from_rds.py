@@ -9,7 +9,8 @@ from extract_from_rds import (
     get_secrets,
     load_secrets_to_env,
     connect_to_database,
-    get_historical_power_cut_data
+    get_historical_power_generation_data,
+    get_historical_carbon_data
 )
 
 
@@ -104,83 +105,119 @@ def test_connect_to_database_returns_connection(mock_connect):
     assert result is not None
 
 
-@patch('extract_from_rds.get_secrets')
-@patch('extract_from_rds.connect_to_database')
-def test_get_historical_power_cut_data_returns_dataframe(
-        mock_connect, mock_get_secrets):
+def test_get_historical_power_generation_data_returns_dataframe():
     """Test that function returns a pandas DataFrame."""
-    mock_get_secrets.return_value = {'DB_HOST': 'localhost'}
-
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_cursor.fetchall.return_value = [
-        (1, 'SSEN', 'Active', '2025-01-15', '10:00:00', 1, 'AB10')
+        (1, 2, 1500.5, 100, 1, '2025-01-15')
     ]
     mock_conn.cursor.return_value = mock_cursor
-    mock_connect.return_value = mock_conn
 
-    result = get_historical_power_cut_data()
+    result = get_historical_power_generation_data(mock_conn)
     assert isinstance(result, pd.DataFrame)
 
 
-@patch('extract_from_rds.get_secrets')
-@patch('extract_from_rds.connect_to_database')
-def test_get_historical_power_cut_data_removes_duplicate_columns(
-        mock_connect, mock_get_secrets):
-    """Test that duplicate columns are removed from results."""
-    mock_get_secrets.return_value = {'DB_HOST': 'localhost'}
-
+def test_get_historical_power_generation_data_has_no_duplicate_columns():
+    """Test that DataFrame has no duplicate columns."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_cursor.fetchall.return_value = [
-        (1, 'SSEN', 'Active', '2025-01-15', '10:00:00', 1, 'AB10')
+        (1, 2, 1500.5, 100, 1, '2025-01-15')
     ]
     mock_conn.cursor.return_value = mock_cursor
-    mock_connect.return_value = mock_conn
 
-    result = get_historical_power_cut_data()
+    result = get_historical_power_generation_data(mock_conn)
     assert len(result.columns) == len(set(result.columns))
 
 
-@patch('extract_from_rds.get_secrets')
-@patch('extract_from_rds.connect_to_database')
-def test_get_historical_power_cut_data_executes_join_query(
-        mock_connect, mock_get_secrets):
-    """Test that SQL query joins fact_outage and bridge tables."""
-    mock_get_secrets.return_value = {'DB_HOST': 'localhost'}
-
+def test_get_historical_power_generation_data_executes_join_query():
+    """Test that SQL query joins generation and settlements tables."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_cursor.fetchall.return_value = []
     mock_conn.cursor.return_value = mock_cursor
-    mock_connect.return_value = mock_conn
 
-    get_historical_power_cut_data()
+    get_historical_power_generation_data(mock_conn)
 
     executed_query = mock_cursor.execute.call_args[0][0]
-    assert 'fact_outage' in executed_query.lower()
-    assert 'bridge_affected_postcodes' in executed_query.lower()
+    assert 'generation' in executed_query.lower()
+    assert 'settlements' in executed_query.lower()
     assert 'join' in executed_query.lower()
 
 
-@patch('extract_from_rds.get_secrets')
-@patch('extract_from_rds.connect_to_database')
-def test_get_historical_power_cut_data_has_correct_columns(
-        mock_connect, mock_get_secrets):
+def test_get_historical_power_generation_data_has_correct_columns():
     """Test that returned DataFrame has expected columns."""
-    mock_get_secrets.return_value = {'DB_HOST': 'localhost'}
-
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_cursor.fetchall.return_value = [
-        (1, 'SSEN', 'Active', '2025-01-15', '10:00:00', 1, 'AB10')
+        (1, 2, 1500.5, 100, 1, '2025-01-15')
     ]
     mock_conn.cursor.return_value = mock_cursor
-    mock_connect.return_value = mock_conn
 
-    result = get_historical_power_cut_data()
-    expected_columns = ["outage_id", "source_provider", "status",
-                        "outage_date", "recording_time", "postcode_affected"]
+    result = get_historical_power_generation_data(mock_conn)
+    expected_columns = ["generation_id", "fuel_type_id", "generation_mw",
+                        "settlement_id", "settlement_period", "settlement_date"]
+
+    for col in expected_columns:
+        assert col in result.columns
+
+
+def test_get_historical_carbon_data_returns_dataframe():
+    """Test that function returns a pandas DataFrame."""
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchall.return_value = [
+        (1, 150, 145, 'moderate', 100, '2025-01-15', 1)
+    ]
+    mock_conn.cursor.return_value = mock_cursor
+
+    result = get_historical_carbon_data(mock_conn)
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_get_historical_carbon_data_has_no_duplicate_columns():
+    """Test that DataFrame has no duplicate columns."""
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchall.return_value = [
+        (1, 150, 145, 'moderate', 100, '2025-01-15', 1)
+    ]
+    mock_conn.cursor.return_value = mock_cursor
+
+    result = get_historical_carbon_data(mock_conn)
+    assert len(result.columns) == len(set(result.columns))
+
+
+def test_get_historical_carbon_data_executes_join_query():
+    """Test that SQL query joins carbon_intensity and settlements tables."""
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchall.return_value = []
+    mock_conn.cursor.return_value = mock_cursor
+
+    get_historical_carbon_data(mock_conn)
+
+    executed_query = mock_cursor.execute.call_args[0][0]
+    assert 'carbon_intensity' in executed_query.lower()
+    assert 'settlements' in executed_query.lower()
+    assert 'join' in executed_query.lower()
+
+
+def test_get_historical_carbon_data_has_correct_columns():
+    """Test that returned DataFrame has expected columns."""
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchall.return_value = [
+        (1, 150, 145, 'moderate', 100, '2025-01-15', 1)
+    ]
+    mock_conn.cursor.return_value = mock_cursor
+
+    result = get_historical_carbon_data(mock_conn)
+    expected_columns = ["intensity_id", "intensity_forecast",
+                        "intensity_actual", "intensity_index",
+                        "settlement_id", "settlement_date",
+                        "settlement_period"]
 
     for col in expected_columns:
         assert col in result.columns
