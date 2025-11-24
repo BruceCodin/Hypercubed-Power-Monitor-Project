@@ -1,4 +1,4 @@
-"""Module to extract historical power cut data from AWS RDS Postgres database."""
+"""Module to extract historical power generation data from AWS RDS Postgres database."""
 
 import json
 import os
@@ -61,51 +61,91 @@ def connect_to_database() -> psycopg2.extensions.connection:
     return conn
 
 
-def get_historical_power_cut_data() -> pd.DataFrame:
-    """Fetch historical power cut data from the database.
+def get_historical_power_generation_data(conn: psycopg2.extensions.connection) -> pd.DataFrame:
+    """Fetch historical power generation data from the database.
+
+    Args:
+        conn (psycopg2.extensions.connection): Database connection object
 
     Returns:
-        pd.DataFrame: DataFrame containing historical power cut data
+        pd.DataFrame: DataFrame containing historical power generation data
     """
-
-    logger.info("Loading database secrets from AWS Secrets Manager...")
-    secrets = get_secrets()
-    logger.info("Secrets loaded successfully.")
-
-    logger.info("Setting environment variables...")
-    load_secrets_to_env(secrets)
-    logger.info("Environment variables set.")
-
-    logger.info("Connecting to the database...")
-    conn = connect_to_database()
-    logger.info("Database connection established.")
 
     cursor = conn.cursor()
 
-    logger.info("Executing query to fetch historical power cut data...")
+    logger.info("Executing query to fetch historical power generation data...")
     query = """
-    SELECT
-        fo.outage_id,
-        fo.source_provider,
-        fo.status,
-        fo.outage_date,
-        fo.recording_time,
-        bap.affected_id,
-        bap.postcode_affected
-    FROM fact_outage fo
-    JOIN bridge_affected_postcodes bap 
-    ON fo.outage_id = bap.outage_id;
+    SELECT 
+        g.generation_id,
+        g.fuel_type_id,
+        g.generation_mw,
+        s.settlement_id,
+        s.settlement_period, 
+        s.settlement_date
+    FROM 
+        generation g
+    JOIN
+        settlements s ON g.settlement_id = s.settlement_id;
     """
     cursor.execute(query)
     rows = cursor.fetchall()
     logger.info("Query executed successfully. Retrieved %d records.", len(rows))
 
     cursor.close()
-    conn.close()
-    logger.info("Database connection closed.")
 
-    columns = ["outage_id", "source_provider", "status", "outage_date",
-               "recording_time", "affected_id", "postcode_affected"]
+    columns = ["generation_id",
+               "fuel_type_id",
+               "generation_mw",
+               "settlement_id",
+               "settlement_period",
+               "settlement_date"]
+
+    df = pd.DataFrame(rows, columns=columns)
+
+    return df
+
+
+def get_historical_carbon_data(conn: psycopg2.extensions.connection) -> pd.DataFrame:
+    """Fetch historical carbon intensity data from the database.
+
+    Args:
+        conn (psycopg2.extensions.connection): Database connection object
+
+    Returns:
+        pd.DataFrame: DataFrame containing historical carbon intensity data
+    """
+
+    cursor = conn.cursor()
+
+    logger.info("Executing query to fetch historical carbon intensity data...")
+    query = """
+    SELECT 
+        c.intensity_id,
+        c.intensity_forecast,
+        c.intensity_actual,
+        c.intensity_index,
+        c.settlement_id,
+        s.settlement_date,
+        s.settlement_period
+    FROM 
+        carbon_intensity c
+    JOIN 
+        settlements s 
+    ON c.settlement_id = s.settlement_id;
+    """
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    logger.info("Query executed successfully. Retrieved %d records.", len(rows))
+
+    cursor.close()
+
+    columns = ["intensity_id",
+               "intensity_forecast",
+               "intensity_actual",
+               "intensity_index",
+               "settlement_id",
+               "settlement_date",
+               "settlement_period"]
 
     df = pd.DataFrame(rows, columns=columns)
 
@@ -117,5 +157,12 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s')
 
-    data = get_historical_power_cut_data()
-    print(data.head(100))  # Print first 100 records
+    secrets = get_secrets()
+    load_secrets_to_env(secrets)
+    conn = connect_to_database()
+
+    generation_data = get_historical_power_generation_data(conn)
+    print(generation_data.head(10))  # Print first 10 records
+
+    carbon_data = get_historical_carbon_data(conn)
+    print(carbon_data.head(10))  # Print first 10 records
