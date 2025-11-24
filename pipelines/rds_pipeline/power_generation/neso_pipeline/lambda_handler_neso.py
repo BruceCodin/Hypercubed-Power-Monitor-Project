@@ -3,6 +3,9 @@ Lambda handler for NESO demand data pipeline.
 Runs once daily to fetch and load power demand data.
 """
 import logging
+import os
+import json
+import boto3
 from datetime import datetime
 
 # Configure logging
@@ -46,10 +49,12 @@ def lambda_handler(event, context):
         # Import NESO pipeline modules
         from extract_neso import fetch_neso_demand_data, parse_neso_demand_data
         from transform_neso import transform_neso_demand_data
-        from load_neso import get_db_connection, load_neso_demand_data_to_db
+        from load_neso import connect_to_database, load_neso_demand_data_to_db, get_secrets, load_secrets_to_env
         
         # Get database connection
-        db_connection = get_db_connection()
+        secrets = get_secrets()
+        load_secrets_to_env(secrets)
+        db_connection = connect_to_database()
         if not db_connection:
             raise Exception("Failed to establish database connection")
         

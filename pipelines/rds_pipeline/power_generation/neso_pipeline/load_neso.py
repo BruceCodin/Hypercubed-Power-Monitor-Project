@@ -1,5 +1,8 @@
 '''Load script for NESO Power Generation data pipeline.'''
 import logging
+import os
+import json
+import boto3
 import psycopg2
 from psycopg2.extras import execute_values
 import pandas as pd
@@ -7,26 +10,55 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-def get_db_connection():
-    """
-    Establish a connection to the PostgreSQL database.
+SECRETS_ARN = "arn:aws:secretsmanager:eu-west-2:129033205317:secret:c20-power-monitor-db-credentials-TAc5Xx"
+
+
+def get_secrets() -> dict:
+    """Retrieve database credentials from AWS Secrets Manager.
 
     Returns:
-        connection: psycopg2 connection object or None if connection fails.
+        dict: Dictionary containing database credentials
     """
-    try:
-        logger.info("Attempting to connect to the database")
-        # Will change to RDS credentials later
-        connection = psycopg2.connect(
-            dbname="postgres",
-            user="charliealston",
-            host="localhost",
-        )
-        logger.info("Successfully connected to the database")
-        return connection
-    except psycopg2.OperationalError as e:
-        logger.error(f"Operational error connecting to database: {e}")
-        return None
+
+    client = boto3.client('secretsmanager')
+
+    response = client.get_secret_value(
+        SecretId=SECRETS_ARN
+    )
+
+    # Decrypts secret using the associated KMS key.
+    secret = response['SecretString']
+    secret_dict = json.loads(secret)
+
+    return secret_dict
+
+
+def load_secrets_to_env(secrets: dict):
+    """Load database credentials from Secrets Manager into environment variables.
+
+    Args:
+        secrets (dict): Dictionary containing database credentials"""
+
+    for key, value in secrets.items():
+        os.environ[key] = str(value)
+
+
+def connect_to_database() -> psycopg2.extensions.connection:
+    """Connects to AWS Postgres database using Secrets Manager credentials.
+
+    Returns:
+        psycopg2 connection object
+    """
+
+    conn = psycopg2.connect(
+        host=os.getenv("DB_HOST"),
+        database=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        port=int(os.getenv("DB_PORT")),
+    )
+
+    return conn
 
 def load_settlement_data_to_db(connection, settlement_df: pd.DataFrame) -> list:
     '''
@@ -149,7 +181,9 @@ def load_neso_demand_data_to_db(connection, demand_df: pd.DataFrame, table: str)
 if __name__ == '__main__':
     from extract_neso import fetch_neso_demand_data, parse_neso_demand_data
     from transform_neso import transform_neso_demand_data
-    conn = get_db_connection()
+    secrets = get_secrets()
+    load_secrets_to_env(secrets)
+    conn = connect_to_database()
     #historical resource id for NESO demand data
     #historical test
     HISTORICAL_RESOURCE_ID = "b2bde559-3455-4021-b179-dfe60c0337b0"
