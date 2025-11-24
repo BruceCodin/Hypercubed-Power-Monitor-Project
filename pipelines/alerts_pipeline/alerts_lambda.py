@@ -127,7 +127,6 @@ def lambda_handler(event, context):
             body = f"Hi {first_name},\n\nThere is a power outage affecting the following postcodes: {postcode_list}.\nReported at {outage_time}. We are working on it."
 
             try:
-                # Uncomment this block to actually send via AWS SES
                 response = ses_client.send_email(
                     Source='mohammadmuarijb@yahoo.co.uk',
                     Destination={'ToAddresses': [email]},
@@ -147,7 +146,6 @@ def lambda_handler(event, context):
                 cursor.execute(log_insert, (customer_id, outage_id))
 
                 # Commit after every successful email to be safe,
-                # or commit once at the end for speed.
                 conn.commit()
 
             except Exception as e:
