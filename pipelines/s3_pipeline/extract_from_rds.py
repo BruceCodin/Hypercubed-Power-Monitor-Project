@@ -82,9 +82,17 @@ def get_historical_power_cut_data() -> pd.DataFrame:
 
     logger.info("Executing query to fetch historical power cut data...")
     query = """
-        SELECT * FROM fact_outage fo
-        JOIN bridge_affected_postcodes bap 
-        ON fo.outage_id = bap.outage_id;
+    SELECT
+        fo.outage_id,
+        fo.source_provider,
+        fo.status,
+        fo.outage_date,
+        fo.recording_time,
+        bap.affected_id,
+        bap.postcode_affected
+    FROM fact_outage fo
+    JOIN bridge_affected_postcodes bap 
+    ON fo.outage_id = bap.outage_id;
     """
     cursor.execute(query)
     rows = cursor.fetchall()
