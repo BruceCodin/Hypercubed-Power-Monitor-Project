@@ -98,6 +98,10 @@ def get_historical_power_cut_data() -> pd.DataFrame:
     rows = cursor.fetchall()
     logger.info("Query executed successfully. Retrieved %d records.", len(rows))
 
+    cursor.close()
+    conn.close()
+    logger.info("Database connection closed.")
+
     columns = ["outage_id", "source_provider", "status", "outage_date",
                "recording_time", "affected_id", "postcode_affected"]
 
