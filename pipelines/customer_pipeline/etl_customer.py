@@ -346,7 +346,8 @@ def load(conn: psycopg2.extensions.connection, customer_data: dict) -> None:
         customer_data (dict): Transformed customer data.
 
     Raises:
-        ValueError: If customer already exists in database.
+        ValueError: If a subscription for the given postcode already exists in the database
+            (regardless of which customer is associated with it).
     '''
     customer_id = load_customer(conn, customer_data)
     cursor = conn.cursor()
