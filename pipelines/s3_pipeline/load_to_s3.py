@@ -1,7 +1,9 @@
 import pandas as pd
 import awswrangler as wr
+import logging
 
 POWER_CUT_S3_PATH = "s3://c20-power-monitor-s3/power_cuts/"
+logger = logging.getLogger(__name__)
 
 
 def upload_data_to_s3(data: pd.DataFrame) -> None:
