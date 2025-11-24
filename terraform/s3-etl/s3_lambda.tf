@@ -5,7 +5,7 @@ data "aws_secretsmanager_secret" "existing_credentials" {
 
 # IAM Role for Lambda
 resource "aws_iam_role" "lambda_execution_role" {
-  name = "power-monitor-lambda-execution-role"
+  name = "power-monitor-s3-lambda-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

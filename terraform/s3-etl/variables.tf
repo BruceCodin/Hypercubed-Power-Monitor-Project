@@ -35,12 +35,6 @@ variable "lambda_memory_size" {
   default     = 512
 }
 
-# Secrets Manager
-variable "secrets_manager_arn" {
-  description = "ARN of the existing Secrets Manager secret containing DB credentials and API keys"
-  type        = string
-}
-
 # EventBridge Scheduler Configuration
 variable "scheduler_enabled" {
   description = "Enable or disable the EventBridge scheduler"
