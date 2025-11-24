@@ -440,3 +440,9 @@ def lambda_handler(event, _context) -> dict:
             'statusCode': 500,
             'body': f"Request error: {str(e)}"
         }
+    except Exception as e:
+        logger.error("Unexpected error: %s", str(e), exc_info=True)
+        return {
+            'statusCode': 500,
+            'body': "Internal server error."
+        }
