@@ -45,5 +45,4 @@ variable "scheduler_enabled" {
 variable "secrets_manager_arn" {
   description = "ARN of the existing Secrets Manager secret containing DB credentials and API keys"
   type        = string
-  default     = "arn:aws:secretsmanager:eu-west-2:129033205317:secret:c20-power-monitor-db-credentials-TAc5Xx"
 }
