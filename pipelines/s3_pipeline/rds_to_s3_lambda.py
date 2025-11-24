@@ -1,7 +1,10 @@
+"""Lambda function to extract power cut data from RDS and upload to S3."""
+
+import logging
+
 from extract_from_rds import get_historical_power_cut_data
 from load_to_s3 import upload_data_to_s3
 
-import logging
 
 # Configure logging for Lambda
 logger = logging.getLogger()
@@ -11,15 +14,22 @@ logger.setLevel(logging.INFO)
 def lambda_handler(event, context):
     """Main Lambda function handler."""
 
-    # Fetch historical power cut data
-    logger.info("--- START FETCHING DATA FROM RDS ---")
-    data = get_historical_power_cut_data()
-    logger.info("--- DATA FETCHED SUCCESSFULLY FROM RDS ---")
+    try:
+        # Fetch historical power cut data
+        logger.info("--- START FETCHING DATA FROM RDS ---")
+        data = get_historical_power_cut_data()
+        logger.info("--- DATA FETCHED SUCCESSFULLY FROM RDS ---")
+        # Upload data to S3
+        logger.info("--- START UPLOADING DATA TO S3 ---")
+        upload_data_to_s3(data)
+        logger.info("--- DATA UPLOADED SUCCESSFULLY TO S3 ---")
 
-    # Upload data to S3
-    logger.info("--- START UPLOADING DATA TO S3 ---")
-    upload_data_to_s3(data)
-    logger.info("--- DATA UPLOADED SUCCESSFULLY TO S3 ---")
+    except Exception as e:
+        logger.error("An error occurred: %s", e)
+        return {
+            'statusCode': 500,
+            'body': f"Error: {e}"
+        }
 
     return {
         'statusCode': 200,
