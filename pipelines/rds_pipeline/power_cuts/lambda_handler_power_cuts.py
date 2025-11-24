@@ -56,7 +56,7 @@ def get_secrets() -> dict:
     return secret_dict
 
 
-def load_secrets_to_env(secrets: dict):
+def load_secrets_to_env(secrets: dict) -> None:
     """Load database credentials from Secrets Manager into environment variables.
 
     Args:
@@ -85,12 +85,15 @@ def connect_to_database() -> psycopg2.extensions.connection:
     return conn
 
 
-def insert_data(conn, data):
+def insert_data(conn, data) -> int:
     """Insert power cut data into the database.
 
     Args:
         conn: psycopg2 connection object
         data: List of dictionaries containing power cut data
+
+    Returns:
+        int: Number of new outages inserted
     """
 
     cursor = conn.cursor()
@@ -140,7 +143,8 @@ def lambda_handler(event, context):
     logger.info("Starting power cuts ETL execution")
 
     try:
-        logger.info(f"Connecting to database at {os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}")
+        logger.info(
+            f"Connecting to database at {os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}")
         db_conn = connect_to_database()
         logger.info("Database connection successful")
     except Exception as e:
