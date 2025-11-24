@@ -63,7 +63,6 @@ def load_secrets_to_env(secrets: dict) -> None:
         secrets (dict): Dictionary containing database credentials"""
 
     for key, value in secrets.items():
-        print(key, value)
         os.environ[key] = str(value)
 
 
