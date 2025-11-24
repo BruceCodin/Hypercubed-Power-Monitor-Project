@@ -299,7 +299,7 @@ def get_customer_id(conn: psycopg2.extensions.connection, customer_data: dict) -
     result = cursor.fetchone()
     cursor.close()
     if result:
-        return result
+        return result[0]
     not_found = 0
     return not_found
 
