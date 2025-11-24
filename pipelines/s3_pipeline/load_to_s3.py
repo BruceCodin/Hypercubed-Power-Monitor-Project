@@ -1,6 +1,9 @@
+"""Module to load historical power cut data to S3 bucket."""
+
+import logging
+
 import pandas as pd
 import awswrangler as wr
-import logging
 
 POWER_CUT_S3_PATH = "s3://c20-power-monitor-s3/power_cuts/"
 logger = logging.getLogger(__name__)
@@ -19,7 +22,7 @@ def upload_data_to_s3(data: pd.DataFrame) -> None:
     alerts_df['month'] = pd.to_datetime(alerts_df['recording_time']).dt.month
     alerts_df['day'] = pd.to_datetime(alerts_df['recording_time']).dt.day
 
-    logger.info(f"Uploading data to S3 at {POWER_CUT_S3_PATH}...")
+    logger.info("Uploading data to S3 at %s...", POWER_CUT_S3_PATH)
     wr.s3.to_parquet(
         df=alerts_df,
         path=POWER_CUT_S3_PATH,
@@ -38,11 +41,11 @@ if __name__ == "__main__":
                         format='%(asctime)s - %(levelname)s - %(message)s')
 
     logging.info("Extracting historical power cut data from RDS...")
-    data = get_historical_power_cut_data()
-    print(data.head(10))  # Print first 10 records
-    print(data.info())
+    raw_data = get_historical_power_cut_data()
+    print(raw_data.head(10))  # Print first 10 records
+    print(raw_data.info())
     logging.info("Extraction complete")
 
     logging.info("Uploading data to S3...")
-    upload_data_to_s3(data)
+    upload_data_to_s3(raw_data)
     logging.info("Upload complete.")
