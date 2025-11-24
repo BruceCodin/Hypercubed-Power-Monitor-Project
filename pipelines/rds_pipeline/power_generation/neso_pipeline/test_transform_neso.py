@@ -131,8 +131,10 @@ class TestValidateDataTypes(unittest.TestCase):
             'settlement_date': pd.to_datetime(['2023-01-01', '2023-01-02', '2023-01-03']),
             'settlement_period': [1, 2, 3]
         })
+
+        expected_df = df.copy()
         result = validate_data_types(df)
-        self.assertTrue(result)
+        assert result.equals(expected_df)
 
     def test_returns_false_for_missing_column(self):
         '''Test that missing column returns False.'''
