@@ -99,12 +99,11 @@ def get_historical_power_cut_data() -> pd.DataFrame:
     logger.info("Query executed successfully. Retrieved %d records.", len(rows))
 
     columns = ["outage_id", "source_provider", "status", "outage_date",
-               "recording_time", "affected_id", "outage_id", "postcode_affected"]
+               "recording_time", "affected_id", "postcode_affected"]
 
     df = pd.DataFrame(rows, columns=columns)
-    clean_df = df.T.drop_duplicates().T
 
-    return clean_df
+    return df
 
 
 if __name__ == "__main__":
