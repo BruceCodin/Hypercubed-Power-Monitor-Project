@@ -4,7 +4,7 @@
 ECR_REPO_URI="129033205317.dkr.ecr.eu-west-2.amazonaws.com/c20-power-monitor-ai-summary-repo"
 AWS_REGION="eu-west-2"
 IMAGE_TAG="latest"
-LAMBDA_FUNCTION_NAME="c20-power-monitor-ai-summary-lambda"  # Update this if needed
+LAMBDA_FUNCTION_NAME="c20-power-monitor-ai-summary-lambda"
 
 echo "Updating Lambda function..."
 aws lambda update-function-code \
