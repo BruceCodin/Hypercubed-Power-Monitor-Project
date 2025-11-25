@@ -2,6 +2,7 @@
 Data loading module for AI summaries from S3.
 Fetches and formats AI-generated energy summaries with caching.
 """
+# pylint: disable = W1203
 
 import json
 import logging
