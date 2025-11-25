@@ -18,7 +18,7 @@ def get_secrets() -> dict:
         dict: Dictionary containing database credentials
     """
 
-    client = boto3.client('secretsmanager')
+    client = boto3.client('secretsmanager', region_name='eu-west-2')
 
     response = client.get_secret_value(
         SecretId=SECRETS_ARN

@@ -15,7 +15,7 @@ SECRETS_ARN = (
 
 def get_secrets() -> dict:
     """Retrieve database credentials from AWS Secrets Manager."""
-    client = boto3.client('secretsmanager')
+    client = boto3.client('secretsmanager', region_name='eu-west-2')
     response = client.get_secret_value(SecretId=SECRETS_ARN)
     secret = response['SecretString']
     return json.loads(secret)
