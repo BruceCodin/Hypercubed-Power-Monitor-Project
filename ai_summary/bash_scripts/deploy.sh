@@ -15,8 +15,8 @@ if [ $? -ne 0 ]; then
 fi
 
 # Building docker image and pushing to ECR (.. at end tells it to look for Dockerfile in parent directory)
-echo "Building Docker image..."
-docker build -t ai-summary:$IMAGE_TAG ..
+echo "Building Docker image for linux/amd64 platform..."
+docker build --platform linux/amd64 -t ai-summary:$IMAGE_TAG ..
 
 
 echo "Tagging image..."
