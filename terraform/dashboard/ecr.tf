@@ -9,6 +9,12 @@ resource "aws_ecr_repository" "dashboard" {
   image_scanning_configuration {
     scan_on_push = true
   }
+
+  tags = {
+    Project     = "PowerMonitor"
+    Environment = "dev"
+    Purpose     = "Dashboard Docker Images"
+  }
 }
 
 # Outputs
