@@ -30,6 +30,12 @@ import boto3
 from botocore.exceptions import ClientError
 import psycopg2
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def get_secrets() -> dict:
@@ -38,12 +44,18 @@ def get_secrets() -> dict:
 
     Returns:
         dict: Secrets dictionary containing DB credentials.
+
+    Raises:
+        ValueError: If SECRETS_ARN environment variable is not set.
     """
     secrets_arn = os.getenv("SECRETS_ARN")
+    if not secrets_arn:
+        raise ValueError("SECRETS_ARN environment variable is not set.")
     client = boto3.client('secretsmanager')
     response = client.get_secret_value(SecretId=secrets_arn)
     secret = response['SecretString']
     secret_dict = json.loads(secret)
+    logger.info("Database secrets retrieved from Secrets Manager.")
     return secret_dict
 
 
@@ -64,6 +76,7 @@ def connect_to_database(secrets: dict) -> psycopg2.extensions.connection:
         password=secrets["DB_PASSWORD"],
         port=int(secrets["DB_PORT"]),
     )
+    logger.info("Connected to the Postgres database.")
     return conn
 
 
@@ -86,7 +99,7 @@ def format_name(name: str) -> str:
             or exceeds maximum length.
     '''
     if not isinstance(name, str):
-        raise TypeError("Name must be a string datatype.")
+        raise TypeError("Name must be a string.")
 
     name = name.strip().title()
 
@@ -97,7 +110,6 @@ def format_name(name: str) -> str:
     max_length = 35
     if len(name) > max_length:
         raise ValueError(f"Name exceeds maximum length ({max_length}).")
-
     return name
 
 
@@ -117,15 +129,15 @@ def format_email(email: str) -> str:
             or does not match regex email format.
     '''
     if not isinstance(email, str):
-        raise TypeError("Email must be a string datatype.")
+        raise TypeError("Email must be a string.")
 
     email = email.strip().lower()
     if not email or email == "":
-        raise ValueError("Email must be a nonempty string.")
+        raise ValueError("Email cannot be empty.")
 
     pattern = r'^[a-zA-Z0-9.!#$%&\'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$'
     if not re.match(pattern, email):
-        raise ValueError("Email must be a valid email address.")
+        raise ValueError("Email is invalid.")
 
     return email
 
@@ -148,8 +160,7 @@ def format_postcode_with_regex(postcode: str) -> str:
     pattern = r'^([A-Z]{1,2}[0-9][A-Z0-9]?|[A-Z][0-9]{1,2})\s?([0-9][A-Z]{2})$'
     match = re.match(pattern, postcode)
     if not match:
-        raise ValueError(
-            "Postcode is invalid according to regex pattern.")
+        raise ValueError("Postcode is invalid.")
 
     postcode_cleaned = postcode.replace(' ', '')
     formatted_postcode = f"{postcode_cleaned[:-3]} {postcode_cleaned[-3:]}"
@@ -179,11 +190,12 @@ def format_postcode_with_api(postcode: str) -> str:
             return formatted_postcode
 
         if response.status_code == 404:
-            raise ValueError(
-                "Postcode is invalid according to postcodes.io API.")
+            raise ValueError("Postcode is invalid.")
     except requests.exceptions.Timeout:
+        logger.warning("Postcodes.io API request timed out.")
         return ""
     except requests.exceptions.RequestException:
+        logger.error("Postcodes.io API request failed.")
         return ""
     return ""
 
@@ -212,6 +224,7 @@ def format_postcode(postcode: str) -> str:
     if formatted_postcode:
         return formatted_postcode
 
+    logger.info("Falling back to regex postcode validation.")
     postcode_upper = postcode.strip().upper()
     formatted_postcode = format_postcode_with_regex(postcode_upper)
     return formatted_postcode
@@ -253,6 +266,7 @@ def get_customer_id(conn: psycopg2.extensions.connection, customer_data: dict) -
     '''
     Check if customer already exists in the database, 
     return customer_id if found.
+    Uniqueness checked by email address.
 
     Args:
         conn: psycopg2 connection object
@@ -264,12 +278,10 @@ def get_customer_id(conn: psycopg2.extensions.connection, customer_data: dict) -
     cursor = conn.cursor()
     cursor.execute('''
         SELECT customer_id FROM DIM_customer
-        WHERE first_name = %s AND last_name = %s AND email = %s
+        WHERE email = %s
         LIMIT 1
     ''', (
-        customer_data['first_name'],
-        customer_data['last_name'],
-        customer_data['email']
+        customer_data['email'],
     ))
     result = cursor.fetchone()
     cursor.close()
@@ -320,16 +332,16 @@ def load(conn: psycopg2.extensions.connection, customer_data: dict) -> None:
         customer_data (dict): Transformed customer data.
 
     Raises:
-        ValueError: If a subscription for the given postcode already exists in the database
-            (regardless of which customer is associated with it).
+        ValueError: If a subscription for the given postcode 
+            already exists in the database for that customer.
     '''
     customer_id = load_customer(conn, customer_data)
     cursor = conn.cursor()
     cursor.execute('''
         SELECT customer_id FROM BRIDGE_subscribed_postcodes
-        WHERE postcode = %s
+        WHERE postcode = %s AND customer_id = %s
         LIMIT 1
-    ''', (customer_data['postcode'],))
+    ''', (customer_data['postcode'], customer_id))
     result = cursor.fetchone()
     cursor.close()
     if result:
@@ -348,24 +360,22 @@ def load(conn: psycopg2.extensions.connection, customer_data: dict) -> None:
     cursor.close()
 
 
-def main(logger: logging.Logger, event: dict) -> None:
+def main(event: dict) -> None:
     '''
-    Main function for customer ETL pipeline 
+    Main function for customer ETL pipeline
     (within try block of lambda_handler).
 
     Args:
-        logger (logging.Logger): Logger object for logging.
         event (dict): Input JSON payload.
     '''
-    logger.info("Fetching secrets from Secrets Manager")
+    logger.info("Fetching secrets from Secrets Manager...")
     secrets = get_secrets()
     logger.info("Secrets loaded to environment variables")
-
-    logger.info("Connecting to database at %s:%s",
-                os.getenv('DB_HOST'), os.getenv('DB_PORT'))
+    logger.info("Connecting to the database...")
     db_conn = connect_to_database(secrets)
     logger.info("Database connection successful")
     try:
+        logger.info("Starting ETL process for customer data...")
         customer_data = transform(event)
         load(db_conn, customer_data)
         logger.info("Customer data processed successfully.")
@@ -387,43 +397,35 @@ def lambda_handler(event, _context) -> dict:
     Returns:
         dict: Response object containing status and message.
     '''
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
     try:
-        main(logger, event)
+        main(event)
         return {
-            'statusCode': 200,
-            'body': "Customer data processed successfully."
+            'statusCode': 200
         }
 
-    except (ValueError, TypeError) as e:
-        logger.warning("Validation error: %s", str(e))
+    except (TypeError) as e:
+        logger.warning("Validation type error: %s", str(e))
         return {
             'statusCode': 400,
-            'body': f"Error: {str(e)}"
+            'body': f"Type error:\n{str(e)}"
         }
+    except (ValueError) as e:
+        logger.warning("Validation value error: %s", str(e))
+        return {
+            'statusCode': 400,
+            'body': f"Invalid input:\n{str(e)}"
+        }
+
+    # status 500 errors log details for us and return generic message to user
     except ClientError as e:
         logger.error("Secrets Manager error: %s", str(e))
-        return {
-            'statusCode': 500,
-            'body': f"Secrets Manager error: {str(e)}"
-        }
     except psycopg2.Error as e:
         logger.error("Database error: %s", str(e))
-        return {
-            'statusCode': 500,
-            'body': f"Database error: {str(e)}"
-        }
     except requests.exceptions.RequestException as e:
         logger.error("Request error: %s", str(e))
-        return {
-            'statusCode': 500,
-            'body': f"Request error: {str(e)}"
-        }
     except Exception as e:
         logger.error("Unexpected error: %s", str(e), exc_info=True)
-        return {
-            'statusCode': 500,
-            'body': "Internal server error."
-        }
+    return {
+        'statusCode': 500,
+        'body': "Internal server error. Please try again later."
+    }

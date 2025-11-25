@@ -32,7 +32,7 @@ class TestFormatName:
     def test_format_name_wrong_datatype(self):
         with pytest.raises(TypeError) as excinfo:
             format_name(123)
-        assert str(excinfo.value) == "Name must be a string datatype."
+        assert str(excinfo.value) == "Name must be a string."
 
     def test_format_name_non_alpha(self):
         names = ["", "123", "John123", "John Doe"]
@@ -64,19 +64,19 @@ class TestFormatEmail:
     def test_format_email_wrong_datatype(self):
         with pytest.raises(TypeError) as excinfo:
             format_email(123)
-        assert str(excinfo.value) == "Email must be a string datatype."
+        assert str(excinfo.value) == "Email must be a string."
 
     def test_format_email_empty_string(self):
         with pytest.raises(ValueError) as excinfo:
             format_email("   ")
-        assert str(excinfo.value) == "Email must be a nonempty string."
+        assert str(excinfo.value) == "Email cannot be empty."
 
     def test_format_email_invalid(self):
         emails = ["plainaddress", "missingatsign.com", "missingdot@com"]
         for email in emails:
             with pytest.raises(ValueError) as excinfo:
                 format_email(email)
-            assert str(excinfo.value) == "Email must be a valid email address."
+            assert str(excinfo.value) == "Email is invalid."
 
 
 class TestFormatPostcode:
@@ -114,7 +114,7 @@ class TestFormatPostcode:
         with pytest.raises(ValueError) as excinfo:
             format_postcode("INVALID1")
         assert str(
-            excinfo.value) == "Postcode is invalid according to postcodes.io API."
+            excinfo.value) == "Postcode is invalid."
 
     @patch('etl_customer.requests.get')
     def test_format_postcode_api_timeout_fallback_to_regex(self, mock_get):
@@ -150,7 +150,7 @@ class TestFormatPostcode:
             with pytest.raises(ValueError) as excinfo:
                 format_postcode(postcode)
             assert str(
-                excinfo.value) == "Postcode is invalid according to regex pattern."
+                excinfo.value) == "Postcode is invalid."
 
     def test_format_postcode_wrong_datatype(self):
         with pytest.raises(TypeError) as excinfo:
@@ -328,6 +328,54 @@ class TestLoad:
         assert str(excinfo.value) == "Postcode subscription already exists for postcode: SW1A 1AA"
         mock_load_customer.assert_called_once()
 
+    @patch('etl_customer.load_customer')
+    def test_load_different_customer_same_postcode_succeeds(self, mock_load_customer):
+        '''Should successfully insert when different customer has same postcode'''
+        mock_load_customer.return_value = 42
+        mock_conn = Mock()
+        mock_cursor = Mock()
+        mock_conn.cursor.return_value = mock_cursor
+        # First call checks for existing subscription (None = not found)
+        # Second call is for the INSERT
+        mock_cursor.fetchone.return_value = None
+
+        customer_data = {
+            'first_name': 'Jane',
+            'last_name': 'Smith',
+            'email': 'jane@example.com',
+            'postcode': 'SW1A 1AA'
+        }
+
+        load(mock_conn, customer_data)
+
+        mock_load_customer.assert_called_once_with(mock_conn, customer_data)
+        assert mock_cursor.execute.call_count == 2
+        mock_conn.commit.assert_called_once()
+        assert mock_cursor.close.call_count == 2
+
+    @patch('etl_customer.load_customer')
+    def test_load_same_customer_different_postcode_succeeds(self, mock_load_customer):
+        '''Should successfully insert when same customer subscribes to different postcode'''
+        mock_load_customer.return_value = 42
+        mock_conn = Mock()
+        mock_cursor = Mock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_cursor.fetchone.return_value = None  # No existing subscription
+
+        customer_data = {
+            'first_name': 'John',
+            'last_name': 'Doe',
+            'email': 'john@example.com',
+            'postcode': 'M1 1AA'
+        }
+
+        load(mock_conn, customer_data)
+
+        mock_load_customer.assert_called_once_with(mock_conn, customer_data)
+        assert mock_cursor.execute.call_count == 2
+        mock_conn.commit.assert_called_once()
+        assert mock_cursor.close.call_count == 2
+
 
 class TestLambdaHandler:
     '''Tests for the lambda_handler function in etl_customer module.'''
@@ -355,7 +403,6 @@ class TestLambdaHandler:
         response = lambda_handler(mock_event, None)
 
         assert response['statusCode'] == 200
-        assert response['body'] == "Customer data processed successfully."
         mock_get_secrets.assert_called_once()
         mock_connect.assert_called_once_with(mock_secrets)
         mock_transform.assert_called_once_with(mock_event)
@@ -379,7 +426,7 @@ class TestLambdaHandler:
         response = lambda_handler(mock_event, None)
 
         assert response['statusCode'] == 400
-        assert "Error:" in response['body']
+        assert "Invalid input:" in response['body']
         assert "Missing required field: email." in response['body']
         mock_load.assert_not_called()
 
@@ -401,4 +448,3 @@ class TestLambdaHandler:
         response = lambda_handler(mock_event, None)
 
         assert response['statusCode'] == 500
-        assert "Database error:" in response['body']
