@@ -13,6 +13,9 @@ import streamlit as st
 
 logger = logging.getLogger(__name__)
 
+# Hardcoded S3 bucket name
+S3_BUCKET_NAME = "c20-power-monitor-s3"
+
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def get_latest_summary() -> Optional[Dict]:
@@ -25,10 +28,9 @@ def get_latest_summary() -> Optional[Dict]:
     """
     try:
         s3_client = boto3.client('s3')
-        bucket_name = st.secrets["S3_BUCKET_NAME"]
 
         response = s3_client.get_object(
-            Bucket=bucket_name,
+            Bucket=S3_BUCKET_NAME,
             Key='summaries/summary-latest.json'
         )
 
@@ -54,10 +56,9 @@ def list_all_summaries(max_summaries: int = 20) -> List[Dict]:
     """
     try:
         s3_client = boto3.client('s3')
-        bucket_name = st.secrets["S3_BUCKET_NAME"]
 
         response = s3_client.list_objects_v2(
-            Bucket=bucket_name,
+            Bucket=S3_BUCKET_NAME,
             Prefix='summaries/summary-',
             MaxKeys=max_summaries + 1  # +1 for latest.json
         )
@@ -112,10 +113,9 @@ def get_summary_by_key(s3_key: str) -> Optional[Dict]:
     """
     try:
         s3_client = boto3.client('s3')
-        bucket_name = st.secrets["S3_BUCKET_NAME"]
 
         response = s3_client.get_object(
-            Bucket=bucket_name,
+            Bucket=S3_BUCKET_NAME,
             Key=s3_key
         )
 
