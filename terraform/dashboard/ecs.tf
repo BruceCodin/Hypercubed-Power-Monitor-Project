@@ -1,4 +1,4 @@
-# ecs.tf - ECS Cluster, Task Definition, and Service
+# ecs.tf - ECS Cluster, Task Definition, and Service (without ALB)
 
 # CloudWatch Log Group for ECS tasks
 resource "aws_cloudwatch_log_group" "dashboard" {
@@ -7,6 +7,35 @@ resource "aws_cloudwatch_log_group" "dashboard" {
 
   tags = {
     Name = "Dashboard ECS Logs"
+  }
+}
+
+# Security group for ECS tasks
+resource "aws_security_group" "ecs_tasks" {
+  name        = "c20-dashboard-ecs-tasks-sg"
+  description = "Security group for dashboard ECS tasks"
+  vpc_id      = var.vpc_id
+
+  # Allow inbound traffic on Streamlit port from anywhere
+  ingress {
+    description = "Allow Streamlit access"
+    from_port   = var.container_port
+    to_port     = var.container_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow all outbound traffic (for RDS, S3, internet access)
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "Dashboard ECS Tasks Security Group"
   }
 }
 
@@ -120,24 +149,13 @@ resource "aws_ecs_service" "dashboard" {
     assign_public_ip = true
   }
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.dashboard.arn
-    container_name   = "dashboard"
-    container_port   = var.container_port
-  }
-
-  depends_on = [
-    aws_lb_listener.dashboard_http
-  ]
-
   tags = {
     Name = "Dashboard ECS Service"
   }
 }
 
-# ==============================================================================
+
 # Outputs
-# ==============================================================================
 
 output "ecs_cluster_name" {
   description = "Name of the ECS cluster"
@@ -157,4 +175,9 @@ output "ecs_service_name" {
 output "ecs_task_definition_arn" {
   description = "ARN of the ECS task definition"
   value       = aws_ecs_task_definition.dashboard.arn
+}
+
+output "dashboard_access_instructions" {
+  description = "Instructions to access the dashboard"
+  value       = "Dashboard is running! Find the task's public IP in the ECS console, then access at http://<public-ip>:8501"
 }
