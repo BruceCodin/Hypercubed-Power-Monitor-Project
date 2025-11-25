@@ -14,9 +14,9 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Building docker image and pushing to ECR
+# Building docker image and pushing to ECR (.. at end tells it to look for Dockerfile in parent directory)
 echo "Building Docker image..."
-docker build -t ai-summary:$IMAGE_TAG .
+docker build -t ai-summary:$IMAGE_TAG ..
 
 
 echo "Tagging image..."
