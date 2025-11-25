@@ -91,9 +91,12 @@ def create_bubble_map(df_filtered, bubble_size) -> px.scatter_map:
         zoom=5,
         map_style="carto-positron",
         hover_name='postcode',
-        hover_data=['outage_count']
+        hover_data={'outage_count': ':.0f'},
+        title="UK Power Outages by Postcode District",
+        labels={'outage_count': 'Count'}
     )
     fig.update_layout(
-        height=800
+        height=600,
+        coloraxis_colorbar=dict(title='Count')
     )
     return fig

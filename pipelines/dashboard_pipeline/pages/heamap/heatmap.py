@@ -5,7 +5,7 @@ from heatmap_helper import get_live_outage_data, get_mapped_df, create_bubble_ma
 st.set_page_config(page_title="UK Power Outage Heatmap", layout="wide")
 st.title("⚡ UK Power Outage Heatmap")
 st.text(
-    "Data shows the last 3 hours of reported power outages across UK postcode districts."
+    "Showing last 3 hours worth of live outage data"
 )
 
 
@@ -30,7 +30,7 @@ st.sidebar.header("Map Controls")
 
 # Let users filter by outage count
 outage_range = st.sidebar.slider(
-    "Filter by Outage Count",
+    "Count Filter",
     min_value=MIN_OUTAGES,
     max_value=MAX_OUTAGES,
     value=(MIN_OUTAGES, MAX_OUTAGES),
@@ -58,7 +58,6 @@ df_filtered = df_mapped[
 ]
 
 # Create and display bubble map
-st.subheader("Outage Map")
 fig = create_bubble_map(df_filtered, bubble_size)
-st.plotly_chart(fig, width="stretch")
+st.plotly_chart(fig)
 # -------------------
