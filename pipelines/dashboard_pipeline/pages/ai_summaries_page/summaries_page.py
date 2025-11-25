@@ -26,7 +26,7 @@ st.set_page_config(
 )
 
 # Page header
-st.title("🤖 AI Energy Summaries")
+st.title("AI Energy Summaries")
 st.markdown("AI-powered analysis of UK energy data, updated every 6 hours")
 
 # Add refresh button
@@ -39,7 +39,7 @@ with col2:
 st.divider()
 
 # Main content area
-tab1, tab2 = st.tabs(["📊 Latest Summary", "📚 Summary History"])
+tab1, tab2 = st.tabs(["Latest Summary", "Summary History"])
 
 # Tab 1: Latest Summary
 with tab1:
@@ -96,7 +96,7 @@ with tab1:
             )
 
         # Expander for detailed data
-        with st.expander("📋 View Detailed Data"):
+        with st.expander("View Detailed Data"):
             st.json(data)
 
     else:
@@ -118,7 +118,7 @@ with tab2:
     summaries = list_all_summaries(max_summaries=num_summaries)
 
     if summaries:
-        st.info(f"📊 Showing {len(summaries)} most recent summaries")
+        st.info(f"Showing {len(summaries)} most recent summaries")
 
         # Display summaries in blog-style format
         for summary_meta in summaries:
@@ -134,7 +134,7 @@ with tab2:
                             f"#### {format_timestamp(summary_meta['timestamp'])}")
                     with col2:
                         st.caption(
-                            f"🕒 {summary_meta['timestamp'].strftime('%H:%M')}")
+                            f"{summary_meta['timestamp'].strftime('%H:%M')}")
 
                     # Summary text
                     st.write(summary_data['summary'])
@@ -148,10 +148,10 @@ with tab2:
                             f"⚡ {data.get('generation', {}).get('total_generation_mw', 0):,.0f} MW")
                     with col2:
                         st.caption(
-                            f"🌍 {data.get('carbon', {}).get('average_intensity', 0)} gCO2/kWh")
+                            f"{data.get('carbon', {}).get('average_intensity', 0)} gCO2/kWh")
                     with col3:
                         st.caption(
-                            f"💷 £{data.get('pricing', {}).get('average_price', 0)}/MWh")
+                            f"£{data.get('pricing', {}).get('average_price', 0)}/MWh")
 
                     st.divider()
                 else:
@@ -163,4 +163,4 @@ with tab2:
 # Footer
 st.divider()
 st.caption(
-    "💡 Summaries are automatically generated every 6 hours using AI analysis of UK energy data")
+    "Summaries are automatically generated every 6 hours using AI analysis of UK energy data")
