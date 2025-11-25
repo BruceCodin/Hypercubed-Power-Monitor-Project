@@ -200,7 +200,7 @@ def fetch_system_pricing(conn, hours: int = 24) -> Dict:
 
 # ==============================================================================
 # Data extraction - Carbon Intensity
-def fetch_carbon_intensity(conn, hours: int = 24) -> Dict:
+def fetch_carbon_intensity(conn) -> Dict:
     """Fetch recent carbon intensity data, filtering out NULL and NaN values.
     
     Gets the most recent valid carbon intensity data from the most recent
@@ -208,8 +208,6 @@ def fetch_carbon_intensity(conn, hours: int = 24) -> Dict:
     
     Args:
         conn: Active PostgreSQL database connection.
-        hours (int): Number of hours to look back for carbon intensity data. 
-                     Defaults to 24. (Currently unused - gets most recent valid date)
     
     Returns:
         Dict: Dictionary containing carbon intensity statistics with keys:
@@ -364,7 +362,7 @@ def save_summary_to_s3(summary_data: Dict) -> str:
 
 # ==============================================================================
 # Lambda Handler
-def lambda_handler(event, context):
+def lambda_handler(event):
     """AWS Lambda handler - main entry point."""
     logger.info("Starting AI summary generation")
     logger.info(f"Event: {json.dumps(event)}")
@@ -380,12 +378,12 @@ def lambda_handler(event, context):
 
         # Step 3: Fetch all data (last 24 hours)
         try:
-            
+
             logger.info("Fetching data from RDS...")
             outages_data = fetch_power_outages(conn, hours=24)
             generation_data = fetch_power_generation(conn, hours=24)
             pricing_data = fetch_system_pricing(conn, hours=24)
-            carbon_data = fetch_carbon_intensity(conn, hours=24)
+            carbon_data = fetch_carbon_intensity(conn)
         finally: # Always close connection if anything goes wrong
             if conn:
                 conn.close()
@@ -466,7 +464,7 @@ if __name__ == "__main__":
         outages_data = fetch_power_outages(conn, hours=24)
         generation_data = fetch_power_generation(conn, hours=24)
         pricing_data = fetch_system_pricing(conn, hours=24)
-        carbon_data = fetch_carbon_intensity(conn, hours=24)
+        carbon_data = fetch_carbon_intensity(conn)
 
         conn.close()
         logger.info("Database connection closed")
