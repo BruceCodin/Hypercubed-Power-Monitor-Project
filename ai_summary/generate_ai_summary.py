@@ -201,7 +201,20 @@ def fetch_system_pricing(conn, hours: int = 24) -> Dict:
 # ==============================================================================
 # Data extraction - Carbon Intensity
 def fetch_carbon_intensity(conn, hours: int = 24) -> Dict:
-    """Fetch recent carbon intensity data."""
+    """Fetch recent carbon intensity data, filtering out NULL and NaN values.
+    
+    Args:
+        conn: Active PostgreSQL database connection.
+        hours (int): Number of hours to look back for carbon intensity data. 
+                     Defaults to 24.
+    
+    Returns:
+        Dict: Dictionary containing carbon intensity statistics with keys:
+            - average_intensity (float): Average carbon intensity in gCO2/kWh.
+            - min_intensity (float): Minimum carbon intensity in gCO2/kWh.
+            - max_intensity (float): Maximum carbon intensity in gCO2/kWh.
+            - intensity_index (str): Carbon intensity category (e.g., 'high', 'low').
+    """
     cursor = conn.cursor()
     cutoff_time = datetime.now() - timedelta(hours=hours)
 
