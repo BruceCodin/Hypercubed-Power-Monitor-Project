@@ -86,6 +86,23 @@ def get_power_data(time_filter: str, start_date: datetime, end_date: datetime) -
     conn.close()
     
     df['settlement_date'] = pd.to_datetime(df['settlement_date'])
+    
+    # Map interconnector codes to friendly country names
+    interconnector_mapping = {
+        'INTELEC': 'Imports (France)',
+        'INTFR': 'Imports (France)',
+        'INTIFA2': 'Imports (France)',
+        'INTEW': 'Imports (Ireland)',
+        'INTIRL': 'Imports (Ireland)',
+        'INTGRNL': 'Imports (Ireland)',
+        'INTNED': 'Imports (Netherlands)',
+        'INTNEM': 'Imports (Belgium)',
+        'INTNSL': 'Imports (Norway)',
+        'INTVKL': 'Imports (Denmark)'
+    }
+    
+    df['fuel_type'] = df['fuel_type'].replace(interconnector_mapping)
+    
     return df
 
 
@@ -97,7 +114,7 @@ def settlement_to_time(period: int) -> str:
 
 
 def create_generation_chart(df: pd.DataFrame) -> alt.Chart:
-    """Create stacked area chart for power generation by fuel type."""
+    """Create stacked area chart for power supply by fuel type."""
     
     # Check if data spans multiple days
     unique_dates = df['settlement_date'].dt.date.nunique()
@@ -115,17 +132,17 @@ def create_generation_chart(df: pd.DataFrame) -> alt.Chart:
                         values=[1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 48],
                         labelExpr="datum.value == 1 ? '00:00' : datum.value == 5 ? '02:00' : datum.value == 9 ? '04:00' : datum.value == 13 ? '06:00' : datum.value == 17 ? '08:00' : datum.value == 21 ? '10:00' : datum.value == 25 ? '12:00' : datum.value == 29 ? '14:00' : datum.value == 33 ? '16:00' : datum.value == 37 ? '18:00' : datum.value == 41 ? '20:00' : datum.value == 45 ? '22:00' : '24:00'"
                     )),
-            y=alt.Y('generation_mw:Q', title='Generation (MW)', stack='zero'),
+            y=alt.Y('generation_mw:Q', title='Supply (MW)', stack='zero'),
             color=alt.Color('fuel_type:N', title='Fuel Type', scale=alt.Scale(scheme='category20')),
             tooltip=[
                 alt.Tooltip('time_label:N', title='Time'),
                 alt.Tooltip('fuel_type:N', title='Fuel Type'),
-                alt.Tooltip('generation_mw:Q', title='Generation (MW)', format=',.0f')
+                alt.Tooltip('generation_mw:Q', title='Supply (MW)', format=',.0f')
             ]
         ).properties(
             width=700,
             height=400,
-            title='Power Generation by Source'
+            title='Power Supply by Source'
         ).interactive()
     else:
         # Multiple days - use datetime
@@ -133,17 +150,17 @@ def create_generation_chart(df: pd.DataFrame) -> alt.Chart:
         
         chart = alt.Chart(gen_data).mark_area().encode(
             x=alt.X('settlement_date:T', title='Date', axis=alt.Axis(format='%b %d')),
-            y=alt.Y('generation_mw:Q', title='Generation (MW)', stack='zero'),
+            y=alt.Y('generation_mw:Q', title='Supply (MW)', stack='zero'),
             color=alt.Color('fuel_type:N', title='Fuel Type', scale=alt.Scale(scheme='category20')),
             tooltip=[
                 alt.Tooltip('settlement_date:T', title='Date', format='%Y-%m-%d'),
                 alt.Tooltip('fuel_type:N', title='Fuel Type'),
-                alt.Tooltip('generation_mw:Q', title='Generation (MW)', format=',.0f')
+                alt.Tooltip('generation_mw:Q', title='Supply (MW)', format=',.0f')
             ]
         ).properties(
             width=700,
             height=400,
-            title='Power Generation by Source (Multi-Day View)'
+            title='Power Supply by Source (Multi-Day View)'
         ).interactive()
     
     return chart
@@ -380,18 +397,18 @@ def create_fuel_breakdown_chart(df: pd.DataFrame) -> alt.Chart:
     # Create appropriate title
     if unique_dates == 1:
         date_str = df['settlement_date'].dt.date.iloc[0].strftime("%Y-%m-%d")
-        title_str = f'Fuel Distribution ({date_str})'
+        title_str = f'Supply Distribution ({date_str})'
     else:
         start_date = df['settlement_date'].min().strftime("%Y-%m-%d")
         end_date = df['settlement_date'].max().strftime("%Y-%m-%d")
-        title_str = f'Fuel Distribution ({start_date} to {end_date})'
+        title_str = f'Supply Distribution ({start_date} to {end_date})'
     
     chart = alt.Chart(fuel_mix).mark_arc(innerRadius=50).encode(
-        theta=alt.Theta('generation_mw:Q', title='Generation (MW)'),
+        theta=alt.Theta('generation_mw:Q', title='Supply (MW)'),
         color=alt.Color('fuel_type:N', title='Fuel Type', scale=alt.Scale(scheme='category20')),
         tooltip=[
             alt.Tooltip('fuel_type:N', title='Fuel Type'),
-            alt.Tooltip('generation_mw:Q', title='Total Generation (MW)', format=',.0f')
+            alt.Tooltip('generation_mw:Q', title='Total Supply (MW)', format=',.0f')
         ]
     ).properties(
         width=350,
@@ -402,8 +419,116 @@ def create_fuel_breakdown_chart(df: pd.DataFrame) -> alt.Chart:
     return chart
 
 
+def create_carbon_demand_chart(df: pd.DataFrame) -> alt.Chart:
+    """Create simple dual-axis chart showing demand vs carbon intensity."""
+    
+    # Check if demand data is available
+    if 'national_demand' not in df.columns:
+        return None
+    
+    unique_dates = df['settlement_date'].dt.date.nunique()
+    
+    if unique_dates == 1:
+        # Single day - use settlement periods
+        data = df.groupby('settlement_period').agg({
+            'intensity_actual': 'first',
+            'national_demand': 'first'
+        }).reset_index()
+        
+        data['time_label'] = data['settlement_period'].apply(settlement_to_time)
+        
+        # Carbon intensity line (primary axis)
+        carbon_line = alt.Chart(data).mark_line(color='#e74c3c', strokeWidth=2.5, point=True).encode(
+            x=alt.X('settlement_period:Q', 
+                    title='Time of Day',
+                    scale=alt.Scale(domain=[1, 48]),
+                    axis=alt.Axis(
+                        values=[1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 48],
+                        labelExpr="datum.value == 1 ? '00:00' : datum.value == 5 ? '02:00' : datum.value == 9 ? '04:00' : datum.value == 13 ? '06:00' : datum.value == 17 ? '08:00' : datum.value == 21 ? '10:00' : datum.value == 25 ? '12:00' : datum.value == 29 ? '14:00' : datum.value == 33 ? '16:00' : datum.value == 37 ? '18:00' : datum.value == 41 ? '20:00' : datum.value == 45 ? '22:00' : '24:00'"
+                    )),
+            y=alt.Y('intensity_actual:Q', title='Carbon Intensity (gCO2/kWh)'),
+            tooltip=[
+                alt.Tooltip('time_label:N', title='Time'),
+                alt.Tooltip('intensity_actual:Q', title='Carbon Intensity', format='.1f'),
+                alt.Tooltip('national_demand:Q', title='Demand (MW)', format=',.0f')
+            ]
+        )
+        
+        # Demand line (secondary axis)
+        demand_line = alt.Chart(data).mark_line(color='#3498db', strokeWidth=2.5, point=True).encode(
+            x=alt.X('settlement_period:Q'),
+            y=alt.Y('national_demand:Q', title='National Demand (MW)'),
+            tooltip=[
+                alt.Tooltip('time_label:N', title='Time'),
+                alt.Tooltip('national_demand:Q', title='Demand (MW)', format=',.0f')
+            ]
+        )
+        
+        # Combine charts
+        chart = alt.layer(
+            carbon_line,
+            demand_line
+        ).resolve_scale(
+            y='independent'
+        ).properties(
+            width=700,
+            height=400,
+            title='National Demand vs Carbon Intensity'
+        )
+        
+    else:
+        # Multiple days - average across all days
+        data = df.groupby('settlement_period').agg({
+            'intensity_actual': 'mean',
+            'national_demand': 'mean'
+        }).reset_index()
+        
+        data['time_label'] = data['settlement_period'].apply(settlement_to_time)
+        
+        # Carbon intensity line
+        carbon_line = alt.Chart(data).mark_line(color='#e74c3c', strokeWidth=2.5, point=True).encode(
+            x=alt.X('settlement_period:Q', 
+                    title='Time of Day',
+                    scale=alt.Scale(domain=[1, 48]),
+                    axis=alt.Axis(
+                        values=[1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 48],
+                        labelExpr="datum.value == 1 ? '00:00' : datum.value == 5 ? '02:00' : datum.value == 9 ? '04:00' : datum.value == 13 ? '06:00' : datum.value == 17 ? '08:00' : datum.value == 21 ? '10:00' : datum.value == 25 ? '12:00' : datum.value == 29 ? '14:00' : datum.value == 33 ? '16:00' : datum.value == 37 ? '18:00' : datum.value == 41 ? '20:00' : datum.value == 45 ? '22:00' : '24:00'"
+                    )),
+            y=alt.Y('intensity_actual:Q', title='Avg Carbon Intensity (gCO2/kWh)'),
+            tooltip=[
+                alt.Tooltip('time_label:N', title='Time'),
+                alt.Tooltip('intensity_actual:Q', title='Avg Carbon Intensity', format='.1f'),
+                alt.Tooltip('national_demand:Q', title='Avg Demand (MW)', format=',.0f')
+            ]
+        )
+        
+        # Demand line
+        demand_line = alt.Chart(data).mark_line(color='#3498db', strokeWidth=2.5, point=True).encode(
+            x=alt.X('settlement_period:Q'),
+            y=alt.Y('national_demand:Q', title='Avg National Demand (MW)'),
+            tooltip=[
+                alt.Tooltip('time_label:N', title='Time'),
+                alt.Tooltip('national_demand:Q', title='Avg Demand (MW)', format=',.0f')
+            ]
+        )
+        
+        # Combine charts
+        chart = alt.layer(
+            carbon_line,
+            demand_line
+        ).resolve_scale(
+            y='independent'
+        ).properties(
+            width=700,
+            height=400,
+            title='Average National Demand vs Carbon Intensity'
+        )
+    
+    return chart
+
+
 # Streamlit App
-st.set_page_config(page_title="UK Power Monitor", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="UK Power Supply Monitor", page_icon="⚡", layout="wide")
 
 # Initialize connection
 try:
@@ -414,8 +539,8 @@ except Exception as e:
     st.stop()
 
 # Header
-st.title("⚡ UK Power Generation Monitor")
-st.markdown("Real-time and historical tracking of power generation, carbon intensity, and system pricing")
+st.title("UK Power Supply Monitor")
+st.markdown("Real-time and historical tracking of power supply, carbon intensity, and system pricing")
 
 # Sidebar filters
 st.sidebar.header("Filters")
@@ -433,11 +558,9 @@ if time_filter == "historical":
         start_date = st.date_input("Start Date", datetime.now() - timedelta(days=30))
     with col2:
         end_date = st.date_input("End Date", datetime.now() - timedelta(days=1))
-    st.sidebar.info("ℹ️ Historical view includes demand data for contextual analysis.")
 else:
     start_date = datetime.now() - timedelta(days=1)
     end_date = datetime.now()
-    st.sidebar.info("ℹ️ Recent view focuses on live generation, carbon intensity, and pricing data.")
 
 # Fetch data and apply filters
 try:
@@ -461,42 +584,45 @@ try:
     )
     
     if not selected_fuel_types:
-        st.sidebar.warning("⚠️ Select at least one fuel type")
+        st.sidebar.warning("Select at least one fuel type")
         st.error("Please select at least one fuel type.")
         st.stop()
     
-    st.sidebar.caption("💡 Tip: Select 2-3 fuel types to compare their relative relationship")
+    st.sidebar.caption("Tip: Select 2-3 fuel types to compare their relative relationship")
     
     # Filter data by selected fuel types
     df = df_initial[df_initial['fuel_type'].isin(selected_fuel_types)].copy()
     
     # Show selection count
-    st.sidebar.success(f"✓ {len(selected_fuel_types)} of {len(available_fuel_types)} fuel types selected")
+    st.sidebar.success(f"{len(selected_fuel_types)} of {len(available_fuel_types)} fuel types selected")
     
     # Key Metrics
-    st.header("📊 Key Metrics")
+    st.header("Key Metrics")
     
     has_demand = 'national_demand' in df.columns
     
     if time_filter == "recent":
-        # Recent mode - show current/latest metrics
-        latest_date = df['settlement_date'].max()
-        latest_period = df[df['settlement_date'] == latest_date]['settlement_period'].max()
-        latest_data = df[(df['settlement_date'] == latest_date) & (df['settlement_period'] == latest_period)]
-        
+        # Recent mode - show total power and averages
         col1, col2, col3 = st.columns(3)
         
+        # Calculate totals and averages across all data
+        period_data = df.groupby(['settlement_date', 'settlement_period']).agg({
+            'generation_mw': 'sum',
+            'intensity_actual': 'first',
+            'system_sell_price': 'first'
+        }).reset_index()
+        
         with col1:
-            total_gen = latest_data['generation_mw'].sum()
-            st.metric("Current Generation", f"{total_gen:,.0f} MW")
+            total_power = period_data['generation_mw'].sum()
+            st.metric("Total Power Supply", f"{total_power:,.0f} MW")
         
         with col2:
-            latest_intensity = latest_data['intensity_actual'].iloc[0]
-            st.metric("Current Carbon Intensity", f"{latest_intensity:.0f} gCO2/kWh")
+            avg_intensity = period_data['intensity_actual'].mean()
+            st.metric("Avg Carbon Intensity", f"{avg_intensity:.0f} gCO2/kWh")
         
         with col3:
-            latest_price = latest_data['system_sell_price'].iloc[0]
-            st.metric("Current System Price", f"£{latest_price:.2f}/MWh")
+            avg_price = period_data['system_sell_price'].mean()
+            st.metric("Avg System Price", f"£{avg_price:.2f}/MWh")
     else:
         # Historical mode - always show totals and averages
         if has_demand:
@@ -516,8 +642,8 @@ try:
         period_data = df.groupby(['settlement_date', 'settlement_period']).agg(agg_dict).reset_index()
         
         with col1:
-            total_gen = period_data['generation_mw'].sum()
-            st.metric("Total Generation", f"{total_gen:,.0f} MW")
+            total_supply = period_data['generation_mw'].sum()
+            st.metric("Total Power Supply", f"{total_supply:,.0f} MW")
         
         with col2:
             avg_intensity = period_data['intensity_actual'].mean()
@@ -533,10 +659,10 @@ try:
                 st.metric("Avg National Demand", f"{avg_demand:,.0f} MW")
     
     # Charts
-    st.header("📈 Visualizations")
+    st.header("Visualizations")
     
-    # Power Generation
-    st.subheader("Power Generation by Source")
+    # Power Supply
+    st.subheader("Power Supply by Source")
     gen_chart = create_generation_chart(df)
     st.altair_chart(gen_chart, use_container_width=True)
     
@@ -548,9 +674,10 @@ try:
         st.altair_chart(fuel_chart, use_container_width=True)
     
     with col2:
-        st.subheader("Generation Statistics")
+        st.subheader("Supply Statistics")
         fuel_stats = df.groupby('fuel_type')['generation_mw'].agg(['mean', 'max', 'min']).round(2)
         fuel_stats.columns = ['Average (MW)', 'Max (MW)', 'Min (MW)']
+        fuel_stats = fuel_stats.sort_values('Average (MW)', ascending=False)
         st.dataframe(fuel_stats, use_container_width=True)
     
     # Carbon Intensity
@@ -566,12 +693,17 @@ try:
     # Demand - only show for historical data
     if 'national_demand' in df.columns:
         st.subheader("Power Demand")
-        st.info("💡 **Context:** Demand data shows how much electricity is being consumed. National demand includes all UK consumption, while transmission system demand shows power flowing through the high-voltage transmission network.")
         demand_chart = create_demand_chart(df)
         st.altair_chart(demand_chart, use_container_width=True)
+        
+        # Add Demand vs Carbon Intensity chart
+        st.subheader("Demand vs Carbon Intensity")
+        carbon_demand_chart = create_carbon_demand_chart(df)
+        if carbon_demand_chart:
+            st.altair_chart(carbon_demand_chart, use_container_width=True)
     
     # Data Table
-    with st.expander("📋 View Raw Data"):
+    with st.expander("View Raw Data"):
         st.dataframe(
             df.sort_values(['settlement_date', 'settlement_period'], ascending=False),
             use_container_width=True
@@ -580,7 +712,7 @@ try:
     # Auto-refresh for recent data
     if time_filter == "recent":
         st.sidebar.markdown("---")
-        st.sidebar.info("🔄 Dashboard auto-refreshes every 5 minutes for live generation, carbon intensity, and pricing data")
+        st.sidebar.info("Dashboard auto-refreshes every 5 minutes for live supply, carbon intensity, and pricing data")
 
 except Exception as e:
     st.error(f"Error loading data: {e}")
