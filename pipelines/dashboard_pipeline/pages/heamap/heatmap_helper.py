@@ -31,7 +31,7 @@ def init_connection():
 
 
 @st.cache_data(ttl=300)
-def get_outage_data():
+def get_live_outage_data():
     conn = init_connection()
     if not conn:
         return pd.DataFrame()
