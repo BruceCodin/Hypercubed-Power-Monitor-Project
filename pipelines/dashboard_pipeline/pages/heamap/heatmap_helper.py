@@ -36,7 +36,7 @@ def get_outage_data():
     if not conn:
         return pd.DataFrame()
 
-    # Query 1: Heatmap Data (Postcode Districts)
+    # Query 1: Heatmap Data (Postcode Districts) from last 24 hours
     query_map = """
     SELECT 
         SPLIT_PART(UPPER(p.postcode_affected), ' ', 1) as postcode,
@@ -45,6 +45,8 @@ def get_outage_data():
         BRIDGE_affected_postcodes p
     JOIN 
         FACT_outage f ON p.outage_id = f.outage_id
+    WHERE 
+    	f.recording_time >= NOW() - INTERVAL '24 hours'
     GROUP BY 
         1;
     """
