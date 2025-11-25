@@ -214,7 +214,8 @@ def fetch_carbon_intensity(conn, hours: int = 24) -> Dict:
         FROM carbon_intensity ci
         JOIN settlements s ON ci.settlement_id = s.settlement_id
         WHERE s.settlement_date >= %s
-            AND ci.intensity_actual IS NOT NULL  -- Filter out NaN/NULL values
+            AND ci.intensity_actual IS NOT NULL  -- Filter out NULL values
+            AND ci.intensity_actual = ci.intensity_actual  -- Filters out NaN
         GROUP BY ci.intensity_index
         ORDER BY MAX(s.settlement_date) DESC
         LIMIT 1
