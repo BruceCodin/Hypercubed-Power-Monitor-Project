@@ -118,6 +118,7 @@ def count_outage_status(df: pd.DataFrame) -> dict:
     }
 
 
+@st.cache_data(ttl=300)
 def get_mapped_df(df: pd.DataFrame) -> pd.DataFrame:
 
     nomi = pgeocode.Nominatim('gb')
@@ -130,6 +131,7 @@ def get_mapped_df(df: pd.DataFrame) -> pd.DataFrame:
     return df_mapped
 
 
+@st.cache_data(ttl=300)
 def get_unique_regions(df: pd.DataFrame) -> list:
     """Extract unique postcode regions from dataframe.
 
