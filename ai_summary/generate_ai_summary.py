@@ -200,36 +200,66 @@ def fetch_system_pricing(conn, hours: int = 24) -> Dict:
 
 # ==============================================================================
 # Data extraction - Carbon Intensity
-def fetch_carbon_intensity(conn, hours: int = 24) -> Dict:
-    """Fetch recent carbon intensity data."""
+def fetch_carbon_intensity(conn) -> Dict:
+    """Fetch recent carbon intensity data, filtering out NULL and NaN values.
+    
+    Gets the most recent valid carbon intensity data from the most recent
+    settlement date available, excluding NaN values.
+    
+    Args:
+        conn: Active PostgreSQL database connection.
+    
+    Returns:
+        Dict: Dictionary containing carbon intensity statistics with keys:
+            - average_intensity (float): Average carbon intensity in gCO2/kWh.
+            - min_intensity (float): Minimum carbon intensity in gCO2/kWh.
+            - max_intensity (float): Maximum carbon intensity in gCO2/kWh.
+            - intensity_index (str): Carbon intensity category (e.g., 'high', 'low').
+    """
     cursor = conn.cursor()
-    cutoff_time = datetime.now() - timedelta(hours=hours)
 
     query = """
+        WITH latest_valid_date AS (
+            SELECT MAX(s.settlement_date) as max_date
+            FROM carbon_intensity ci
+            JOIN settlements s ON ci.settlement_id = s.settlement_id
+            WHERE ci.intensity_actual > 0
+                AND s.settlement_date <= CURRENT_DATE
+        ),
+        valid_carbon_data AS (
+            SELECT 
+                ci.intensity_actual,
+                ci.intensity_index
+            FROM carbon_intensity ci
+            JOIN settlements s ON ci.settlement_id = s.settlement_id
+            CROSS JOIN latest_valid_date lvd
+            WHERE s.settlement_date = lvd.max_date
+                AND ci.intensity_actual > 0
+        )
         SELECT 
-            AVG(ci.intensity_actual) as avg_intensity,
-            MIN(ci.intensity_actual) as min_intensity,
-            MAX(ci.intensity_actual) as max_intensity,
-            ci.intensity_index as latest_index
-        FROM carbon_intensity ci
-        JOIN settlements s ON ci.settlement_id = s.settlement_id
-        WHERE s.settlement_date >= %s
-        GROUP BY ci.intensity_index
-        ORDER BY MAX(s.settlement_date) DESC
+            AVG(intensity_actual) as avg_intensity,
+            MIN(intensity_actual) as min_intensity,
+            MAX(intensity_actual) as max_intensity,
+            intensity_index as latest_index
+        FROM valid_carbon_data
+        GROUP BY intensity_index
+        ORDER BY intensity_index DESC
         LIMIT 1
     """
 
-    cursor.execute(query, (cutoff_time,))
+    cursor.execute(query)
     row = cursor.fetchone()
 
-    if row:
+    if row and row[0] is not None:
         stats = {
-            'average_intensity': round(float(row[0]), 2) if row[0] else 0,
-            'min_intensity': round(float(row[1]), 2) if row[1] else 0,
-            'max_intensity': round(float(row[2]), 2) if row[2] else 0,
+            'average_intensity': round(float(row[0]), 2),
+            'min_intensity': round(float(row[1]), 2),
+            'max_intensity': round(float(row[2]), 2),
             'intensity_index': row[3]
         }
+        logger.info(f"Fetched carbon: {stats['average_intensity']} gCO2/kWh")
     else:
+        logger.warning("No valid carbon intensity data found")
         stats = {
             'average_intensity': 0,
             'min_intensity': 0,
@@ -237,7 +267,6 @@ def fetch_carbon_intensity(conn, hours: int = 24) -> Dict:
             'intensity_index': 'unknown'
         }
 
-    logger.info(f"Fetched carbon: {stats['average_intensity']} gCO2/kWh")
     cursor.close()
     return stats
 
@@ -349,12 +378,12 @@ def lambda_handler(event, context):
 
         # Step 3: Fetch all data (last 24 hours)
         try:
-            
+
             logger.info("Fetching data from RDS...")
             outages_data = fetch_power_outages(conn, hours=24)
             generation_data = fetch_power_generation(conn, hours=24)
             pricing_data = fetch_system_pricing(conn, hours=24)
-            carbon_data = fetch_carbon_intensity(conn, hours=24)
+            carbon_data = fetch_carbon_intensity(conn)
         finally: # Always close connection if anything goes wrong
             if conn:
                 conn.close()
@@ -435,7 +464,7 @@ if __name__ == "__main__":
         outages_data = fetch_power_outages(conn, hours=24)
         generation_data = fetch_power_generation(conn, hours=24)
         pricing_data = fetch_system_pricing(conn, hours=24)
-        carbon_data = fetch_carbon_intensity(conn, hours=24)
+        carbon_data = fetch_carbon_intensity(conn)
 
         conn.close()
         logger.info("Database connection closed")
