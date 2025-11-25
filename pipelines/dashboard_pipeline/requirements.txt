@@ -1,7 +1,0 @@
-boto3
-pandas
-pgeocode
-plotly
-psycopg2-binary
-streamlit
-python-dotenv
