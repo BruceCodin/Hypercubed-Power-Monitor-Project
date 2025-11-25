@@ -403,13 +403,13 @@ def lambda_handler(event, _context) -> dict:
             'statusCode': 200
         }
 
-    except (TypeError) as e:
+    except TypeError as e:
         logger.warning("Validation type error: %s", str(e))
         return {
             'statusCode': 400,
             'body': f"Type error:\n{str(e)}"
         }
-    except (ValueError) as e:
+    except ValueError as e:
         logger.warning("Validation value error: %s", str(e))
         return {
             'statusCode': 400,
