@@ -12,8 +12,14 @@ variable "ecr_repository_name" {
   default     = "c20-power-monitor-dashboard"
 }
 
-variable "image_retention_count" {
-  description = "Number of images to retain in ECR"
-  type        = number
-  default     = 5
+variable "project_name" {
+  description = "Project name for tagging"
+  type        = string
+  default     = "PowerMonitor"
+}
+
+variable "environment" {
+  description = "Environment name"
+  type        = string
+  default     = "dev"
 }
