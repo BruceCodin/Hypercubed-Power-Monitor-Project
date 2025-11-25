@@ -31,11 +31,7 @@ with st.form(key='subscription_form'):
             "email": email,
             "postcode": postcode
         }
-        # api_url = 'https://your-api-url.amazonaws.com/your-endpoint'
-        # response = requests.post(api_url, json=details)
         response = lambda_handler(details, None)
-        # Mock response for testing
-        # response = {'statusCode': 400, 'body': 'Bad Request'}
         if response['statusCode'] == 200:
             st.success(
                 f"Thank you {first_name}! You have successfully subscribed. :tada:")
