@@ -1,5 +1,10 @@
 import streamlit as st
-from heatmap_helper import get_live_outage_data, get_mapped_df, create_bubble_map
+from heatmap_helper import (
+    get_live_outage_data,
+    get_mapped_df,
+    create_bubble_map,
+    count_outage_status
+)
 
 # --- 1. SETUP ---
 st.set_page_config(page_title="UK Power Outage Heatmap", layout="wide")
@@ -17,16 +22,14 @@ if df.empty:
     st.warning("No data found.")
     st.stop()
 
-# --- KPI DISPLAY ---
-# kpis index: 0=Total, 1=Provider, 2=Status
-st.divider()
-# --- END KPI DISPLAY ---
+# --- PAGE FILTERS ---
+# Prepare data for filters
+df_mapped = get_mapped_df(df)
 
-# --- SIDEBAR CONTROLS ---
 MIN_OUTAGES = 0
-MAX_OUTAGES = 1000
+MAX_OUTAGES = int(df_mapped['outage_count'].max())
 
-st.sidebar.header("Map Controls")
+st.sidebar.header("Page Filters")
 
 # Let users filter by outage count
 outage_range = st.sidebar.slider(
@@ -45,11 +48,6 @@ bubble_size = st.sidebar.slider(
     value=30,
     step=1
 )
-# --- END SIDEBAR CONTROLS ---
-
-
-# --- BUBBLE MAP ---
-df_mapped = get_mapped_df(df)
 
 # Filter dataframe based on user selection
 df_filtered = df_mapped[
@@ -57,7 +55,17 @@ df_filtered = df_mapped[
     (df_mapped['outage_count'] <= outage_range[1])
 ]
 
+# --- KPI's ---
+status_counts = count_outage_status(df_filtered)
+total_outages = len(df_filtered.drop_duplicates(subset=['postcode']))
+
+kpi1, kpi2, kpi3 = st.columns(3)
+kpi1.metric("📍 Total Postcodes Affected", total_outages)
+kpi2.metric("📅 Planned Outages", status_counts['planned'])
+kpi3.metric("⚠️ Unplanned Outages", status_counts['unplanned'])
+
+
+# --- HEATMAP ---
 # Create and display bubble map
 fig = create_bubble_map(df_filtered, bubble_size)
 st.plotly_chart(fig)
-# -------------------

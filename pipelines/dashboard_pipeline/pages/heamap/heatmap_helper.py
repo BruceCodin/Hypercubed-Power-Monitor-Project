@@ -67,6 +67,26 @@ def get_live_outage_data() -> pd.DataFrame:
     return df
 
 
+def count_outage_status(df: pd.DataFrame) -> dict:
+    """Count planned and unplanned outages from the dataframe.
+
+    Args:
+        df: DataFrame containing outage data with 'status' column
+
+    Returns:
+        dict: Dictionary with 'planned' and 'unplanned' counts
+    """
+    if df.empty:
+        return {'planned': 0, 'unplanned': 0}
+
+    status_counts = df['status'].value_counts().to_dict()
+
+    return {
+        'planned': status_counts.get('planned', 0),
+        'unplanned': status_counts.get('unplanned', 0)
+    }
+
+
 def get_mapped_df(df: pd.DataFrame) -> pd.DataFrame:
 
     nomi = pgeocode.Nominatim('gb')
