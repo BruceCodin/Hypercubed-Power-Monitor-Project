@@ -9,7 +9,7 @@ variable "aws_region" {
 variable "ecr_repository_name" {
   description = "Name of the ECR repository for dashboard Docker images"
   type        = string
-  default     = "c20-power-monitor-dashboard"
+  default     = "c20-power-monitor-dashboard-repo"
 }
 
 variable "project_name" {
