@@ -362,7 +362,7 @@ def save_summary_to_s3(summary_data: Dict) -> str:
 
 # ==============================================================================
 # Lambda Handler
-def lambda_handler(event):
+def lambda_handler(event, context):
     """AWS Lambda handler - main entry point."""
     logger.info("Starting AI summary generation")
     logger.info(f"Event: {json.dumps(event)}")
