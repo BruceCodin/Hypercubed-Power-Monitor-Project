@@ -203,10 +203,13 @@ def fetch_system_pricing(conn, hours: int = 24) -> Dict:
 def fetch_carbon_intensity(conn, hours: int = 24) -> Dict:
     """Fetch recent carbon intensity data, filtering out NULL and NaN values.
     
+    Gets the most recent valid carbon intensity data from the most recent
+    settlement date available, excluding NaN values.
+    
     Args:
         conn: Active PostgreSQL database connection.
         hours (int): Number of hours to look back for carbon intensity data. 
-                     Defaults to 24.
+                     Defaults to 24. (Currently unused - gets most recent valid date)
     
     Returns:
         Dict: Dictionary containing carbon intensity statistics with keys:
@@ -216,35 +219,49 @@ def fetch_carbon_intensity(conn, hours: int = 24) -> Dict:
             - intensity_index (str): Carbon intensity category (e.g., 'high', 'low').
     """
     cursor = conn.cursor()
-    cutoff_time = datetime.now() - timedelta(hours=hours)
 
     query = """
+        WITH latest_valid_date AS (
+            SELECT MAX(s.settlement_date) as max_date
+            FROM carbon_intensity ci
+            JOIN settlements s ON ci.settlement_id = s.settlement_id
+            WHERE ci.intensity_actual > 0
+                AND s.settlement_date <= CURRENT_DATE
+        ),
+        valid_carbon_data AS (
+            SELECT 
+                ci.intensity_actual,
+                ci.intensity_index
+            FROM carbon_intensity ci
+            JOIN settlements s ON ci.settlement_id = s.settlement_id
+            CROSS JOIN latest_valid_date lvd
+            WHERE s.settlement_date = lvd.max_date
+                AND ci.intensity_actual > 0
+        )
         SELECT 
-            AVG(ci.intensity_actual) as avg_intensity,
-            MIN(ci.intensity_actual) as min_intensity,
-            MAX(ci.intensity_actual) as max_intensity,
-            ci.intensity_index as latest_index
-        FROM carbon_intensity ci
-        JOIN settlements s ON ci.settlement_id = s.settlement_id
-        WHERE s.settlement_date >= %s
-            AND ci.intensity_actual IS NOT NULL  -- Filter out NULL values
-            AND ci.intensity_actual = ci.intensity_actual  -- Filters out NaN
-        GROUP BY ci.intensity_index
-        ORDER BY MAX(s.settlement_date) DESC
+            AVG(intensity_actual) as avg_intensity,
+            MIN(intensity_actual) as min_intensity,
+            MAX(intensity_actual) as max_intensity,
+            intensity_index as latest_index
+        FROM valid_carbon_data
+        GROUP BY intensity_index
+        ORDER BY intensity_index DESC
         LIMIT 1
     """
 
-    cursor.execute(query, (cutoff_time,))
+    cursor.execute(query)
     row = cursor.fetchone()
 
-    if row:
+    if row and row[0] is not None:
         stats = {
-            'average_intensity': round(float(row[0]), 2) if row[0] else 0,
-            'min_intensity': round(float(row[1]), 2) if row[1] else 0,
-            'max_intensity': round(float(row[2]), 2) if row[2] else 0,
+            'average_intensity': round(float(row[0]), 2),
+            'min_intensity': round(float(row[1]), 2),
+            'max_intensity': round(float(row[2]), 2),
             'intensity_index': row[3]
         }
+        logger.info(f"Fetched carbon: {stats['average_intensity']} gCO2/kWh")
     else:
+        logger.warning("No valid carbon intensity data found")
         stats = {
             'average_intensity': 0,
             'min_intensity': 0,
@@ -252,7 +269,6 @@ def fetch_carbon_intensity(conn, hours: int = 24) -> Dict:
             'intensity_index': 'unknown'
         }
 
-    logger.info(f"Fetched carbon: {stats['average_intensity']} gCO2/kWh")
     cursor.close()
     return stats
 
