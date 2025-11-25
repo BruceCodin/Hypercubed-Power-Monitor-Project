@@ -5,16 +5,12 @@ A Streamlit application for monitoring real-time and historical UK power
 generation, carbon intensity, and system pricing data.
 """
 
-import json
-import os
 from datetime import datetime, timedelta
 
 import streamlit as st
 import pandas as pd
-import altair as alt
-import psycopg2
-import boto3
 from dashboard_power_generation_helpers import (
+    get_secrets,
     get_power_data,
     create_generation_chart,
     create_fuel_breakdown_chart,
@@ -23,37 +19,6 @@ from dashboard_power_generation_helpers import (
     create_demand_chart,
     create_carbon_demand_chart
 )
-
-# AWS Secrets Manager configuration
-SECRETS_ARN = (
-    "arn:aws:secretsmanager:eu-west-2:129033205317:"
-    "secret:c20-power-monitor-db-credentials-TAc5Xx"
-)
-
-
-def get_secrets() -> dict:
-    """Retrieve database credentials from AWS Secrets Manager."""
-    client = boto3.client('secretsmanager')
-    response = client.get_secret_value(SecretId=SECRETS_ARN)
-    secret = response['SecretString']
-    return json.loads(secret)
-
-
-def load_secrets_to_env(credentials: dict):
-    """Load database credentials into environment variables."""
-    for key, value in credentials.items():
-        os.environ[key] = str(value)
-
-
-def connect_to_database() -> psycopg2.extensions.connection:
-    """Connect to AWS Postgres database."""
-    return psycopg2.connect(
-        host=os.getenv("DB_HOST"),
-        database=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        port=int(os.getenv("DB_PORT")),
-    )
 
 # Streamlit App
 st.set_page_config(
@@ -65,7 +30,6 @@ st.set_page_config(
 # Initialize connection
 try:
     secrets = get_secrets()
-    load_secrets_to_env(secrets)
 except (ConnectionError, ValueError) as error:
     st.error(f"Error loading credentials: {error}")
     st.stop()
@@ -109,7 +73,7 @@ else:
 # Fetch data and apply filters
 try:
     with st.spinner("Loading data..."):
-        df_initial = get_power_data(time_filter, start_date, end_date)
+        df_initial = get_power_data(time_filter, start_date, end_date, secrets)
 
     if df_initial.empty:
         st.warning("No data available for the selected time range.")

@@ -1,6 +1,5 @@
-'''Functions for power generation dashboard'''
+'''Functions for dashboard power generation visualizations.'''
 import json
-import os
 from datetime import datetime
 import streamlit as st
 import pandas as pd
@@ -8,11 +7,11 @@ import altair as alt
 import psycopg2
 import boto3
 
-
 SECRETS_ARN = (
     "arn:aws:secretsmanager:eu-west-2:129033205317:"
     "secret:c20-power-monitor-db-credentials-TAc5Xx"
 )
+
 
 def get_secrets() -> dict:
     """Retrieve database credentials from AWS Secrets Manager."""
@@ -22,26 +21,19 @@ def get_secrets() -> dict:
     return json.loads(secret)
 
 
-def load_secrets_to_env(credentials: dict):
-    """Load database credentials into environment variables."""
-    for key, value in credentials.items():
-        os.environ[key] = str(value)
-
-
-def connect_to_database() -> psycopg2.extensions.connection:
-    """Connect to AWS Postgres database."""
+def connect_to_database(secrets: dict) -> psycopg2.extensions.connection:
+    """Connect to AWS Postgres database using provided credentials."""
     return psycopg2.connect(
-        host=os.getenv("DB_HOST"),
-        database=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        port=int(os.getenv("DB_PORT")),
+        host=secrets["DB_HOST"],
+        database=secrets["DB_NAME"],
+        user=secrets["DB_USER"],
+        password=secrets["DB_PASSWORD"],
+        port=int(secrets["DB_PORT"]),
     )
-
 
 @st.cache_data(ttl=300)
 def get_power_data(filter_type: str, start: datetime,
-                   end: datetime) -> pd.DataFrame:
+                   end: datetime, secrets: dict) -> pd.DataFrame:
     """Fetch power generation, carbon intensity, and price data."""
 
     # Always use recent_demand table, but only join for historical data
@@ -95,7 +87,7 @@ def get_power_data(filter_type: str, start: datetime,
     ORDER BY s.settlement_date DESC, s.settlement_period DESC, ft.fuel_type;
     """
 
-    conn = connect_to_database()
+    conn = connect_to_database(secrets)
     data = pd.read_sql_query(query, conn)
     conn.close()
 
