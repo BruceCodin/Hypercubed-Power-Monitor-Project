@@ -4,3 +4,4 @@ pgeocode
 plotly
 psycopg2-binary
 streamlit
+python-dotenv

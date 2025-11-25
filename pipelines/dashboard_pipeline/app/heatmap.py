@@ -21,49 +21,47 @@ def render_heatmap_page():
         st.warning("No data found.")
         return
 
-    # --- PAGE FILTERS ---
+    # --- SIDEBAR FILTERS ---
     # Prepare data for filters
     df_mapped = get_mapped_df(df)
 
     MIN_OUTAGES = 0
     MAX_OUTAGES = int(df_mapped['outage_count'].max())
 
-    st.subheader("Filters")
-
-    # Create filter columns
-    filter_col1, filter_col2, filter_col3 = st.columns(3)
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Heatmap Filters")
 
     # Get available providers
     available_providers = sorted(df['source_provider'].unique().tolist())
 
     # Filter by provider
-    with filter_col1:
-        selected_providers = st.multiselect(
-            "Provider",
-            options=available_providers,
-            default=available_providers,
-            help="Select power companies to display"
-        )
+    selected_providers = st.sidebar.multiselect(
+        "Provider",
+        options=available_providers,
+        default=available_providers,
+        help="Select power companies to display",
+        key="heatmap_providers"
+    )
 
     # Let users filter by outage count
-    with filter_col2:
-        outage_range = st.slider(
-            "Count Filter",
-            min_value=MIN_OUTAGES,
-            max_value=MAX_OUTAGES,
-            value=(MIN_OUTAGES, MAX_OUTAGES),
-            step=1
-        )
+    outage_range = st.sidebar.slider(
+        "Count Filter",
+        min_value=MIN_OUTAGES,
+        max_value=MAX_OUTAGES,
+        value=(MIN_OUTAGES, MAX_OUTAGES),
+        step=1,
+        key="heatmap_count_filter"
+    )
 
     # Let users adjust bubble size
-    with filter_col3:
-        bubble_size = st.slider(
-            "Bubble Radius",
-            min_value=10,
-            max_value=50,
-            value=30,
-            step=1
-        )
+    bubble_size = st.sidebar.slider(
+        "Bubble Radius",
+        min_value=10,
+        max_value=50,
+        value=30,
+        step=1,
+        key="heatmap_bubble_size"
+    )
 
     # Filter dataframe based on user selection
     df_filtered = df_mapped[
