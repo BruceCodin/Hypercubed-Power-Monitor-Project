@@ -8,6 +8,7 @@ from transform_elexon import (
     add_date_column_to_generation
 )
 # pylint: skip-file
+# pragma: no cover
 
 
 class TestUpdatePriceColumnNames(unittest.TestCase):
@@ -57,7 +58,8 @@ class TestExpandGenerationDataColumn(unittest.TestCase):
         '''Test that data column is expanded correctly.'''
         df = pd.DataFrame({
             'data': [
-                [{'fuelType': 'WIND', 'quantity': 100}, {'fuelType': 'SOLAR', 'quantity': 50}],
+                [{'fuelType': 'WIND', 'quantity': 100}, {
+                    'fuelType': 'SOLAR', 'quantity': 50}],
                 [{'fuelType': 'WIND', 'quantity': 110}]
             ]
         })
@@ -88,24 +90,27 @@ class TestAddDateColumnToGeneration(unittest.TestCase):
     '''Tests for add_date_column_to_generation function.'''
 
     def test_adds_settlement_date_column(self):
-        '''Test that settlement_date column is added correctly.'''
+        '''Test that date column is added correctly.'''
         df = pd.DataFrame({
             'startTime': ['2023-01-01T00:00:00Z', '2023-01-02T00:00:00Z'],
             'quantity': [100, 110],
             'settlementPeriod': [1, 2]
         })
         result = add_date_column_to_generation(df)
-        self.assertIn('settlement_date', result.columns)
+        self.assertIn('date', result.columns)  # Check
         self.assertIn('settlement_period', result.columns)
         self.assertNotIn('startTime', result.columns)
         self.assertNotIn('settlementPeriod', result.columns)
 
-        # Check that settlement_date is datetime type
-        self.assertTrue(pd.api.types.is_datetime64_any_dtype(result['settlement_date']))
+        # Check that date is datetime type
+        self.assertTrue(pd.api.types.is_datetime64_any_dtype(
+            result['date']))
 
         # Check values are correct
-        self.assertEqual(result['settlement_date'].iloc[0], pd.Timestamp('2023-01-01'))
-        self.assertEqual(result['settlement_date'].iloc[1], pd.Timestamp('2023-01-02'))
+        self.assertEqual(result['date'].iloc[0],
+                         pd.Timestamp('2023-01-01'))
+        self.assertEqual(result['date'].iloc[1],
+                         pd.Timestamp('2023-01-02'))
 
     def test_preserves_other_columns(self):
         '''Test that other columns are preserved.'''

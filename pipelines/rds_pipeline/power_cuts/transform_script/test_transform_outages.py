@@ -159,9 +159,9 @@ class TestMainTransform:
             'recording_time': self._mock_datetime(recording_time)
         }
 
-    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.transform_postcode_list')
-    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.transform_source_provider')
-    @patch('pipelines.rds_pipeline.power_cuts.transform_script.transform.transform_status')
+    @patch('transform_outages.transform_postcode_list')
+    @patch('transform_outages.transform_source_provider')
+    @patch('transform_outages.transform_status')
     def test_main_transform_valid(self, mock_status, mock_provider, mock_postcode):
         '''Test main transformation with valid input data.'''
         mock_postcode.side_effect = [["BR8 7RE", "SW1A 1AA"], ["EC1A 1BB"]]

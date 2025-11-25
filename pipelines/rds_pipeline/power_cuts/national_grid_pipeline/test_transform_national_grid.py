@@ -1,4 +1,5 @@
 # pylint: skip-file
+# pragma: no cover
 import pytest
 from transform_national_grid import (
     parse_postcodes,

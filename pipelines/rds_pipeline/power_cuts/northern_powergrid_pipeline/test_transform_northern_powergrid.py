@@ -1,5 +1,5 @@
 # pylint: skip-file
-
+# pragma: no cover
 """Unit tests for Northern Powergrid power cut transformation functions."""
 
 from transform_northern_powergrid import (transform_northern_powergrid_data,
