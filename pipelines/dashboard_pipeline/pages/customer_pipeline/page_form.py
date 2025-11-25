@@ -1,6 +1,6 @@
 """
-Test script for seeing how Streamlit forms work.
-This file is kept for reference only.
+Streamlit form page for customer subscription to power monitoring services.
+This page allows users to subscribe to power cut alerts and daily summary emails.
 """
 import logging
 import streamlit as st
