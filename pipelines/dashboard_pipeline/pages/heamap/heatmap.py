@@ -3,7 +3,7 @@ from heatmap_helper import get_live_outage_data, get_mapped_df, create_bubble_ma
 
 # --- 1. SETUP ---
 st.set_page_config(page_title="UK Power Outage Heatmap", layout="wide")
-st.title("⚡ UK Power Outage Heatmap")
+st.title("UK Power Outage Heatmap")
 st.text(
     "Showing last 3 hours worth of live outage data"
 )
