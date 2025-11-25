@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import psycopg2
-import os
 import boto3
 import json
 
@@ -32,19 +31,12 @@ def get_secrets() -> dict:
     return secret_dict
 
 
-def load_secrets_to_env(secrets: dict) -> None:
-    """Load database credentials from Secrets Manager into environment variables.
+@st.cache_resource
+def init_connection(secrets: dict) -> psycopg2.extensions.connection:
+    """Connects to AWS Postgres database using Secrets Manager credentials.
 
     Args:
-        secrets (dict): Dictionary containing database credentials"""
-
-    for key, value in secrets.items():
-        os.environ[key] = str(value)
-
-
-@st.cache_resource
-def init_connection() -> psycopg2.extensions.connection:
-    """Connects to AWS Postgres database using Secrets Manager credentials.
+        secrets (dict): Dictionary containing database credentials
 
     Returns:
         psycopg2 connection object
@@ -52,11 +44,11 @@ def init_connection() -> psycopg2.extensions.connection:
 
     try:
         conn = psycopg2.connect(
-            host=os.getenv("DB_HOST"),
-            database=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            port=int(os.getenv("DB_PORT")),
+            host=secrets["DB_HOST"],
+            database=secrets["DB_NAME"],
+            user=secrets["DB_USER"],
+            password=secrets["DB_PASSWORD"],
+            port=int(secrets["DB_PORT"]),
         )
 
         return conn
@@ -76,7 +68,8 @@ def get_live_outage_data() -> pd.DataFrame:
         pd.DataFrame: DataFrame containing postcode, provider, status, outage date,
                       recording time, and outage count."""
 
-    conn = init_connection()
+    secrets = get_secrets()
+    conn = init_connection(secrets)
     if not conn:
         return pd.DataFrame()
 
