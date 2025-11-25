@@ -43,7 +43,7 @@ def get_live_outage_data() -> pd.DataFrame:
         return pd.DataFrame()
 
     query = """
-    SELECT SPLIT_PART(UPPER(bap.postcode_affected), ' ', 1) as postcode,
+    SELECT bap.postcode_affected as postcode,
         fo.source_provider,
         fo.status,
         fo.outage_date,
@@ -85,18 +85,17 @@ def create_bubble_map(df_filtered, bubble_size) -> px.scatter_map:
         lon='lon',
         size='outage_count',
         color='outage_count',
-        color_continuous_scale='Bluered',
+        color_continuous_scale='aggrnyl',
         size_max=bubble_size,
         center=dict(lat=54.5, lon=-2.5),
         zoom=5,
         map_style="carto-positron",
         hover_name='postcode',
-        hover_data={'outage_count': ':.0f'},
-        title="UK Power Outages by Postcode District",
+        hover_data=['outage_count'],
+        title="UK Power Outages by Postcode",
         labels={'outage_count': 'Count'}
     )
     fig.update_layout(
-        height=600,
-        coloraxis_colorbar=dict(title='Count')
+        height=600
     )
     return fig
