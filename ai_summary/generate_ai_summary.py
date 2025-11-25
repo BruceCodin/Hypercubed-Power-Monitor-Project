@@ -3,6 +3,7 @@ Lambda function to generate AI-powered summaries of UK energy data.
 Queries RDS for power cuts, generation, pricing, and carbon intensity.
 Saves summaries to S3 for dashboard consumption.
 """
+# pylint: disable = W1203, W1309, W0612, C0301, W0621, W0718
 
 import os
 import json
