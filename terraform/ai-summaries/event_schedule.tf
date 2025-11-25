@@ -57,10 +57,6 @@ resource "aws_scheduler_schedule" "ai_summary_schedule" {
   target {
     arn      = aws_lambda_function.ai_summary_generator.arn
     role_arn = aws_iam_role.eventbridge_scheduler_role.arn
-    
-    input = jsonencode({
-      prompt = "Generate a comprehensive daily summary of UK energy data including power generation, carbon intensity, pricing, and power outages. Compare today's metrics with historical trends."
-    })
   }
 
   state = var.schedule_enabled ? "ENABLED" : "DISABLED"

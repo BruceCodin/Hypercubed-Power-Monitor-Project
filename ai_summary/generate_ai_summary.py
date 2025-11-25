@@ -26,7 +26,14 @@ s3_client = boto3.client('s3')
 # ==============================================================================
 # Get secrets from AWS Secrets Manager
 def get_secret(secret_arn: str) -> Dict:
-    """Retrieve a secret from AWS Secrets Manager."""
+    """Retrieve a secret from AWS Secrets Manager.
+    
+    Args:
+        secret_arn (str): The ARN of the secret to retrieve.
+        
+    Returns:
+        Dict: The secret value as a dictionary.
+    """
     response = secretsmanager_client.get_secret_value(SecretId=secret_arn)
     return json.loads(response['SecretString'])
 
@@ -51,7 +58,7 @@ def get_db_connection():
     conn = psycopg2.connect(
         host=os.environ['DB_HOST'],
         database=os.environ['DB_NAME'],
-        user=os.environ['DB_USERNAME'],
+        user=os.environ['DB_USER'],
         password=os.environ['DB_PASSWORD'],
         port=os.environ.get('DB_PORT', '5432')
     )

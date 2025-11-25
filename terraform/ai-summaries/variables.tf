@@ -23,7 +23,7 @@ variable "ecr_repository_name" {
 variable "lambda_function_name" {
   description = "Name of the AI summary Lambda function"
   type        = string
-  default     = "power-monitor-ai-summary"
+  default     = "c20-power-monitor-ai-summary-lambda"
 }
 
 variable "lambda_timeout" {
@@ -70,5 +70,5 @@ variable "schedule_enabled" {
 variable "schedule_expression" {
   description = "Schedule expression for generating AI summaries (cron or rate expression)"
   type        = string
-  default     = "cron(0 8 * * ? *)"  # Daily at 8:00 AM UTC
+  default     = "rate(6 hours)" # Every 6 hours
 }
