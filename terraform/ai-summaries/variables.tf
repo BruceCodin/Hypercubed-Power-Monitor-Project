@@ -70,5 +70,5 @@ variable "schedule_enabled" {
 variable "schedule_expression" {
   description = "Schedule expression for generating AI summaries (cron or rate expression)"
   type        = string
-  default     = "rate(5 minutes)"  # Changed for testing
+  default     = "rate(6 hours)" # Every 6 hours
 }
