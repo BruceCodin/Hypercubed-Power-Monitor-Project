@@ -67,8 +67,6 @@ def get_outage_data():
         cur.execute(query_kpis)
         data_kpi = cur.fetchone()
 
-    conn.close()
-
     df = pd.DataFrame(data_map, columns=cols_map)
     if not df.empty:
         df['postcode'] = df['postcode'].str.upper().str.strip()
