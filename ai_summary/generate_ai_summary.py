@@ -341,14 +341,17 @@ def lambda_handler(event, context):
         conn = get_db_connection()
 
         # Step 3: Fetch all data (last 24 hours)
-        logger.info("Fetching data from RDS...")
-        outages_data = fetch_power_outages(conn, hours=24)
-        generation_data = fetch_power_generation(conn, hours=24)
-        pricing_data = fetch_system_pricing(conn, hours=24)
-        carbon_data = fetch_carbon_intensity(conn, hours=24)
-
-        conn.close()
-        logger.info("Database connection closed")
+        try:
+            
+            logger.info("Fetching data from RDS...")
+            outages_data = fetch_power_outages(conn, hours=24)
+            generation_data = fetch_power_generation(conn, hours=24)
+            pricing_data = fetch_system_pricing(conn, hours=24)
+            carbon_data = fetch_carbon_intensity(conn, hours=24)
+        finally: # Always close connection if anything goes wrong
+            if conn:
+                conn.close()
+                logger.info("Database connection closed")
 
         # Step 4: Combine all data
         all_data = {
