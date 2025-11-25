@@ -1,93 +1,51 @@
 import streamlit as st
-import pandas as pd
-import pgeocode
-import plotly.express as px
-import psycopg2
+from heatmap_helper import get_outage_data, get_mapped_df, create_bubble_map
 
 # --- 1. SETUP ---
 st.set_page_config(page_title="UK Power Outage Heatmap", layout="wide")
 st.title("⚡ UK Power Outage Heatmap")
 
-nomi = pgeocode.Nominatim('gb')
 
-# --- 2. DATABASE CONNECTION ---
-
-
-@st.cache_resource
-def init_connection():
-    try:
-        return psycopg2.connect(**st.secrets["db_credentials"])
-    except Exception as e:
-        st.error(f"❌ DB Connection Failed: {e}")
-        return None
-
-# --- 3. DATA LOADING ---
-
-
-@st.cache_data(ttl=600)
-def get_outage_data():
-    conn = init_connection()
-    if not conn:
-        return pd.DataFrame()
-
-    # Extract Outcode (e.g. 'RM8') and count outages
-    query = """
-    SELECT 
-        SPLIT_PART(UPPER(p.postcode_affected), ' ', 1) as postcode,
-        COUNT(p.outage_id) as outage_count
-    FROM 
-        BRIDGE_affected_postcodes p
-    JOIN 
-        FACT_outage f ON p.outage_id = f.outage_id
-    GROUP BY 
-        1;
-    """
-
-    with conn.cursor() as cur:
-        cur.execute(query)
-        data = cur.fetchall()
-        colnames = [desc[0] for desc in cur.description]
-    conn.close()
-
-    df = pd.DataFrame(data, columns=colnames)
-    if not df.empty:
-        df['postcode'] = df['postcode'].str.upper().str.strip()
-    return df
-
-
-# --- 4. VISUALIZATION ---
-with st.spinner('Loading data...'):
-    df = get_outage_data()
+# --- 2. VISUALIZATION ---
+with st.spinner('Fetching live stats...'):
+    df, kpis = get_outage_data()
 
 if df.empty:
     st.warning("No data found.")
     st.stop()
 
-# Geocoding
-geo_data = nomi.query_postal_code(df['postcode'].tolist())
-df['lat'] = geo_data.latitude
-df['lon'] = geo_data.longitude
-df_mapped = df.dropna(subset=['lat', 'lon'])
+# --- KPI DISPLAY ---
+# kpis index: 0=Total, 1=Provider, 2=Status
+if kpis:
+    # Calculate 'Worst Hit District' from the dataframe directly
+    worst_hit = df.loc[df['outage_count'].idxmax()]
 
-st.subheader("Outage Density by District")
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    kpi1.metric("Total Unique Outages", kpis[0])
+    kpi2.metric("Most Active Provider", kpis[1])
+    kpi3.metric("Current Status Trend", kpis[2])
+    kpi4.metric("Worst Hit District",
+                f"{worst_hit['postcode']} ({worst_hit['outage_count']})")
 
-# Get outage count range
-min_outages = int(df_mapped['outage_count'].min())
-max_outages = int(df_mapped['outage_count'].max())
+st.divider()
+# --- END KPI DISPLAY ---
 
 # --- SIDEBAR CONTROLS ---
+MIN_OUTAGES = 0
+MAX_OUTAGES = 1000
+
 st.sidebar.header("Map Controls")
 
-# Outage count filter
+# Let users filter by outage count
 outage_range = st.sidebar.slider(
     "Filter by Outage Count",
-    min_value=min_outages,
-    max_value=max_outages,
-    value=(min_outages, max_outages),
+    min_value=MIN_OUTAGES,
+    max_value=MAX_OUTAGES,
+    value=(MIN_OUTAGES, MAX_OUTAGES),
     step=1
 )
 
-# Bubble size control
+# Let users adjust bubble size
 bubble_size = st.sidebar.slider(
     "Bubble Radius",
     min_value=10,
@@ -95,31 +53,20 @@ bubble_size = st.sidebar.slider(
     value=30,
     step=1
 )
+# --- END SIDEBAR CONTROLS ---
 
-st.sidebar.info(f"Showing {outage_range[0]} - {outage_range[1]} outages")
 
-# Filter data based on outage count
+# --- BUBBLE MAP ---
+df_mapped = get_mapped_df(df)
+
+# Filter dataframe based on user selection
 df_filtered = df_mapped[
     (df_mapped['outage_count'] >= outage_range[0]) &
     (df_mapped['outage_count'] <= outage_range[1])
 ]
 
-# Fixed Bubble Map (Scatter Mapbox)
-fig = px.scatter_map(
-    df_filtered,
-    lat='lat',
-    lon='lon',
-    size='outage_count',
-    color='outage_count',
-    color_continuous_scale='Bluered',
-    size_max=bubble_size,
-    center=dict(lat=54.5, lon=-2.5),
-    zoom=5,
-    map_style="carto-positron",
-    hover_name='postcode',
-    hover_data=['outage_count']
-)
-fig.update_layout(
-    height=800
-)
+# Create and display bubble map
+st.subheader("Outage Density by District")
+fig = create_bubble_map(df_filtered, bubble_size)
 st.plotly_chart(fig, width="stretch")
+# -------------------
