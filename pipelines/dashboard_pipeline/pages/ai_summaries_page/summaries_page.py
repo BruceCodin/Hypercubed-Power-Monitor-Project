@@ -2,10 +2,11 @@
 Streamlit dashboard page for AI-generated energy summaries.
 Displays latest and historical AI summaries in a blog-style format.
 """
+# pylint: disable = W1309
 
-import streamlit as st
 from datetime import datetime
 import logging
+import streamlit as st
 from load_summaries import (
     get_latest_summary,
     list_all_summaries,
