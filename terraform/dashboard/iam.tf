@@ -1,8 +1,6 @@
 # iam.tf - IAM roles and policies for ECS
 
-# ==============================================================================
 # ECS Task Execution Role (for pulling images, logging, secrets)
-# ==============================================================================
 
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "c20-dashboard-ecs-task-execution-role"
@@ -31,9 +29,9 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# Additional policy for Secrets Manager access
-resource "aws_iam_role_policy" "ecs_task_execution_secrets" {
-  name = "ecs-task-execution-secrets-policy"
+# Additional policy for Secrets Manager and ECR access
+resource "aws_iam_role_policy" "ecs_task_execution_extended" {
+  name = "ecs-task-execution-extended-policy"
   role = aws_iam_role.ecs_task_execution_role.id
 
   policy = jsonencode({
@@ -57,13 +55,32 @@ resource "aws_iam_role_policy" "ecs_task_execution_secrets" {
           "kms:DescribeKey"
         ]
         Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "*"
       }
     ]
   })
 }
 
 
-# ECS Task Role (for application permissions - S3, RDS, etc.)
+# ECS Task Role (for application permissions - S3, RDS, Secrets, CloudWatch)
 
 resource "aws_iam_role" "ecs_task_role" {
   name = "c20-dashboard-ecs-task-role"
@@ -100,7 +117,8 @@ resource "aws_iam_role_policy" "ecs_task_s3_access" {
           "s3:GetObject",
           "s3:PutObject",
           "s3:ListBucket",
-          "s3:DeleteObject"
+          "s3:DeleteObject",
+          "s3:GetBucketLocation"
         ]
         Resource = [
           "arn:aws:s3:::${var.s3_bucket_name}",
@@ -123,12 +141,21 @@ resource "aws_iam_role_policy" "ecs_task_secrets_access" {
         Effect = "Allow"
         Action = [
           "secretsmanager:GetSecretValue",
-          "secretsmanager:DescribeSecret"
+          "secretsmanager:DescribeSecret",
+          "secretsmanager:ListSecrets"
         ]
         Resource = [
           var.db_secret_arn,
           "${var.db_secret_arn}*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -148,7 +175,8 @@ resource "aws_iam_role_policy" "ecs_task_cloudwatch_logs" {
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents",
-          "logs:DescribeLogStreams"
+          "logs:DescribeLogStreams",
+          "logs:DescribeLogGroups"
         ]
         Resource = "arn:aws:logs:*:*:*"
       }
@@ -156,7 +184,7 @@ resource "aws_iam_role_policy" "ecs_task_cloudwatch_logs" {
   })
 }
 
-# ECR Access Policy - for pulling images
+# ECR Access Policy - for pulling images during task startup
 resource "aws_iam_role_policy" "ecs_task_ecr_access" {
   name = "ecs-task-ecr-access-policy"
   role = aws_iam_role.ecs_task_role.id
@@ -170,7 +198,9 @@ resource "aws_iam_role_policy" "ecs_task_ecr_access" {
           "ecr:GetAuthorizationToken",
           "ecr:BatchCheckLayerAvailability",
           "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage"
+          "ecr:BatchGetImage",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages"
         ]
         Resource = "*"
       }
@@ -178,7 +208,7 @@ resource "aws_iam_role_policy" "ecs_task_ecr_access" {
   })
 }
 
-# RDS/Database Access Policy - for VPC networking
+# RDS/Database Access Policy - for public RDS connection
 resource "aws_iam_role_policy" "ecs_task_rds_access" {
   name = "ecs-task-rds-access-policy"
   role = aws_iam_role.ecs_task_role.id
@@ -204,6 +234,27 @@ resource "aws_iam_role_policy" "ecs_task_rds_access" {
           "ec2:DescribeVpcs"
         ]
         Resource = "*"
+      }
+    ]
+  })
+}
+
+# SSM Parameter Store Access Policy - in case dashboard needs config parameters
+resource "aws_iam_role_policy" "ecs_task_ssm_access" {
+  name = "ecs-task-ssm-access-policy"
+  role = aws_iam_role.ecs_task_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath"
+        ]
+        Resource = "arn:aws:ssm:*:*:parameter/*"
       }
     ]
   })
