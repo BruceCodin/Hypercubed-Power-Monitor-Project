@@ -46,6 +46,6 @@ with st.form(key='subscription_form'):
             logger.info("\n".join(logger_message))
         else:
             st.write(
-                f"Failed to trigger AWS Lambda function. Status code: {response.status_code}")
+                f"Oops! Something went wrong. Status code: {response.status_code}")
 
     st.write("You can resubmit the form at any time to update your subscriptions.")
