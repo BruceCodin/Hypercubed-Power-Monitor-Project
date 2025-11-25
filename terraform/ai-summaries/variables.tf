@@ -23,7 +23,7 @@ variable "ecr_repository_name" {
 variable "lambda_function_name" {
   description = "Name of the AI summary Lambda function"
   type        = string
-  default     = "power-monitor-ai-summary"
+  default     = "c20-power-monitor-ai-summary-lambda"
 }
 
 variable "lambda_timeout" {
