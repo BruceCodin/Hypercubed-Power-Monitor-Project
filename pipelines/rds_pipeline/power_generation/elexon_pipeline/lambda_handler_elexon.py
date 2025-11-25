@@ -100,29 +100,33 @@ def get_last_price_datetime(connection):
         logger.error("Database error getting last price datetime: %s", e)
         return None, None
 
-def calculate_fetch_window(last_date, data_type="generation"):
+def calculate_fetch_window(last_date, last_period):
     """
-    Calculate the start and end datetime for fetching data.
+    Calculate the start and end datetime for fetching generation data.
+    Fetches from last known settlement period to now, or last 7 days on first run.
 
     Args:
         last_date: Last settlement date in DB (or None)
-        data_type (str): Type of data being fetched (for logging)
+        last_period: Last settlement period in DB (or None)
 
     Returns:
         tuple: (start_time, end_time) datetime objects
     """
-    end_time = datetime.now()
+    end_time = datetime.now() + timedelta(minutes=5)
 
     if last_date is None:
         # First run - fetch last 7 days
         start_time = end_time - timedelta(days=7)
-        logger.info("%s: First run - fetching last 7 days", data_type)
+        logger.info("First run - fetching last 7 days: %s to %s", start_time, end_time)
     else:
-        # Always fetch last 3 hours to keep data fresh and handle updates
-        start_time = end_time - timedelta(hours=3)
-        logger.info("%s: Fetching last 3 hours to update/fill data", data_type)
-
-    logger.info("%s fetch window: %s to %s", data_type, start_time, end_time)
+        # Calculate exact datetime from last settlement period
+        # Each period is 30 minutes, periods 1-48 represent 00:00-23:30
+        start_time = datetime.combine(last_date, datetime.min.time())
+        start_time += timedelta(minutes=(last_period - 1) * 30)
+        logger.info(
+            "Fetching from last settlement: %s (period %s) to %s",
+            start_time, last_period, end_time
+        )
 
     return start_time, end_time
 
@@ -160,13 +164,10 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             logger.info("=" * 60)
 
             # Get last generation datetime from RDS
-            last_gen_date, _ = get_last_generation_datetime(db_connection)
+            last_gen_date, last_gen_period = get_last_generation_datetime(db_connection)
 
             # Calculate time window
-            start_time, end_time = calculate_fetch_window(
-                last_gen_date,
-                "Generation"
-            )
+            start_time, end_time = calculate_fetch_window(last_gen_date, last_gen_period)
 
             # Extract generation data
             logger.info("Fetching generation data from Elexon API...")

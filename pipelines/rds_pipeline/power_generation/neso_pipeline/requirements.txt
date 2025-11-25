@@ -1,5 +1,5 @@
 requests
-pandas
-pytest
-pytest-cov
-psycopg2
+pandas<2.0.0
+numpy<2.0.0
+psycopg2-binary
+boto3
