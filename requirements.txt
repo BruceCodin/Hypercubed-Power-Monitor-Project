@@ -2,3 +2,7 @@ pytest
 pylint
 requests
 python-dotenv
+boto3
+pandas
+pyarrow # for parquet support
+psycopg2

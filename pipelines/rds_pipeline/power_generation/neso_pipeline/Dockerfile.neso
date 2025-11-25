@@ -1,0 +1,24 @@
+
+# Use AWS Lambda Python base image
+FROM public.ecr.aws/lambda/python:3.11
+
+# Install system dependencies needed for building Python packages
+RUN yum install -y gcc gcc-c++ && yum clean all
+
+# Copy requirements file first for better layer caching
+COPY requirements.txt ${LAMBDA_TASK_ROOT}/
+
+# Install Python dependencies
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt
+
+# Copy all NESO pipeline modules
+COPY extract_neso.py ${LAMBDA_TASK_ROOT}/
+COPY transform_neso.py ${LAMBDA_TASK_ROOT}/
+COPY load_neso.py ${LAMBDA_TASK_ROOT}/
+
+# Copy Lambda handler (must be last to take advantage of layer caching)
+COPY lambda_handler_neso.py ${LAMBDA_TASK_ROOT}/
+
+# Set the Lambda handler
+CMD ["lambda_handler_neso.lambda_handler"]
