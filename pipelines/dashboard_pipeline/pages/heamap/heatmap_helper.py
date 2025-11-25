@@ -31,49 +31,40 @@ def init_connection():
 
 
 @st.cache_data(ttl=300)
-def get_live_outage_data():
+def get_live_outage_data() -> pd.DataFrame:
+    """Fetch live outage data from the database for the last 3 hours.
+
+    Returns:
+        pd.DataFrame: DataFrame containing postcode, provider, status, outage date,
+                      recording time, and outage count."""
+
     conn = init_connection()
     if not conn:
         return pd.DataFrame()
 
-    # Query 1: Heatmap Data (Postcode Districts) from last 24 hours
-    query_map = """
-    SELECT 
-        SPLIT_PART(UPPER(p.postcode_affected), ' ', 1) as postcode,
-        COUNT(p.outage_id) as outage_count
-    FROM 
-        BRIDGE_affected_postcodes p
-    JOIN 
-        FACT_outage f ON p.outage_id = f.outage_id
-    WHERE 
-    	f.recording_time >= NOW() - INTERVAL '24 hours'
-    GROUP BY 
-        1;
-    """
-
-    # Query 2: KPI Metrics (Total Outages, Top Provider, Main Status)
-    query_kpis = """
-    SELECT 
-        (SELECT COUNT(*) FROM FACT_outage) as total_outages,
-        (SELECT source_provider FROM FACT_outage GROUP BY source_provider ORDER BY COUNT(*) DESC LIMIT 1) as top_provider,
-        (SELECT status FROM FACT_outage GROUP BY status ORDER BY COUNT(*) DESC LIMIT 1) as common_status;
+    query = """
+    SELECT SPLIT_PART(UPPER(bap.postcode_affected), ' ', 1) as postcode,
+        fo.source_provider,
+        fo.status,
+        fo.outage_date,
+        fo.recording_time
+    FROM bridge_affected_postcodes bap
+    JOIN fact_outage fo 
+    ON bap.outage_id = fo.outage_id
+    WHERE fo.recording_time >= NOW() - INTERVAL '3 hour'
     """
 
     with conn.cursor() as cur:
-        # Fetch Map Data
-        cur.execute(query_map)
-        data_map = cur.fetchall()
-        cols_map = [desc[0] for desc in cur.description]
+        cur.execute(query)
+        data = cur.fetchall()
+        cols = [desc[0] for desc in cur.description]
 
-        # Fetch KPI Data
-        cur.execute(query_kpis)
-        data_kpi = cur.fetchone()
-
-    df = pd.DataFrame(data_map, columns=cols_map)
+    df = pd.DataFrame(data, columns=cols)
     if not df.empty:
-        df['postcode'] = df['postcode'].str.upper().str.strip()
+        df['outage_count'] = df.groupby(
+            'postcode')['postcode'].transform('count')
 
-    return df, data_kpi
+    return df
 
 
 def get_mapped_df(df: pd.DataFrame) -> pd.DataFrame:

@@ -1,14 +1,17 @@
 import streamlit as st
-from heatmap_helper import get_outage_data, get_mapped_df, create_bubble_map
+from heatmap_helper import get_live_outage_data, get_mapped_df, create_bubble_map
 
 # --- 1. SETUP ---
 st.set_page_config(page_title="UK Power Outage Heatmap", layout="wide")
 st.title("⚡ UK Power Outage Heatmap")
+st.text(
+    "Data shows the last 3 hours of reported power outages across UK postcode districts."
+)
 
 
 # --- 2. VISUALIZATION ---
 with st.spinner('Fetching live stats...'):
-    df, kpis = get_outage_data()
+    df = get_live_outage_data()
 
 if df.empty:
     st.warning("No data found.")
@@ -16,17 +19,6 @@ if df.empty:
 
 # --- KPI DISPLAY ---
 # kpis index: 0=Total, 1=Provider, 2=Status
-if kpis:
-    # Calculate 'Worst Hit District' from the dataframe directly
-    worst_hit = df.loc[df['outage_count'].idxmax()]
-
-    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-    kpi1.metric("Total Unique Outages", kpis[0])
-    kpi2.metric("Most Active Provider", kpis[1])
-    kpi3.metric("Current Status Trend", kpis[2])
-    kpi4.metric("Worst Hit District",
-                f"{worst_hit['postcode']} ({worst_hit['outage_count']})")
-
 st.divider()
 # --- END KPI DISPLAY ---
 
@@ -66,7 +58,7 @@ df_filtered = df_mapped[
 ]
 
 # Create and display bubble map
-st.subheader("Outage Density by District")
+st.subheader("Outage Map")
 fig = create_bubble_map(df_filtered, bubble_size)
 st.plotly_chart(fig, width="stretch")
 # -------------------
