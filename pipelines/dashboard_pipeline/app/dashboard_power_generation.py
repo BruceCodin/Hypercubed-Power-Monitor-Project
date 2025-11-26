@@ -31,7 +31,7 @@ def render_power_generation_page():
         return
 
     # Header
-    st.subheader("UK Power Supply Monitor")
+    st.title("Power Supply Monitor")
     st.markdown(
         "Real-time and historical tracking of power supply, "
         "carbon intensity, and system pricing"

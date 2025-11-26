@@ -24,9 +24,6 @@ except ImportError as e:
 if "active_page" not in st.session_state:
     st.session_state.active_page = "home"
 
-# Main title
-st.title("⚡ UK Power Monitor Dashboard")
-
 # Sidebar navigation using option_menu
 with st.sidebar:
     selected = option_menu(
@@ -51,7 +48,7 @@ st.session_state.active_page = page_mapping.get(selected, "home")
 
 # Render the appropriate page based on active_page
 if st.session_state.active_page == "home":
-    st.header("Welcome to UK Power Monitor")
+    st.title("Welcome to UK Power Monitor")
     st.markdown("""
 This comprehensive dashboard provides real-time insights into UK power generation,
 carbon intensity, and power outage alerts by consolidating data from multiple providers and sources.

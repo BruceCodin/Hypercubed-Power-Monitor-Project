@@ -10,7 +10,7 @@ from heatmap_helper import (
 
 def render_heatmap_page():
     """Render the heatmap page with filters and visualizations."""
-    st.subheader("UK Power Outage Heatmap")
+    st.title("Power Outage Heatmap")
     st.text("Showing last 3 hours worth of live outage data")
 
     # --- VISUALIZATION ---
