@@ -31,7 +31,7 @@ st.title("⚡ UK Power Monitor Dashboard")
 with st.sidebar:
     selected = option_menu(
         menu_title="Navigation",
-        options=["Home", "Generation", "Heatmap", "Summaries", "Subscribe"],
+        options=["Home", "Generation", "Outage Map", "Summaries", "Subscribe"],
         icons=["house", "lightning-charge", "map",
                "chat-square-text", "pencil-square"],
         menu_icon="cast",
@@ -41,7 +41,7 @@ with st.sidebar:
 # Map selected menu item to page
 page_mapping = {
     "Home": "home",
-    "Heatmap": "heatmap",
+    "Outage Map": "heatmap",
     "Generation": "power_generation",
     "Summaries": "summaries",
     "Subscribe": "subscription"
