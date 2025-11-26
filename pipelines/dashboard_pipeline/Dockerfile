@@ -14,6 +14,9 @@ COPY app/dashboard_power_generation.py .
 COPY app/dashboard_power_generation_helpers.py .
 COPY app/summaries_page.py .
 COPY app/load_summaries.py .
+COPY app/etl_customer.py .
+COPY app/page_form.py .
+
 
 # Expose Streamlit port
 EXPOSE 8501
