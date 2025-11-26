@@ -185,29 +185,6 @@ resource "aws_iam_role_policy" "ecs_task_cloudwatch_logs" {
 }
 
 # ECR Access Policy - for pulling images during task startup
-resource "aws_iam_role_policy" "ecs_task_ecr_access" {
-  name = "ecs-task-ecr-access-policy"
-  role = aws_iam_role.ecs_task_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "ecr:DescribeRepositories",
-          "ecr:ListImages"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-}
-
 # RDS/Database Access Policy - for public RDS connection
 resource "aws_iam_role_policy" "ecs_task_rds_access" {
   name = "ecs-task-rds-access-policy"
