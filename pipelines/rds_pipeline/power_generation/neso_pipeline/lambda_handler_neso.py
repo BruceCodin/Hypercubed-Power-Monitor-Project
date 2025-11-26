@@ -21,7 +21,7 @@ logger.setLevel(logging.INFO)
 # NESO API Resource ID
 RECENT_RESOURCE_ID = "177f6fa4-ae49-4182-81ea-0c6b35f26ca6"
 
-def get_last_data_timestamp(db_connection: psycopg2.extensions.connection) -> datetime:
+def get_last_data_timestamp(db_connection: psycopg2.extensions.connection) -> (tuple):
     """
     Get max settlement date and period from the NESO demand data table.
 

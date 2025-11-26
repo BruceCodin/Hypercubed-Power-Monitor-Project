@@ -124,8 +124,6 @@ def load_neso_demand_data_to_db(connection, demand_df: pd.DataFrame) -> bool:
         demand_df (pd.DataFrame): Transformed NESO demand data with columns:
                                   'settlement_date', 'settlement_period',
                                   'national_demand', 'transmission_system_demand'
-        table (str): Target table name for demand data (historic_demand or recent_demand)
-
     Returns:
         bool: True if successful, False otherwise
     '''
