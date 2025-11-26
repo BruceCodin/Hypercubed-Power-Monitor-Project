@@ -2,7 +2,7 @@
 
 # CloudWatch Log Group for ECS tasks
 resource "aws_cloudwatch_log_group" "dashboard" {
-  name              = "/ecs/c20-dashboard"
+  name              = "/ecs/c20-power-monitor-dashboard"
   retention_in_days = 7
 
   tags = {
@@ -118,14 +118,6 @@ resource "aws_ecs_task_definition" "dashboard" {
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "ecs"
         }
-      }
-
-      healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:${var.container_port}/ || exit 1"]
-        interval    = 30
-        timeout     = 5
-        retries     = 3
-        startPeriod = 60
       }
     }
   ])
