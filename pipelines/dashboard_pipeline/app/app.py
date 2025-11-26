@@ -54,8 +54,7 @@ if st.session_state.active_page == "home":
     st.header("Welcome to UK Power Monitor")
     st.markdown("""
 This comprehensive dashboard provides real-time insights into UK power generation,
-carbon intensity, and power outage alerts. Monitor and analyze energy data across
-multiple dimensions to stay informed about the UK power system.
+carbon intensity, and power outage alerts by consolidating data from multiple providers and sources.
 
 ### 📑 Available Pages
 
@@ -64,6 +63,8 @@ multiple dimensions to stay informed about the UK power system.
 - **Power Generation**: Monitor real-time UK energy generation by fuel type and carbon intensity
 
 - **AI Summaries**: AI-powered analysis of UK energy data
+
+- **Subscribe**: Sign up for power cut alerts and daily energy summary emails
 """)
     st.info("Use the navigation buttons in the sidebar to explore different monitoring views. Each page provides interactive controls to customize your view and drill down into specific areas of interest.")
 
