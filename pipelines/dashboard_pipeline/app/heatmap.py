@@ -34,7 +34,7 @@ def render_heatmap_page():
     # Set default values for filters
     selected_providers = available_providers
     outage_range = (MIN_OUTAGES, MAX_OUTAGES)
-    bubble_size = 20  # Fixed bubble size
+    bubble_size = 20  # Fixed bubble size for heatmap
 
     st.divider()
 
@@ -62,29 +62,17 @@ def render_heatmap_page():
     # --- PAGE FILTERS ---
     st.subheader("Filters")
 
-    # Create filter columns
-    filter_col1, filter_col2 = st.columns(2)
-
     # Filter by provider
-    with filter_col1:
-        selected_providers = st.multiselect(
-            "Provider",
-            options=available_providers,
-            default=available_providers,
-            help="Select power companies to display",
-            key="heatmap_providers"
-        )
+    selected_providers = st.multiselect(
+        "Provider",
+        options=available_providers,
+        default=available_providers,
+        help="Select power companies to display",
+        key="heatmap_providers"
+    )
 
-    # Let users filter by outage count
-    with filter_col2:
-        outage_range = st.slider(
-            "Count Filter",
-            min_value=MIN_OUTAGES,
-            max_value=MAX_OUTAGES,
-            value=(MIN_OUTAGES, MAX_OUTAGES),
-            step=1,
-            key="heatmap_count_filter"
-        )
+    # Set outage range to full range (no filter)
+    outage_range = (MIN_OUTAGES, MAX_OUTAGES)
 
     # Filter dataframe based on user selection
     df_filtered = df_mapped[
