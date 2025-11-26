@@ -96,65 +96,166 @@ You are working on the Energy Monitor Project - a cloud-based ETL pipeline that 
 ## API Specifics
 
 ### Elexon Insights APIs
-- Base URL: `https://bmrs.elexon.co.uk/`
-- Data: price, generation
-- Update Frequency: 5-30 minute intervals
+- Base URL: `https://data.elexon.co.uk/bmrs/api/v1/`
+- Data: generation mix (by fuel type) and system prices
+- Update Frequency: 30-minute settlement periods (48 periods per day)
 - Method: GET
 - Authentication: None
-- Expected response format:
+- Endpoints:
+  - Generation: `/generation/outturn/summary` - shows distribution of fuel types
+  - Pricing: `/balancing/settlement/system-prices/{settlementDate}` - system buy/sell prices
 
-```
-To be explored
+**Generation Response:**
+```json
+[
+  {
+    "startTime": "2025-11-16T10:55:00Z",
+    "settlementPeriod": 22,
+    "data": [
+      {
+        "fuelType": "BIOMASS",
+        "generation": 3322
+      },
+      {
+        "fuelType": "CCGT",
+        "generation": 12247
+      },
+      {
+        "fuelType": "WIND",
+        "generation": 6217
+      }
+    ]
+  }
+]
 ```
 
-### The Carbon Intensity Forecast
-- Base URL: `https://carbonintensity.org.uk/`
-- Data: to be explored
-- Update Frequency: unknown
+**System Prices Response:**
+```json
+{
+  "dataset": "SYSPRICE",
+  "settlementDate": "2024-11-17",
+  "settlementPeriod": 25,
+  "systemSellPrice": 85.50,
+  "systemBuyPrice": 82.30,
+  "priceDerivationCode": "NORMAL",
+  "reserveScarcityPrice": 0.00,
+  "netImbalanceVolume": 152.5
+}
+```
+
+**Key Parameters:**
+- `settlementDate` - YYYY-MM-DD format
+- `settlementPeriod` - 1-48 (each period = 30 minutes)
+- `from` / `to` - Date range queries
+- `format` - json or csv (defaults to json)
+
+### Carbon Intensity API
+- Base URL: `https://api.carbonintensity.org.uk/`
+- Data: carbon intensity forecasts and actual measurements (gCO2/kWh)
+- Update Frequency: 30-minute intervals
 - Method: GET
 - Authentication: None
-- Expected response format:
+- Endpoints:
+  - Current: `/intensity` - latest carbon intensity with traffic light index
+  - Range: `/intensity/{from}/{to}` - historical data (ISO 8601 timestamps)
 
-```
-To be explored
-```
-
-### The Carbon Intensity Forecast
-- Base URL: `https://carbonintensity.org.uk/`
-- Data: to be explored
-- Update Frequency: unknown
-- Method: GET
-- Authentication: None
-- Expected response format:
-
-```
-To be explored
-```
-
-### The National Grid ESO data portal
-- Base URL: `https://www.nationalgrideso.com/data-portal`
-- Data: feeds of various network operators:
-    - current power outages (scraping likely required)
-- Update Frequency: unknown
-- Method: GET
-- Authentication: None
-- Expected response format:
-
-```
-To be explored
+**Current Intensity Response:**
+```json
+{
+  "data": [
+    {
+      "from": "2025-11-17T10:30Z",
+      "to": "2025-11-17T11:00Z",
+      "intensity": {
+        "forecast": 122,
+        "actual": 118,
+        "index": "moderate"
+      }
+    }
+  ]
+}
 ```
 
-### Octopus Energy API
-- Base URL: `https://developer.octopus.energy/docs/api/`
-- Data: to be explored
-- Update Frequency: unknown
-- Method: GET
-- Authentication: None
-- Expected response format:
+**Range Query Response:**
+```json
+{
+  "data": [
+    {
+      "from": "2024-11-16T00:00Z",
+      "to": "2024-11-16T00:30Z",
+      "intensity": {
+        "forecast": 245,
+        "actual": 242,
+        "index": "high"
+      }
+    },
+    {
+      "from": "2024-11-16T00:30Z",
+      "to": "2024-11-16T01:00Z",
+      "intensity": {
+        "forecast": 238,
+        "actual": 235,
+        "index": "high"
+      }
+    }
+  ]
+}
+```
 
+**Key Parameters:**
+- `from` / `to` - ISO 8601 timestamps (e.g., `2024-11-16T00:00Z`)
+- Carbon intensity index: "very low", "low", "moderate", "high", "very high"
+- `actual` may be null for future periods (forecasts only)
+
+### National Grid ESO (NESO) Data Portal API
+- Base URL: `https://api.neso.energy/api/3/action/`
+- Data: demand, generation, interconnector flows, embedded generation
+- Update Frequency: 30-minute settlement periods
+- Method: GET (SQL queries via datastore_search_sql)
+- Authentication: None (public API)
+- Endpoint: `datastore_search_sql` - SQL-based query interface
+
+**Query Example:**
 ```
-To be explored
+GET https://api.neso.energy/api/3/action/datastore_search_sql?sql=
+SELECT * FROM "{resource_id}"
+WHERE "SETTLEMENT_DATE" = '2024-11-17'
+ORDER BY "SETTLEMENT_PERIOD"
+LIMIT 48
 ```
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "result": {
+    "records": [
+      {
+        "SETTLEMENT_DATE": "2024-11-17",
+        "SETTLEMENT_PERIOD": 1,
+        "ND": 38542.5,
+        "TSD": 36234.2,
+        "EMBEDDED_WIND_GENERATION": 2145,
+        "EMBEDDED_SOLAR_GENERATION": 156,
+        "IFA_FLOW": 1250,
+        "BRITNED_FLOW": 850,
+        "MOYLE_FLOW": 450
+      }
+    ],
+    "fields": [],
+    "sql": ""
+  }
+}
+```
+
+**Key Datasets & Columns:**
+- `ND` - National Demand (MW)
+- `TSD` - Transmission System Demand (MW)
+- `EMBEDDED_WIND_GENERATION` - Embedded wind generation (MW)
+- `EMBEDDED_SOLAR_GENERATION` - Embedded solar generation (MW)
+- `PUMP_STORAGE_PUMPING` - Pump storage pumping (MW)
+- Interconnector flows: `IFA_FLOW`, `BRITNED_FLOW`, `MOYLE_FLOW`, `GREENLINK_FLOW`, `VIKING_FLOW`, `NEMO_FLOW`, `ELECLINK_FLOW`, `NSL_FLOW`, `EAST_WEST_FLOW`
+- `SCOTLAND_TO_ENGLAND_TRANSFER` - Cross-border flow (MW)
 
 ## Database Schema Guidelines
 
@@ -181,7 +282,7 @@ These are suggestions - finalize with team during ERD design:
 - Variable naming: lowercase with underscores
 - Add descriptions to all variables
 - Output important values (ARNs, URLs, endpoints)
-- Tag all resources: `Project = "LNMH"`, `Environment = "dev/prod"`, `ManagedBy = "Terraform"`
+- Tag all resources: `Project = "Power Monitor"`, `Environment = "dev/prod"`, `ManagedBy = "Terraform"`
 - Use remote state with S3 backend
 - Run `terraform fmt` before committing
 - Never commit `.tfstate` files or `.terraform` directories
