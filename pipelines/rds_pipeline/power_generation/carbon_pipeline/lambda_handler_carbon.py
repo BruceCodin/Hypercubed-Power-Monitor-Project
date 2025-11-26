@@ -178,17 +178,17 @@ if __name__ == "__main__":
     """Allow running the handler locally for testing"""
     print("Running Carbon Lambda Handler locally...")
     print("=" * 60)
-    
+
     # Mock Lambda event and context
     mock_event = {}
     mock_context = type('Context', (), {
         'function_name': 'test-carbon-pipeline',
         'aws_request_id': 'local-test'
     })()
-    
+
     # Run the handler
     result = lambda_handler(mock_event, mock_context)
-    
+
     print("=" * 60)
     print(f"Status: {result['statusCode']}")
     print(f"Body: {result['body']}")

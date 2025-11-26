@@ -118,15 +118,31 @@ def load_carbon_data_to_db(connection, carbon_df):
     '''
     Load the carbon generation data into the RDS database.
     Uses settlement_ids from the settlements table.
+    Filters out rows with null intensity_actual values (API returns null for future periods).
     '''
     if connection is None:
         logger.error("No database connection provided. Data load aborted.")
         return False
 
     try:
-        logger.info(f"Starting carbon data load for {len(carbon_df)} records")
+        # Filter out rows with null intensity_actual values
+        # The carbon API returns null for future/current periods where actual data isn't available yet
+        rows_before_filter = len(carbon_df)
+        carbon_df_filtered = carbon_df[carbon_df['intensity_actual'].notna()].copy()
+        rows_after_filter = len(carbon_df_filtered)
+
+        if rows_before_filter > rows_after_filter:
+            logger.info(
+                f"Filtered out {rows_before_filter - rows_after_filter} records with null intensity_actual"
+            )
+
+        if carbon_df_filtered.empty:
+            logger.warning("No valid carbon data to load after filtering null values")
+            return True
+
+        logger.info(f"Starting carbon data load for {rows_after_filter} records")
         cursor = connection.cursor()
-        settlement_ids = load_settlement_data_to_db(connection, carbon_df)
+        settlement_ids = load_settlement_data_to_db(connection, carbon_df_filtered)
 
         if settlement_ids is None:
             logger.error("Failed to load settlement data. Aborting carbon data load.")
@@ -140,7 +156,7 @@ def load_carbon_data_to_db(connection, carbon_df):
             row['intensity_actual'],
             row['carbon_index']
         )
-        for i, (_, row) in enumerate(carbon_df.iterrows())
+        for i, (_, row) in enumerate(carbon_df_filtered.iterrows())
     ]
 
         insert_query = '''
