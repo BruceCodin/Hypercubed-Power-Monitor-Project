@@ -31,10 +31,13 @@ def render_heatmap_page():
     # Get available providers
     available_providers = sorted(df['source_provider'].unique().tolist())
 
-    # Set default values for filters
-    selected_providers = available_providers
-    outage_range = (MIN_OUTAGES, MAX_OUTAGES)
+    # Set bubble size
     bubble_size = 20  # Fixed bubble size for heatmap
+    outage_range = (MIN_OUTAGES, MAX_OUTAGES)
+
+    # Initialize provider filter with session state to capture filter for KPIs
+    if "heatmap_providers" not in st.session_state:
+        st.session_state.heatmap_providers = available_providers
 
     st.divider()
 
@@ -42,11 +45,11 @@ def render_heatmap_page():
 
     st.header("Key Metrics")
 
-    # Display KPIs with default filter values
+    # Display KPIs with currently selected providers
     df_filtered = df_mapped[
         (df_mapped['outage_count'] >= outage_range[0]) &
         (df_mapped['outage_count'] <= outage_range[1]) &
-        (df['source_provider'].isin(selected_providers))
+        (df['source_provider'].isin(st.session_state.heatmap_providers))
     ]
 
     status_counts = count_outage_status(df_filtered)
@@ -59,7 +62,7 @@ def render_heatmap_page():
 
     st.divider()
 
-    # --- PAGE FILTERS ---
+    # --- PAGE FILTERS (just above heatmap) ---
     st.subheader("Filters")
 
     # Filter by provider
@@ -71,9 +74,7 @@ def render_heatmap_page():
         key="heatmap_providers"
     )
 
-    # Set outage range to full range (no filter)
-    outage_range = (MIN_OUTAGES, MAX_OUTAGES)
-
+    # --- HEATMAP ---
     # Filter dataframe based on user selection
     df_filtered = df_mapped[
         (df_mapped['outage_count'] >= outage_range[0]) &
@@ -81,7 +82,6 @@ def render_heatmap_page():
         (df['source_provider'].isin(selected_providers))
     ]
 
-    # --- HEATMAP ---
     # Create and display bubble map
     fig = create_bubble_map(df_filtered, bubble_size)
     st.plotly_chart(fig, use_container_width=True)
