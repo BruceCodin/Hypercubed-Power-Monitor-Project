@@ -34,13 +34,13 @@ variable "ecs_task_family" {
 variable "ecs_task_cpu" {
   description = "CPU units for the ECS task (256, 512, 1024, 2048, 4096)"
   type        = string
-  default     = "512"
+  default     = "1024"
 }
 
 variable "ecs_task_memory" {
   description = "Memory for the ECS task in MB"
   type        = string
-  default     = "1024"
+  default     = "4096"
 }
 
 variable "container_port" {
