@@ -18,7 +18,6 @@ CREATE TABLE FACT_outage (
     outage_id INT GENERATED ALWAYS AS IDENTITY,
     source_provider TEXT NOT NULL,
     status TEXT,
-    region_affected TEXT,
     outage_date DATE,
     recording_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (outage_id)
