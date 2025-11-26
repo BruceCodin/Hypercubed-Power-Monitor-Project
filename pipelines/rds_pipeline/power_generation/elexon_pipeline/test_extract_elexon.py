@@ -2,7 +2,7 @@
 from datetime import datetime
 import pandas as pd
 import pytest
-from extract_elexon import fetch_elexon_price_data, parse_elexon_price_data, fetch_elexon_generation_data, parse_elexon_generation_data
+from extract_elexon import fetch_elexon_price_data, parse_elexon_price_data, fetch_elexon_generation_data
 # pylint: skip-file
 
 class TestParseElexonPriceData:
@@ -43,27 +43,6 @@ class TestParseElexonPriceData:
         result = parse_elexon_price_data(mock_data)
         assert len(result) == 3
 
-
-class TestParseElexonGenerationData:
-    '''Tests for parse_elexon_generation_data function'''
-
-    def test_parse_generation_data_returns_dataframe(self):
-        '''Test that parse_elexon_generation_data returns a DataFrame'''
-        mock_data = [
-            {'startTime': '2024-01-01T00:00:00Z', 'generation': 1000},
-            {'startTime': '2024-01-01T00:30:00Z', 'generation': 1100}
-        ]
-        result = parse_elexon_generation_data(mock_data)
-        assert isinstance(result, pd.DataFrame)
-
-    def test_parse_generation_data_correct_row_count(self):
-        '''Test that the returned DataFrame has the correct number of rows'''
-        mock_data = [
-            {'startTime': '2024-01-01T00:00:00Z', 'generation': 1000},
-            {'startTime': '2024-01-01T00:30:00Z', 'generation': 1100}
-        ]
-        result = parse_elexon_generation_data(mock_data)
-        assert len(result) == 2
 
 class TestFetchElexonPriceData:
     '''Tests for fetch_elexon_price_data function'''
