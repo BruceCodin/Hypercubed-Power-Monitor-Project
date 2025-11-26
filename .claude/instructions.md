@@ -260,10 +260,37 @@ LIMIT 48
 ## Database Schema Guidelines
 
 ### Expected Tables (3NF Normalized)
-These are suggestions - finalize with team during ERD design:
 
-**to be decided**
+**DIM_customer**
+- customer_id (int, generated, primary key)
+- first_name (text, not null)
+- last_name (text, not null)
+- email (text, unique, not null)
+format constraint: email like `%_@__%.__%`
 
+**FACT_outage**
+- outage_id (int, generated, primary key)
+- source_provider (text, not null)
+- status (text)
+- outage_date (date)
+- recording_time (timestamp, default now)
+
+**FACT_notification_log**
+- notification_id (serial, primary key)
+- customer_id (int, foreign key (DIM_customer))
+- outage_id (int, foreign key (FACT_outage))
+- sent_at (timestamp, default now)
+uniqueness constraint: (customer_id, outage_id)
+
+**BRIDGE_affected_postcodes**
+- affected_id (int, generated, primary key)
+- outage_id (int, not null, foreign key (FACT_outage))
+- postcode_affected (text, not null)
+
+**BRIDGE_subscribed_postcodes**
+- subscription_id (int, generated, primary key)
+- customer_id (int, not null, foreign key (DIM_customer))
+- postcode (text, not null)
 
 ## AWS Services & Architecture
 

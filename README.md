@@ -35,6 +35,10 @@ terraform apply -var-file="terraform.tfvars"
 
 **Generation** - Elexon (BMRS), Carbon Intensity API, NESO grid demand
 
+## ERD
+
+https://drawsql.app/teams/sigma-labs-85/diagrams/subscriber-alerts
+
 ## Architecture
 
 ```
