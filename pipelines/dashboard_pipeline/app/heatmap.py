@@ -10,7 +10,7 @@ from heatmap_helper import (
 
 def render_heatmap_page():
     """Render the heatmap page with filters and visualizations."""
-    st.title("Power Outage Heatmap")
+    st.subheader("UK Power Outage Heatmap")
     st.text("Showing last 3 hours worth of live outage data")
 
     # --- VISUALIZATION ---
@@ -21,37 +21,56 @@ def render_heatmap_page():
         st.warning("No data found.")
         return
 
-    # --- DATA PREPARATION ---
+    # --- SIDEBAR FILTERS ---
     # Prepare data for filters
     df_mapped = get_mapped_df(df)
 
     MIN_OUTAGES = 0
     MAX_OUTAGES = int(df_mapped['outage_count'].max())
 
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Heatmap Filters")
+
     # Get available providers
     available_providers = sorted(df['source_provider'].unique().tolist())
 
-    # Set bubble size
-    bubble_size = 20  # Fixed bubble size for heatmap
-    outage_range = (MIN_OUTAGES, MAX_OUTAGES)
+    # Filter by provider
+    selected_providers = st.sidebar.multiselect(
+        "Provider",
+        options=available_providers,
+        default=available_providers,
+        help="Select power companies to display",
+        key="heatmap_providers"
+    )
 
-    # Initialize provider filter with session state to capture filter for KPIs
-    if "heatmap_providers" not in st.session_state:
-        st.session_state.heatmap_providers = available_providers
+    # Let users filter by outage count
+    outage_range = st.sidebar.slider(
+        "Count Filter",
+        min_value=MIN_OUTAGES,
+        max_value=MAX_OUTAGES,
+        value=(MIN_OUTAGES, MAX_OUTAGES),
+        step=1,
+        key="heatmap_count_filter"
+    )
 
-    st.divider()
+    # Let users adjust bubble size
+    bubble_size = st.sidebar.slider(
+        "Bubble Radius",
+        min_value=10,
+        max_value=50,
+        value=30,
+        step=1,
+        key="heatmap_bubble_size"
+    )
 
-    # --- KPI's ---
-
-    st.header("Key Metrics")
-
-    # Display KPIs with currently selected providers
+    # Filter dataframe based on user selection
     df_filtered = df_mapped[
         (df_mapped['outage_count'] >= outage_range[0]) &
         (df_mapped['outage_count'] <= outage_range[1]) &
-        (df['source_provider'].isin(st.session_state.heatmap_providers))
+        (df['source_provider'].isin(selected_providers))
     ]
 
+    # --- KPI's ---
     status_counts = count_outage_status(df_filtered)
     total_outages = len(df_filtered.drop_duplicates(subset=['postcode']))
 
@@ -62,26 +81,7 @@ def render_heatmap_page():
 
     st.divider()
 
-    # --- PAGE FILTERS (just above heatmap) ---
-    st.subheader("Filters")
-
-    # Filter by provider
-    selected_providers = st.multiselect(
-        "Provider",
-        options=available_providers,
-        default=available_providers,
-        help="Select power companies to display",
-        key="heatmap_providers"
-    )
-
     # --- HEATMAP ---
-    # Filter dataframe based on user selection
-    df_filtered = df_mapped[
-        (df_mapped['outage_count'] >= outage_range[0]) &
-        (df_mapped['outage_count'] <= outage_range[1]) &
-        (df['source_provider'].isin(selected_providers))
-    ]
-
     # Create and display bubble map
     fig = create_bubble_map(df_filtered, bubble_size)
     st.plotly_chart(fig, use_container_width=True)

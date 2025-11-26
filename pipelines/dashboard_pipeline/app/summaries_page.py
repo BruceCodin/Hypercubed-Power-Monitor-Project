@@ -25,6 +25,15 @@ def render_summaries_page():
     st.title("AI Energy Summaries")
     st.markdown("AI-powered analysis of UK energy data, updated every 6 hours")
 
+    # Add refresh button
+    col1, col2 = st.columns([6, 1])
+    with col2:
+        if st.button("🔄 Refresh", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
+
+    st.divider()
+
     # Main content area
     tab1, tab2 = st.tabs(["Latest Summary", "Summary History"])
 

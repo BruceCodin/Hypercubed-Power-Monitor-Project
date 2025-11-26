@@ -31,30 +31,30 @@ def render_power_generation_page():
         return
 
     # Header
-    st.title("Power Supply Monitor")
+    st.subheader("UK Power Supply Monitor")
     st.markdown(
         "Real-time and historical tracking of power supply, "
         "carbon intensity, and system pricing"
     )
 
-    # --- PAGE FILTERS ---
-    st.subheader("Data Range")
+    # --- SIDEBAR FILTERS ---
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Power Generation Filters")
 
     # Time range filter
-    time_filter = st.radio(
+    time_filter = st.sidebar.radio(
         "Time Range",
         ["recent", "historical"],
         format_func=lambda x: (
             "Recent (Last 24 hours)" if x == "recent"
             else "Historical (> 24 hours)"
         ),
-        key="power_gen_time_filter",
-        horizontal=True
+        key="power_gen_time_filter"
     )
 
     # Date range for historical data
     if time_filter == "historical":
-        col1, col2 = st.columns(2)
+        col1, col2 = st.sidebar.columns(2)
         with col1:
             start_date = st.date_input(
                 "Start Date",
@@ -81,13 +81,41 @@ def render_power_generation_page():
             st.warning("No data available for the selected time range.")
             return
 
-        # Fuel type filter will be applied after user selection below
+        # Fuel type filter
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("Fuel Type Filter")
+
         available_fuel_types = sorted(
             df_initial['fuel_type'].unique().tolist())
-        selected_fuel_types = available_fuel_types  # Default to all types
-        df = df_initial.copy()
+        selected_fuel_types = st.sidebar.multiselect(
+            "Select fuel types to display",
+            options=available_fuel_types,
+            default=available_fuel_types,
+            help=(
+                "Choose which fuel types to include in the analysis. "
+                "Charts will show only selected types."
+            ),
+            key="power_gen_fuel_types"
+        )
 
-        st.divider()
+        if not selected_fuel_types:
+            st.sidebar.warning("Select at least one fuel type")
+            st.error("Please select at least one fuel type.")
+            return
+
+        st.sidebar.caption(
+            "Tip: Select 2-3 fuel types to compare their relative relationship"
+        )
+
+        # Filter data by selected fuel types
+        df = df_initial[df_initial['fuel_type'].isin(
+            selected_fuel_types)].copy()
+
+        # Show selection count
+        st.sidebar.success(
+            f"{len(selected_fuel_types)} of {len(available_fuel_types)} "
+            "fuel types selected"
+        )
 
         # Key Metrics
         st.header("Key Metrics")
@@ -155,39 +183,8 @@ def render_power_generation_page():
                     avg_demand = period_data['national_demand'].mean()
                     st.metric("Avg National Demand", f"{avg_demand:,.0f} MW")
 
-        # Fuel Type Filter
-        st.markdown("---")
-        st.subheader("Fuel Type Filter")
-
-        selected_fuel_types = st.multiselect(
-            "Select fuel types to display",
-            options=available_fuel_types,
-            default=available_fuel_types,
-            help=(
-                "Choose which fuel types to include in the analysis. "
-                "Charts will show only selected types."
-            ),
-            key="power_gen_fuel_types"
-        )
-
-        if not selected_fuel_types:
-            st.warning("Select at least one fuel type")
-            st.error("Please select at least one fuel type.")
-            return
-
-        st.caption(
-            "Tip: Select 2-3 fuel types to compare their relative relationship"
-        )
-
-        # Filter data by selected fuel types
-        df = df_initial[df_initial['fuel_type'].isin(
-            selected_fuel_types)].copy()
-
-        # Show selection count
-        st.success(
-            f"{len(selected_fuel_types)} of {len(available_fuel_types)} "
-            "fuel types selected"
-        )
+        # Charts
+        st.header("Visualizations")
 
         # Power Supply
         st.subheader("Power Supply by Source")
@@ -196,8 +193,6 @@ def render_power_generation_page():
 
         # Fuel Mix and Stats
         col1, col2 = st.columns([1, 2])
-
-        st.divider()
 
         with col1:
             fuel_chart = create_fuel_breakdown_chart(df)
@@ -247,8 +242,8 @@ def render_power_generation_page():
 
         # Auto-refresh for recent data
         if time_filter == "recent":
-            st.markdown("---")
-            st.info(
+            st.sidebar.markdown("---")
+            st.sidebar.info(
                 "Dashboard auto-refreshes every 5 minutes for live supply, "
                 "carbon intensity, and pricing data"
             )

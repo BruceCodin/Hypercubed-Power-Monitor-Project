@@ -12,17 +12,13 @@ logging.basicConfig(level=logging.INFO)
 
 def render_subscription_form_page():
     """Render the subscription form page."""
-    st.title("Subscription Form")
+    st.title(":zap: Subscription Form")
     st.write("""
-             Our Power Monitor features two free services to help you stay informed about what you care about most
+Our Power Monitor features two free services to help you stay informed about what you care about most:
 - :electric_plug: **Power Cut Alerts**: Receive notifications about power cuts in your area.
 - :bar_chart: **Daily Summary Emails**: Your personal report on power generation across the country.
-             """)
 
-    st.divider()
-
-    st.write("To subscribe, please fill out the form below")
-
+To subscribe, please fill out the form below:""")
     with st.form(key='subscription_form'):
         first_name = st.text_input("First Name:")
         last_name = st.text_input("Last Name:")
@@ -52,8 +48,7 @@ def render_subscription_form_page():
                 st.write(":warning: Oops! Something went wrong...")
                 st.write(response["body"])
 
-        st.write(
-            "You can resubmit the form at any time to update your subscriptions.")
+        st.write("You can resubmit the form at any time to update your subscriptions.")
 
 
 if __name__ == "__main__":

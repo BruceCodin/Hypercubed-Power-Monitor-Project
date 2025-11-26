@@ -24,11 +24,14 @@ except ImportError as e:
 if "active_page" not in st.session_state:
     st.session_state.active_page = "home"
 
+# Main title
+st.title("⚡ UK Power Monitor Dashboard")
+
 # Sidebar navigation using option_menu
 with st.sidebar:
     selected = option_menu(
         menu_title="Navigation",
-        options=["Home", "Outage Map", "Generation", "Summaries", "Subscribe"],
+        options=["Home", "Generation", "Outage Map", "Summaries", "Subscribe"],
         icons=["house", "lightning-charge", "map",
                "chat-square-text", "pencil-square"],
         menu_icon="cast",
@@ -48,28 +51,21 @@ st.session_state.active_page = page_mapping.get(selected, "home")
 
 # Render the appropriate page based on active_page
 if st.session_state.active_page == "home":
-    st.title("Welcome to UK Power Monitor")
+    st.header("Welcome to UK Power Monitor")
     st.markdown("""
 This comprehensive dashboard provides real-time insights into UK power generation,
 carbon intensity, and power outage alerts by consolidating data from multiple providers and sources.
+
+### 📑 Available Pages
+
+- **Outage Heatmap**: View live power outage data across the UK by power provider and outage count
+
+- **Power Generation**: Monitor real-time UK energy generation by fuel type and carbon intensity
+
+- **AI Summaries**: AI-powered analysis of UK energy data
+
+- **Subscribe**: Sign up for power cut alerts and daily energy summary emails
 """)
-
-    st.divider()
-
-    st.markdown("""
-    ### 📑 Available Pages
-
-    - **Outage Heatmap**: View live power outage data across the UK by power provider and outage count
-
-    - **Power Generation**: Monitor real-time UK energy generation by fuel type and carbon intensity
-
-    - **AI Summaries**: AI-powered analysis of UK energy data
-
-    - **Subscribe**: Sign up for power cut alerts and daily energy summary emails
-    """)
-
-    st.divider()
-
     st.info("Use the navigation buttons in the sidebar to explore different monitoring views. Each page provides interactive controls to customize your view and drill down into specific areas of interest.")
 
 elif st.session_state.active_page == "heatmap":
