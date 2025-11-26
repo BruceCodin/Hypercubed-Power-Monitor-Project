@@ -114,7 +114,7 @@ def load_settlement_data_to_db(connection, settlement_df: pd.DataFrame) -> list:
         logger.error(f"Missing column: {e}")
         return None
 
-def load_neso_demand_data_to_db(connection, demand_df: pd.DataFrame, table: str) -> bool:
+def load_neso_demand_data_to_db(connection, demand_df: pd.DataFrame) -> bool:
     '''
     Load NESO demand data into the database.
     First load settlements to get settlement_ids, then load demand data.
@@ -154,8 +154,8 @@ def load_neso_demand_data_to_db(connection, demand_df: pd.DataFrame, table: str)
             for i, (_, row) in enumerate(demand_df.iterrows())
         ]
 
-        insert_query = f'''
-            INSERT INTO {table} (settlement_id, national_demand, transmission_system_demand)
+        insert_query = '''
+            INSERT INTO recent_demand (settlement_id, national_demand, transmission_system_demand)
             VALUES %s
             ON CONFLICT (settlement_id) 
             DO UPDATE SET 
@@ -165,7 +165,6 @@ def load_neso_demand_data_to_db(connection, demand_df: pd.DataFrame, table: str)
 
         execute_values(cursor, insert_query, data)
         connection.commit()
-
         logger.info(f"Demand data loaded successfully. {len(data)} records processed.")
         return True
 
@@ -184,20 +183,8 @@ if __name__ == '__main__':
     secrets = get_secrets()
     load_secrets_to_env(secrets)
     conn = connect_to_database()
-    #historical resource id for NESO demand data
-    #historical test
-    HISTORICAL_RESOURCE_ID = "b2bde559-3455-4021-b179-dfe60c0337b0"
-    raw_data = fetch_neso_demand_data(HISTORICAL_RESOURCE_ID)
-    parsed_data = parse_neso_demand_data(raw_data)
-    transformed_data = transform_neso_demand_data(parsed_data)
-    #print length of transformed data
-    print(len(transformed_data))
-    load_neso_demand_data_to_db(conn, transformed_data, 'historic_demand')
-    #demand resource id "177f6fa4-ae49-4182-81ea-0c6b35f26ca6"
-    #recent test
-    RECENT_RESOURCE_ID = "177f6fa4-ae49-4182-81ea-0c6b35f26ca6"
-    raw_recent_data = fetch_neso_demand_data(RECENT_RESOURCE_ID)
-    parsed_recent_data = parse_neso_demand_data(raw_recent_data)
-    transformed_recent_data = transform_neso_demand_data(parsed_recent_data)
-    print(len(transformed_recent_data))
-    load_neso_demand_data_to_db(conn, transformed_recent_data, 'recent_demand')
+    raw_data = fetch_neso_demand_data("2025-11-01", 10)
+    if raw_data is not None:
+        parsed_data = parse_neso_demand_data(raw_data)
+        transformed_data = transform_neso_demand_data(parsed_data)
+        load_neso_demand_data_to_db(conn, transformed_data)

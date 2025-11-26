@@ -40,6 +40,9 @@ def fetch_neso_demand_data(settlement_date: str, settlement_period: int) -> pd.D
         response.raise_for_status()
         data = response.json()
         df = pd.DataFrame(data["result"]["records"])
+        if df.empty:
+            logger.info("No new NESO demand data found")
+            raise ValueError("No new data found")
         logger.info(f"Successfully fetched {len(df)} records from NESO API")
         return df
 
