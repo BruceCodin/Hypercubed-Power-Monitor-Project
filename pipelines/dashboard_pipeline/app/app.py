@@ -14,6 +14,7 @@ try:
     from heatmap import render_heatmap_page
     from dashboard_power_generation import render_power_generation_page
     from summaries_page import render_summaries_page
+    from page_form import render_subscription_form_page
 except ImportError as e:
     st.error(f"Error importing page modules: {e}")
     st.stop()
@@ -44,6 +45,13 @@ with nav_col3:
 with nav_col4:
     if st.button("Summaries", use_container_width=True, key="nav_summaries"):
         st.session_state.active_page = "summaries"
+
+nav_col5, nav_col6 = st.sidebar.columns(2)
+with nav_col5:
+    if st.button("Subscribe", use_container_width=True, key="nav_subscribe"):
+        st.session_state.active_page = "subscription"
+with nav_col6:
+    pass
 
 # Render the appropriate page based on active_page
 if st.session_state.active_page == "home":
@@ -80,3 +88,9 @@ elif st.session_state.active_page == "summaries":
         render_summaries_page()
     except Exception as e:
         st.error(f"Error loading AI summaries: {str(e)}")
+
+elif st.session_state.active_page == "subscription":
+    try:
+        render_subscription_form_page()
+    except Exception as e:
+        st.error(f"Error loading subscription form: {str(e)}")
