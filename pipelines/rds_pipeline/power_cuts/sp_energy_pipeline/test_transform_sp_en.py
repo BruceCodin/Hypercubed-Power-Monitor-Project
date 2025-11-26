@@ -1,5 +1,5 @@
 # pylint: skip-file
-# test_transform.py
+# pragma: no cover
 import pytest
 from transform_sp_en import (
     parse_postcodes,

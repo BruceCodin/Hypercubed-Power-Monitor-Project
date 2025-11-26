@@ -4,6 +4,8 @@ import pandas as pd
 import pytest
 from extract_elexon import fetch_elexon_price_data, parse_elexon_price_data, fetch_elexon_generation_data
 # pylint: skip-file
+# pragma: no cover
+
 
 class TestParseElexonPriceData:
     '''Tests for parse_elexon_price_data function'''
@@ -12,8 +14,10 @@ class TestParseElexonPriceData:
         '''Test that parse_elexon_price_data returns a DataFrame'''
         mock_data = {
             'data': [
-                {'settlementDate': '2024-01-01', 'settlementPeriod': 1, 'systemSellPrice': 90.0},
-                {'settlementDate': '2024-01-01', 'settlementPeriod': 2, 'systemSellPrice': 100.0}
+                {'settlementDate': '2024-01-01',
+                    'settlementPeriod': 1, 'systemSellPrice': 90.0},
+                {'settlementDate': '2024-01-01',
+                    'settlementPeriod': 2, 'systemSellPrice': 100.0}
             ]
         }
         result = parse_elexon_price_data(mock_data)
@@ -23,21 +27,27 @@ class TestParseElexonPriceData:
         '''Test that the returned DataFrame has the correct columns'''
         mock_data = {
             'data': [
-                {'settlementDate': '2024-01-01', 'settlementPeriod': 1, 'systemSellPrice': 90.0, 'extraColumn': 'ignore'},
-                {'settlementDate': '2024-01-01', 'settlementPeriod': 2, 'systemSellPrice': 100.0, 'extraColumn': 'ignore'}
+                {'settlementDate': '2024-01-01', 'settlementPeriod': 1,
+                    'systemSellPrice': 90.0, 'extraColumn': 'ignore'},
+                {'settlementDate': '2024-01-01', 'settlementPeriod': 2,
+                    'systemSellPrice': 100.0, 'extraColumn': 'ignore'}
             ]
         }
         result = parse_elexon_price_data(mock_data)
-        expected_columns = ['settlementDate', 'settlementPeriod', 'systemSellPrice']
+        expected_columns = ['settlementDate',
+                            'settlementPeriod', 'systemSellPrice']
         assert list(result.columns) == expected_columns
 
     def test_parse_price_data_correct_row_count(self):
         '''Test that the returned DataFrame has the correct number of rows'''
         mock_data = {
             'data': [
-                {'settlementDate': '2024-01-01', 'settlementPeriod': 1, 'systemSellPrice': 90.0},
-                {'settlementDate': '2024-01-01', 'settlementPeriod': 2, 'systemSellPrice': 100.0},
-                {'settlementDate': '2024-01-01', 'settlementPeriod': 3, 'systemSellPrice': 110.0}
+                {'settlementDate': '2024-01-01',
+                    'settlementPeriod': 1, 'systemSellPrice': 90.0},
+                {'settlementDate': '2024-01-01',
+                    'settlementPeriod': 2, 'systemSellPrice': 100.0},
+                {'settlementDate': '2024-01-01',
+                    'settlementPeriod': 3, 'systemSellPrice': 110.0}
             ]
         }
         result = parse_elexon_price_data(mock_data)

@@ -11,6 +11,7 @@ from transform_carbon import (
     make_date_datetime
 )
 # pylint: skip-file
+# pragma: no cover
 
 
 class TestAddSettlementPeriod(unittest.TestCase):

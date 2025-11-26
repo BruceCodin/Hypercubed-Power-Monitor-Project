@@ -1,5 +1,5 @@
 # pylint: skip-file
-
+# pragma: no cover
 """Unit tests for NIE Networks power cut extraction functions."""
 
 from unittest.mock import patch, Mock

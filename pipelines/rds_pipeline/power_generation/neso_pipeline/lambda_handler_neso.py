@@ -18,39 +18,46 @@ from load_neso import (
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# NESO API Resource IDs
-HISTORICAL_RESOURCE_ID = "b2bde559-3455-4021-b179-dfe60c0337b0"
+# NESO API Resource ID
 RECENT_RESOURCE_ID = "177f6fa4-ae49-4182-81ea-0c6b35f26ca6"
 
-def check_historic_data_exists(connection: psycopg2.extensions.connection) -> bool:
+def get_last_data_timestamp(db_connection: psycopg2.extensions.connection) -> (tuple):
     """
-    Check if historic_demand table has any data.
-    Returns True if data exists, False if empty.
+    Get max settlement date and period from the NESO demand data table.
 
     Args:
-        connection: psycopg2 database connection
-
+        db_connection (psycopg2.extensions.connection): Database connection object.
+    
     Returns:
-        bool: True if data exists, False otherwise
+        settlement_date(datetime): Latest settlement datetime in the table.
+        settlement_period (int): Latest settlement period in the table.
     """
+
+    query = """
+            SELECT s.settlement_date, s.settlement_period
+                FROM settlements s
+                JOIN recent_demand rd ON rd.settlement_id = s.settlement_id
+                WHERE rd.national_demand > 0
+                ORDER BY s.settlement_date DESC, s.settlement_period DESC
+                LIMIT 1;
+            """
     try:
-        cursor = connection.cursor()
-        cursor.execute("SELECT COUNT(*) FROM historic_demand;")
-        count = cursor.fetchone()[0]
-        cursor.close()
-
-        logger.info("Historic demand table has %d records", count)
-        return count > 0
-
-    except Exception as e:  # pylint: disable=broad-except
-        logger.error("Error checking historic data: %s", e)
-        return False
+        with db_connection.cursor() as cursor:
+            cursor.execute(query)
+            result = cursor.fetchone()
+            if result:
+                settlement_date, settlement_period = result
+                return settlement_date, settlement_period
+            else:
+                return None, None
+    except Exception as e:
+        logger.error(f"Error fetching last data timestamp: {e}")
+        return None, None
 
 def lambda_handler(_event, _context) -> dict:  # pylint: disable=unused-argument
     """
     Main Lambda handler for NESO demand pipeline.
-    - Loads historic data once (if not already loaded)
-    - Always loads recent demand data (daily updates)
+    - Loads recent demand data from last known timestamp to now.
 
     Args:
         _event: AWS Lambda event object (unused)
@@ -72,58 +79,7 @@ def lambda_handler(_event, _context) -> dict:  # pylint: disable=unused-argument
         if not db_connection:
             raise ConnectionError("Failed to establish database connection")
 
-        historic_success = False
         recent_success = False
-
-        # ============================================================
-        # LOAD HISTORIC DEMAND DATA (ONE-TIME ONLY)
-        # ============================================================
-        try:
-            logger.info("=" * 60)
-            logger.info("HISTORIC DEMAND DATA")
-            logger.info("=" * 60)
-
-            # Check if we already have historic data
-            has_historic_data = check_historic_data_exists(db_connection)
-
-            if has_historic_data:
-                logger.info("✓ Historic data already exists - skipping")
-                historic_success = True
-            else:
-                logger.info("No historic data found - loading now...")
-
-                # Fetch historic data
-                raw_historic = fetch_neso_demand_data(HISTORICAL_RESOURCE_ID)
-                if raw_historic is None:
-                    logger.error("Failed to fetch historic demand data")
-                else:
-                    # Parse and transform
-                    parsed_historic = parse_neso_demand_data(raw_historic)
-                    logger.info("Parsed %d historic records", len(parsed_historic))
-
-                    transformed_historic = transform_neso_demand_data(parsed_historic)
-                    logger.info("Transformed to %d records", len(transformed_historic))
-
-                    # Load to database
-                    historic_success = load_neso_demand_data_to_db(
-                        db_connection,
-                        transformed_historic,
-                        'historic_demand'
-                    )
-
-                    if historic_success:
-                        logger.info(
-                            "✓ Historic data loaded successfully - %d records",
-                            len(transformed_historic)
-                        )
-                    else:
-                        logger.error("✗ Historic data load failed")
-
-        except Exception as e:  # pylint: disable=broad-except
-            logger.error(
-                "Error processing historic demand data: %s", e, exc_info=True
-            )
-
         # ============================================================
         # LOAD RECENT DEMAND DATA (DAILY)
         # ============================================================
@@ -134,7 +90,17 @@ def lambda_handler(_event, _context) -> dict:  # pylint: disable=unused-argument
 
             # Fetch recent data
             logger.info("Fetching recent demand data...")
-            raw_recent = fetch_neso_demand_data(RECENT_RESOURCE_ID)
+            last_date, last_period = get_last_data_timestamp(db_connection)
+            logger.info(f"Last settlement date: {last_date}, Last settlement period: {last_period}")
+
+            # If no data exists yet, start from today
+            if last_date is None:
+                last_date_str = datetime.now().strftime("%Y-%m-%d")
+                last_period = 0
+            else:
+                last_date_str = last_date.strftime("%Y-%m-%d")
+
+            raw_recent = fetch_neso_demand_data(last_date_str, last_period)
 
             if raw_recent is None:
                 logger.error("Failed to fetch recent demand data")
@@ -149,11 +115,10 @@ def lambda_handler(_event, _context) -> dict:  # pylint: disable=unused-argument
                 # Load to database
                 recent_success = load_neso_demand_data_to_db(
                     db_connection,
-                    transformed_recent,
-                    'recent_demand'
+                    transformed_recent
                 )
 
-                if recent_success:
+                if recent_success:                    
                     logger.info(
                         "✓ Recent data loaded successfully - %d records",
                         len(transformed_recent)
@@ -173,19 +138,13 @@ def lambda_handler(_event, _context) -> dict:  # pylint: disable=unused-argument
         logger.info("=" * 60)
         logger.info("PIPELINE SUMMARY")
         logger.info("=" * 60)
-        logger.info("Historic: %s", '✓' if historic_success else '✗')
         logger.info("Recent:   %s", '✓' if recent_success else '✗')
         logger.info("=" * 60)
 
-        if historic_success and recent_success:
-            return {
-                'statusCode': 200,
-                'body': 'NESO demand pipeline completed successfully'
-            }
         if recent_success:
             return {
                 'statusCode': 200,
-                'body': 'Recent demand data loaded (historic already exists)'
+                'body': 'Recent demand data loaded successfully'
             }
         return {
             'statusCode': 500,
@@ -209,23 +168,5 @@ def lambda_handler(_event, _context) -> dict:  # pylint: disable=unused-argument
             'body': f'Pipeline failed: {str(e)}'
         }
 
-
-if __name__ == "__main__":
-    """Allow running the handler locally for testing"""
-    print("Running NESO Demand Lambda Handler locally...")
-    print("=" * 60)
-
-    # Mock Lambda event and context
-    mock_event = {}
-    mock_context = type('Context', (), {
-        'function_name': 'test-neso-pipeline',
-        'aws_request_id': 'local-test'
-    })()
-
-    # Run the handler
-    result = lambda_handler(mock_event, mock_context)
-
-    print("=" * 60)
-    print(f"Status: {result['statusCode']}")
-    print(f"Body: {result['body']}")
-    print("=" * 60)
+if __name__ == '__main__':
+    lambda_handler(None, None)

@@ -9,6 +9,7 @@ from transform_elexon import (
     aggregate_generation_by_settlement_period
 )
 # pylint: skip-file
+# pragma: no cover
 
 
 class TestUpdatePriceColumnNames(unittest.TestCase):
@@ -58,7 +59,8 @@ class TestExpandGenerationDataColumn(unittest.TestCase):
         '''Test that data column is expanded correctly.'''
         df = pd.DataFrame({
             'data': [
-                [{'fuelType': 'WIND', 'quantity': 100}, {'fuelType': 'SOLAR', 'quantity': 50}],
+                [{'fuelType': 'WIND', 'quantity': 100}, {
+                    'fuelType': 'SOLAR', 'quantity': 50}],
                 [{'fuelType': 'WIND', 'quantity': 110}]
             ]
         })
@@ -89,7 +91,7 @@ class TestAddDateColumnToGeneration(unittest.TestCase):
     '''Tests for add_date_column_to_generation function.'''
 
     def test_adds_settlement_date_column(self):
-        '''Test that settlement_date column is added correctly.'''
+        '''Test that date column is added correctly.'''
         df = pd.DataFrame({
             'startTime': ['2023-01-01T00:00:00Z', '2023-01-02T00:00:00Z'],
             'quantity': [100, 110],

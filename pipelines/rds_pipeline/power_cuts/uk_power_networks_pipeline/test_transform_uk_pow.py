@@ -1,4 +1,5 @@
 # pylint: skip-file
+# pragma: no cover
 import pytest
 from transform_uk_pow import (
     parse_postcodes,

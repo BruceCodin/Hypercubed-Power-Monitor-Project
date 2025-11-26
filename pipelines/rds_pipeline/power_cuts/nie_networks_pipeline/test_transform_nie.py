@@ -1,5 +1,5 @@
 # pylint: skip-file
-
+# pragma: no cover
 """Unit tests for NIE Networks power cut transformation functions."""
 
 from datetime import datetime
