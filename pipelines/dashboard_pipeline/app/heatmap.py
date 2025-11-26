@@ -70,7 +70,11 @@ def render_heatmap_page():
         (df['source_provider'].isin(selected_providers))
     ]
 
+    st.divider()
+
     # --- KPI's ---
+
+    st.header("Key Metrics")
     status_counts = count_outage_status(df_filtered)
     total_outages = len(df_filtered.drop_duplicates(subset=['postcode']))
 

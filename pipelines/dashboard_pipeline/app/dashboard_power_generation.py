@@ -117,6 +117,8 @@ def render_power_generation_page():
             "fuel types selected"
         )
 
+        st.divider()
+
         # Key Metrics
         st.header("Key Metrics")
 
@@ -183,6 +185,8 @@ def render_power_generation_page():
                     avg_demand = period_data['national_demand'].mean()
                     st.metric("Avg National Demand", f"{avg_demand:,.0f} MW")
 
+        st.divider()
+
         # Charts
         st.header("Visualizations")
 
@@ -193,6 +197,8 @@ def render_power_generation_page():
 
         # Fuel Mix and Stats
         col1, col2 = st.columns([1, 2])
+
+        st.divider()
 
         with col1:
             fuel_chart = create_fuel_breakdown_chart(df)

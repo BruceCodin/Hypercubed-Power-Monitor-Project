@@ -52,17 +52,24 @@ if st.session_state.active_page == "home":
     st.markdown("""
 This comprehensive dashboard provides real-time insights into UK power generation,
 carbon intensity, and power outage alerts by consolidating data from multiple providers and sources.
-
-### 📑 Available Pages
-
-- **Outage Heatmap**: View live power outage data across the UK by power provider and outage count
-
-- **Power Generation**: Monitor real-time UK energy generation by fuel type and carbon intensity
-
-- **AI Summaries**: AI-powered analysis of UK energy data
-
-- **Subscribe**: Sign up for power cut alerts and daily energy summary emails
 """)
+
+    st.divider()
+
+    st.markdown("""
+    ### 📑 Available Pages
+
+    - **Outage Heatmap**: View live power outage data across the UK by power provider and outage count
+
+    - **Power Generation**: Monitor real-time UK energy generation by fuel type and carbon intensity
+
+    - **AI Summaries**: AI-powered analysis of UK energy data
+
+    - **Subscribe**: Sign up for power cut alerts and daily energy summary emails
+    """)
+
+    st.divider()
+
     st.info("Use the navigation buttons in the sidebar to explore different monitoring views. Each page provides interactive controls to customize your view and drill down into specific areas of interest.")
 
 elif st.session_state.active_page == "heatmap":
