@@ -28,7 +28,7 @@ if "active_page" not in st.session_state:
 with st.sidebar:
     selected = option_menu(
         menu_title="Navigation",
-        options=["Home", "Generation", "Outage Map", "Summaries", "Subscribe"],
+        options=["Home", "Outage Map", "Generation", "Summaries", "Subscribe"],
         icons=["house", "lightning-charge", "map",
                "chat-square-text", "pencil-square"],
         menu_icon="cast",

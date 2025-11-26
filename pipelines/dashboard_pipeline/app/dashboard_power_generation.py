@@ -155,11 +155,6 @@ def render_power_generation_page():
                     avg_demand = period_data['national_demand'].mean()
                     st.metric("Avg National Demand", f"{avg_demand:,.0f} MW")
 
-        st.divider()
-
-        # Charts
-        st.header("Visualizations")
-
         # Fuel Type Filter
         st.markdown("---")
         st.subheader("Fuel Type Filter")
