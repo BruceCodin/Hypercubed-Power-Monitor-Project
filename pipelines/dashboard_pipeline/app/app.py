@@ -32,7 +32,7 @@ with st.sidebar:
     selected = option_menu(
         menu_title="Navigation",
         options=["Home", "Generation", "Heatmap", "Summaries", "Subscribe"],
-        icons=["house", "map", "lightning-charge",
+        icons=["house", "lightning-charge", "map",
                "chat-square-text", "pencil-square"],
         menu_icon="cast",
         default_index=0,
