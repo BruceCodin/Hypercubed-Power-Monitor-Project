@@ -27,7 +27,7 @@ def render_heatmap_page():
         horizontal=True,
         format_func=lambda x: (
             "Recent (Last 3 Hours)" if x == "live"
-            else "Historical (> 3 Hours)"
+            else "Historical (Date Range)"
         )
     )
 
