@@ -229,14 +229,6 @@ def load_generation_data_to_db(connection, generation_df: pd.DataFrame):
     try:
         logger.info(f"Starting generation data load for {len(generation_df)} records")
         
-        # DEDUPLICATE: Keep only the last occurrence of each (date, settlement_period, fuel_type)
-        # This handles cases where API returns updated values
-        generation_df = generation_df.drop_duplicates(
-            subset=['date', 'settlement_period', 'fuel_type'],
-            keep='last'  # Keep the most recent value
-        )
-        logger.info(f"After deduplication: {len(generation_df)} records")
-        
         cursor = connection.cursor()
 
         # Load settlements and get settlement_ids

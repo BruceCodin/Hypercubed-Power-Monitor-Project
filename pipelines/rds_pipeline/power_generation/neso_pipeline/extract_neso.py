@@ -8,22 +8,31 @@ logger = logging.getLogger(__name__)
 
 URL = "https://api.neso.energy/api/3/action/datastore_search_sql"
 TIME_OUT = 10
+RESOURCE_ID = "177f6fa4-ae49-4182-81ea-0c6b35f26ca6"
 
-def fetch_neso_demand_data(resource_id: str) -> dict:
+def fetch_neso_demand_data(settlement_date: str, settlement_period: int) -> pd.DataFrame:
     """
     Fetch demand data from NESO API using SQL query
+    
+    Filters for records after specified settlement date/period and excludes forecasts.
 
     Args:
-        resource_id (str): The resource ID for the NESO dataset.
+        settlement_date (str): The settlement date to filter from (format: 'YYYY-MM-DD').
+        settlement_period (int): The settlement period to filter from.
     Returns:
-        pd.DataFrame: DataFrame containing the NESO demand data.
+        pd.DataFrame: DataFrame containing the NESO demand data, or None if error occurs.
     """
-    logger.info(f"Fetching NESO demand data for resource_id: {resource_id}")
+    logger.info(f"Fetching NESO demand data after {settlement_date} period {settlement_period}")
 
     sql_query = f"""
     SELECT *
-    FROM  "{resource_id}"
-    ORDER BY "_id"
+    FROM  "{RESOURCE_ID}"
+    WHERE (
+        "SETTLEMENT_DATE" > '{settlement_date}'
+        OR ("SETTLEMENT_DATE" = '{settlement_date}' AND "SETTLEMENT_PERIOD" > {settlement_period})
+    )
+    AND "FORECAST_ACTUAL_INDICATOR" != 'F'
+    ORDER BY "_id" desc
     """
     params = {"sql": sql_query}
     try:
@@ -31,6 +40,9 @@ def fetch_neso_demand_data(resource_id: str) -> dict:
         response.raise_for_status()
         data = response.json()
         df = pd.DataFrame(data["result"]["records"])
+        if df.empty:
+            logger.info("No new NESO demand data found")
+            raise ValueError("No new data found")
         logger.info(f"Successfully fetched {len(df)} records from NESO API")
         return df
 
@@ -57,3 +69,5 @@ def parse_neso_demand_data(data: pd.DataFrame) -> pd.DataFrame:
     result_df = data[required_columns]
     logger.info(f"Parsed {len(result_df)} records with required columns")
     return result_df
+
+

@@ -13,6 +13,28 @@ SECRETS_ARN = (
 )
 
 
+def format_fuel_type(fuel_type: str) -> str:
+    """Format fuel type labels: keep abbreviations capitals, convert words to title case.
+
+    Args:
+        fuel_type (str): Raw fuel type from database
+
+    Returns:
+        str: Formatted fuel type label
+    """
+    # Dictionary of known abbreviations that should stay uppercase
+    abbreviations = {'CCGT', 'OCGT', 'RoES', 'PS', 'NPSHYD'}
+
+    fuel_upper = fuel_type.upper().strip()
+
+    # If it's in our abbreviations list, keep it uppercase
+    if fuel_upper in abbreviations:
+        return fuel_upper
+
+    # Otherwise, convert to title case (capitalize first letter of each word)
+    return fuel_type.title()
+
+
 def get_secrets() -> dict:
     """Retrieve database credentials from AWS Secrets Manager."""
     client = boto3.client('secretsmanager', region_name='eu-west-2')
@@ -30,6 +52,7 @@ def connect_to_database(secrets: dict) -> psycopg2.extensions.connection:
         password=secrets["DB_PASSWORD"],
         port=int(secrets["DB_PORT"]),
     )
+
 
 @st.cache_data(ttl=300)
 def get_power_data(filter_type: str, start: datetime,
@@ -108,6 +131,9 @@ def get_power_data(filter_type: str, start: datetime,
     }
 
     data['fuel_type'] = data['fuel_type'].replace(interconnector_mapping)
+
+    # Format fuel type labels (keep abbreviations uppercase, title case for words)
+    data['fuel_type'] = data['fuel_type'].apply(format_fuel_type)
 
     return data
 

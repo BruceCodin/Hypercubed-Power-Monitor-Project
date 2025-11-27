@@ -85,3 +85,11 @@ def fetch_elexon_generation_data(startTime: datetime, endTime: datetime) -> pd.D
     except requests.RequestException as e:
         logger.error(f"Error fetching Elexon generation data: {e}", exc_info=True)
         return None
+
+if __name__ == "__main__":
+    #fetch generation data example
+    start_time = datetime(2025, 11, 24, 0, 0)
+    end_time = datetime(2025, 11, 25, 0, 0)
+    generation_data = fetch_elexon_generation_data(start_time, end_time)
+    if generation_data is not None:
+        print(generation_data.head())
