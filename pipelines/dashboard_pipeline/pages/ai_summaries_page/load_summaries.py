@@ -90,7 +90,7 @@ def list_all_summaries(max_summaries: int = 20) -> List[Dict]:
                 continue
 
         # Sort by timestamp, most recent first
-        summaries.sort(key=lambda x: x['timestamp'], reverse=True)
+        summaries.sort(key=lambda x: x['timestamp'], reverse=False)
 
         logger.info(f"Found {len(summaries)} summaries")
         return summaries[:max_summaries]  # Slice AFTER sorting

@@ -28,7 +28,7 @@ def get_latest_summary() -> Optional[Dict]:
         None: If fetch fails or no summary exists.
     """
     try:
-        s3_client = boto3.client('s3', region_name='eu-west-2')
+        s3_client = boto3.client('s3')
 
         response = s3_client.get_object(
             Bucket=S3_BUCKET_NAME,
@@ -56,12 +56,12 @@ def list_all_summaries(max_summaries: int = 20) -> List[Dict]:
         List[Dict]: List of summary metadata (timestamp, s3_key).
     """
     try:
-        s3_client = boto3.client('s3', region_name='eu-west-2')
+        s3_client = boto3.client('s3')
 
+        # Remove MaxKeys to fetch ALL summaries, then slice after sorting
         response = s3_client.list_objects_v2(
             Bucket=S3_BUCKET_NAME,
-            Prefix='summaries/summary-',
-            MaxKeys=max_summaries + 1  # +1 for latest.json
+            Prefix='summaries/summary-'
         )
 
         summaries = []
@@ -93,7 +93,7 @@ def list_all_summaries(max_summaries: int = 20) -> List[Dict]:
         summaries.sort(key=lambda x: x['timestamp'], reverse=True)
 
         logger.info(f"Found {len(summaries)} summaries")
-        return summaries[:max_summaries]
+        return summaries[:max_summaries]  # Slice AFTER sorting
 
     except ClientError as e:
         logger.error(f"Failed to list summaries: {e}")
@@ -113,7 +113,7 @@ def get_summary_by_key(s3_key: str) -> Optional[Dict]:
         None: If fetch fails.
     """
     try:
-        s3_client = boto3.client('s3', region_name='eu-west-2')
+        s3_client = boto3.client('s3')
 
         response = s3_client.get_object(
             Bucket=S3_BUCKET_NAME,
