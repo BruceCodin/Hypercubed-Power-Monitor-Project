@@ -80,7 +80,7 @@ def get_live_outage_data() -> pd.DataFrame:
         fo.outage_date,
         fo.recording_time
     FROM bridge_affected_postcodes bap
-    JOIN fact_outage fo 
+    JOIN fact_outage fo
     ON bap.outage_id = fo.outage_id
     WHERE fo.recording_time >= NOW() - INTERVAL '3 hour'
     """
@@ -96,6 +96,66 @@ def get_live_outage_data() -> pd.DataFrame:
             'postcode')['postcode'].transform('count')
 
     return df
+
+
+@st.cache_data(ttl=3600)
+def get_all_outage_data() -> pd.DataFrame:
+    """Fetch all historical outage data from the database.
+
+    Returns:
+        pd.DataFrame: DataFrame containing postcode, provider, status, outage date,
+                      and recording time for all historical data."""
+
+    secrets = get_secrets()
+    conn = init_connection(secrets)
+    if not conn:
+        return pd.DataFrame()
+
+    query = """
+    SELECT bap.postcode_affected as postcode,
+        fo.source_provider,
+        fo.status,
+        fo.outage_date,
+        fo.recording_time
+    FROM bridge_affected_postcodes bap
+    JOIN fact_outage fo
+    ON bap.outage_id = fo.outage_id
+    ORDER BY fo.recording_time DESC
+    """
+
+    with conn.cursor() as cur:
+        cur.execute(query)
+        data = cur.fetchall()
+        cols = [desc[0] for desc in cur.description]
+
+    df = pd.DataFrame(data, columns=cols)
+    if not df.empty:
+        df['recording_time'] = pd.to_datetime(df['recording_time'])
+
+    return df
+
+
+def get_filtered_outage_data(df: pd.DataFrame, start_date, end_date) -> pd.DataFrame:
+    """Filter outage data within a date range.
+
+    Args:
+        df: DataFrame containing all outage data
+        start_date: Start date for filtering
+        end_date: End date for filtering
+
+    Returns:
+        pd.DataFrame: Filtered DataFrame with outage count per postcode."""
+
+    df_filtered = df[
+        (df['recording_time'].dt.date >= start_date) &
+        (df['recording_time'].dt.date <= end_date)
+    ].copy()
+
+    if not df_filtered.empty:
+        df_filtered['outage_count'] = df_filtered.groupby(
+            'postcode')['postcode'].transform('count')
+
+    return df_filtered
 
 
 def count_outage_status(df: pd.DataFrame) -> dict:

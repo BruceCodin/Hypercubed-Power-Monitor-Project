@@ -1,7 +1,10 @@
 """UK Power Outage Heatmap Page"""
+from datetime import datetime, timedelta
 import streamlit as st
 from heatmap_helper import (
     get_live_outage_data,
+    get_all_outage_data,
+    get_filtered_outage_data,
     get_mapped_df,
     create_bubble_map,
     count_outage_status
@@ -11,11 +14,47 @@ from heatmap_helper import (
 def render_heatmap_page():
     """Render the heatmap page with filters and visualizations."""
     st.title("Power Outage Heatmap")
-    st.text("Showing last 3 hours worth of live outage data")
+    st.markdown(
+        "Real-time data visualization of live/ historical outages across the UK"
+    )
 
-    # --- VISUALIZATION ---
-    with st.spinner('Fetching live stats...'):
-        df = get_live_outage_data()
+    # --- MODE SELECTION ---
+
+    st.subheader("Data Range")
+    mode = st.radio(
+        "Time Range",
+        ["live", "historical"],
+        horizontal=True,
+        format_func=lambda x: (
+            "Recent (Last 3 Hours)" if x == "live"
+            else "Historical (> 3 Hours)"
+        )
+    )
+
+    # --- LOAD DATA BASED ON MODE ---
+    if mode == "live":
+        with st.spinner('Fetching live stats...'):
+            df = get_live_outage_data()
+    else:
+        # Historical mode - load all data and let user filter by date
+        col1, col2 = st.columns(2)
+        with col1:
+            start_date = st.date_input(
+                "Start Date",
+                datetime.now() - timedelta(days=30)
+            )
+        with col2:
+            end_date = st.date_input(
+                "End Date",
+                datetime.now() - timedelta(days=1)
+            )
+
+        with st.spinner('Fetching historical data...'):
+            df_all = get_all_outage_data()
+            if df_all.empty:
+                st.warning("No historical data found.")
+                return
+            df = get_filtered_outage_data(df_all, start_date, end_date)
 
     if df.empty:
         st.warning("No data found.")
@@ -63,7 +102,7 @@ def render_heatmap_page():
     st.divider()
 
     # --- PAGE FILTERS (just above heatmap) ---
-    st.subheader("Filters")
+    st.subheader("Provider Filter")
 
     # Filter by provider
     selected_providers = st.multiselect(
