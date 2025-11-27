@@ -107,6 +107,42 @@ def add_date_column(carbon_df: pd.DataFrame) -> pd.DataFrame:
         logger.error(f"Failed to parse timestamp: {e}")
         raise
 
+def remove_null_intensities(carbon_df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Remove rows with null intensity_actual values (required by database constraint).
+
+    Args:
+        carbon_df (pd.DataFrame): DataFrame with intensity columns.
+
+    Returns:
+        pd.DataFrame: DataFrame with null values removed.
+    '''
+    if not isinstance(carbon_df, pd.DataFrame):
+        raise TypeError(f"Expected pandas DataFrame, got {type(carbon_df)}")
+
+    if carbon_df.empty:
+        return carbon_df
+
+    try:
+        # Filter out rows where 'actual' is null (before renaming) or 'intensity_actual' (after renaming)
+        actual_col = 'intensity_actual' if 'intensity_actual' in carbon_df.columns else 'actual'
+
+        if actual_col not in carbon_df.columns:
+            return carbon_df
+
+        initial_count = len(carbon_df)
+        carbon_df = carbon_df[carbon_df[actual_col].notna()]
+        removed_count = initial_count - len(carbon_df)
+
+        if removed_count > 0:
+            logger.info(f"Removed {removed_count} rows with null intensity_actual values")
+
+        return carbon_df
+
+    except (TypeError, ValueError) as e:
+        logger.error(f"Failed to remove null intensities: {e}")
+        raise ValueError(f"Failed to filter null intensity values: {e}") from e
+
 def transform_carbon_data(carbon_df: pd.DataFrame) -> pd.DataFrame:
     '''
     Perform full transformation pipeline on carbon intensity data.
@@ -118,6 +154,7 @@ def transform_carbon_data(carbon_df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: Transformed carbon intensity data.
     '''
     carbon_df = refactor_intensity_column(carbon_df)
+    carbon_df = remove_null_intensities(carbon_df)
     carbon_df = add_settlement_period(carbon_df)
     carbon_df = add_date_column(carbon_df)
     carbon_df = update_column_names(carbon_df)
