@@ -62,43 +62,6 @@ def get_last_generation_datetime(connection):
         logger.error("Database error getting last generation datetime: %s", e)
         return None, None
 
-def get_last_price_datetime(connection):
-    """
-    Get the most recent settlement datetime that has price data.
-    Returns None if no data exists (first run).
-
-    Args:
-        connection: psycopg2 database connection object
-
-    Returns:
-        tuple: (settlement_date, settlement_period) or (None, None) if no data exists
-    """
-    try:
-        cursor = connection.cursor()
-
-        query = """
-            SELECT s.settlement_date, s.settlement_period
-            FROM system_price sp
-            JOIN settlements s ON sp.settlement_id = s.settlement_id
-            ORDER BY s.settlement_date DESC, s.settlement_period DESC
-            LIMIT 1;
-        """
-
-        cursor.execute(query)
-        result = cursor.fetchone()
-        cursor.close()
-
-        if result:
-            settlement_date, settlement_period = result
-            logger.info("Last price data: %s period %s", settlement_date, settlement_period)
-            return settlement_date, settlement_period
-
-        logger.info("No existing price data found - this is the first run")
-        return None, None
-
-    except psycopg2.Error as e:
-        logger.error("Database error getting last price datetime: %s", e)
-        return None, None
 
 def calculate_fetch_window(last_date, last_period):
     """

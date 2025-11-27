@@ -2,6 +2,8 @@
 import logging
 import ast
 import pandas as pd
+from datetime import datetime
+from extract_elexon import fetch_elexon_generation_data
 # Configure logger
 logger = logging.getLogger(__name__)
 
@@ -107,16 +109,52 @@ def add_date_column_to_generation(generation_df: pd.DataFrame) -> pd.DataFrame:
         raise
 
 
+def aggregate_generation_by_settlement_period(generation_df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    Aggregate generation data by settlement period using the sum of all 5-minute readings.
+    This combines the 6 five-minute intervals within each settlement period into a single value.
+
+    Args:
+        generation_df (pd.DataFrame): DataFrame containing generation data with date, settlement_period, and fuel_type.
+    Returns:
+        pd.DataFrame: Aggregated generation data with one row per (date, settlement_period, fuel_type).
+    '''
+    if generation_df.empty:
+        return generation_df
+
+    try:
+        # Group by date, settlement_period, and fuel_type, then sum the generation values
+        aggregated_df = generation_df.groupby(
+            ['date', 'settlement_period', 'fuel_type'],
+            as_index=False
+        )['generation'].sum()
+
+        logger.info(f"Aggregated generation data from {len(generation_df)} to {len(aggregated_df)} rows")
+        return aggregated_df
+    except Exception as e:
+        logger.error(f"Failed to aggregate generation data: {e}")
+        raise
+
+
 def transform_generation_data(generation_df: pd.DataFrame) -> pd.DataFrame:
     '''
-    Transform generation data by expanding data column and adding settlement_date column.
+    Transform generation data by expanding data column, adding settlement_date column, and aggregating by settlement period.
 
     Args:
         generation_df (pd.DataFrame): DataFrame containing generation data.
     Returns:
-        pd.DataFrame: Transformed generation data.
+        pd.DataFrame: Transformed and aggregated generation data.
     '''
     expanded_df = expand_generation_data_column(generation_df)
     transformed_df = add_date_column_to_generation(expanded_df)
-    return transformed_df
+    aggregated_df = aggregate_generation_by_settlement_period(transformed_df)
+    return aggregated_df
 
+# if __name__ == "__main__":
+#     # Example usage
+#     generation_df = fetch_elexon_generation_data(startTime = datetime(2025,11,24,0,0), endTime = datetime(2025,11,25,0,0))
+#     transformed_data = transform_generation_data(generation_df)
+#     print(transformed_data.head())
+#     #count unique fuel type period combinations
+#     unique_combinations = transformed_data[['date', 'settlement_period', 'fuel_type']].drop_duplicates()
+#     print(f"Unique (date, settlement_period, fuel_type) combinations: {len(unique_combinations)}")
