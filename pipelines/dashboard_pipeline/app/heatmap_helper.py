@@ -147,6 +147,25 @@ def get_unique_regions(df: pd.DataFrame) -> list:
 
 
 def create_bubble_map(df_filtered, bubble_size) -> px.scatter_map:
+    # Create provider links mapping - TODO(human): add actual service provider website URLs
+    provider_links = {
+        'Northern Ireland Electricity Networks': 'https://www.nienetworks.co.uk/',
+        'Scottish and Southern Electricity Networks': 'https://www.ssen.co.uk/',
+        'SP Electricity North West ': 'https://www.enwl.co.uk/',
+        'Northern Powergrid': 'https://www.northernpowergrid.com/',
+        'UK Power Networks': 'https://www.ukpowernetworks.co.uk/',
+        'SP Energy Networks': 'https://www.spenergynetworks.co.uk/',
+    }
+
+    # Create custom hover text with clickable links
+    df_filtered['hover_text'] = df_filtered.apply(
+        lambda row: f"<b>Postcode: {row['postcode']}</b><br>" +
+        f"Outage Count: {row['outage_count']}<br>" +
+        f"Provider: <a href='{provider_links.get(row['source_provider'], '#')}'>" +
+        f"{row['source_provider']}</a>",
+        axis=1
+    )
+
     fig = px.scatter_map(
         df_filtered,
         lat='lat',
@@ -158,12 +177,19 @@ def create_bubble_map(df_filtered, bubble_size) -> px.scatter_map:
         center=dict(lat=54.5, lon=-2.5),
         zoom=5,
         map_style="carto-positron",
-        hover_name='postcode',
-        hover_data=['outage_count'],
+        hover_data={'postcode': False, 'outage_count': False, 'lat': False, 'lon': False,
+                    'region': False, 'source_provider': False, 'status': False,
+                    'outage_date': False, 'recording_time': False, 'hover_text': True},
         title="UK Power Outages by Postcode",
-        labels={'outage_count': 'Count'}
     )
+
+    fig.update_traces(
+        customdata=df_filtered['hover_text'],
+        hovertemplate='%{customdata}<extra></extra>'
+    )
+
     fig.update_layout(
-        height=600
+        height=600,
+        hoverlabel=dict(namelength=-1)
     )
     return fig
