@@ -221,9 +221,11 @@ def make_date_datetime(carbon_df: pd.DataFrame) -> pd.DataFrame:
     
 if __name__ == "__main__":
     # For local testing
-    from_datetime = datetime(2025, 1, 1, 0, 0)
-    to_datetime = datetime(2025, 1, 1, 1, 0)
+    from_datetime = datetime(2025, 11, 27, 0, 0)
+    to_datetime = datetime(2025, 11, 27, 13, 0)
     carbon_data = fetch_carbon_intensity_data(from_datetime, to_datetime)
     transformed_data = transform_carbon_data(carbon_data)
+    #print head by settlement period descending
+    transformed_data = transformed_data.sort_values(by='settlement_period', ascending=False)
     print(transformed_data.head())
     print(transformed_data.dtypes)
