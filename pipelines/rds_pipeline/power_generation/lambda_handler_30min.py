@@ -19,8 +19,16 @@ logger.setLevel(logging.INFO)
 # CARBON INTENSITY FUNCTIONS
 # ============================================================
 
-def get_last_carbon_datetime(connection):
-    """Get the most recent settlement datetime that has carbon data."""
+def get_last_carbon_datetime(connection) -> tuple:
+    """
+    Get the most recent settlement datetime that has carbon data.
+
+    Args:
+        connection: Database connection object.
+
+    Returns:
+        tuple: (settlement_date: date or None, settlement_period: int or None)
+    """
     try:
         cursor = connection.cursor()
         query = """
@@ -47,9 +55,12 @@ def get_last_carbon_datetime(connection):
         return None, None
 
 
-def process_carbon_data(db_connection):
+def process_carbon_data(db_connection) -> tuple:
     """
     Run Carbon Intensity pipeline.
+
+    Args:
+        db_connection: Database connection object.
 
     Returns:
         tuple: (success: bool, message: str)
@@ -110,8 +121,16 @@ def process_carbon_data(db_connection):
 # ELEXON FUNCTIONS
 # ============================================================
 
-def get_last_elexon_datetime(connection, data_type):
-    """Get the most recent settlement datetime for generation or price data."""
+def get_last_elexon_datetime(connection, data_type: str) -> tuple:
+    """
+    Get the most recent settlement datetime for generation or price data.
+
+    Args:
+        connection: Database connection object.
+
+    Returns:
+        tuple: (settlement_date: date or None, settlement_period: int or None)
+    """
     try:
         cursor = connection.cursor()
 
@@ -145,9 +164,12 @@ def get_last_elexon_datetime(connection, data_type):
         return None, None
 
 
-def process_elexon_data(db_connection):
+def process_elexon_data(db_connection) -> tuple:
     """
     Run Elexon (Generation + Price) pipeline.
+
+    Args:
+        db_connection: Database connection object.
 
     Returns:
         tuple: (success: bool, message: str)
@@ -244,6 +266,13 @@ def process_elexon_data(db_connection):
 def lambda_handler(_event, _context) -> dict:
     """
     Main Lambda handler - runs Carbon and Elexon pipelines.
+
+    Args:
+        _event: Lambda event object.
+        _context: Lambda context object.
+    
+    Returns:
+        dict: Result status and message.
     """
     try:
         logger.info("=" * 60)
