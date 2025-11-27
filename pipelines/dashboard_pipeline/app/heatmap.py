@@ -15,7 +15,7 @@ def render_heatmap_page():
     """Render the heatmap page with filters and visualizations."""
     st.title("Power Outage Heatmap")
     st.markdown(
-        "Real-time data visualization of live/ historical outages across the UK"
+        "Real-time and historical tracking of outages across the UK"
     )
 
     # --- MODE SELECTION ---
