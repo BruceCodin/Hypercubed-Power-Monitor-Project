@@ -57,12 +57,3 @@ CREATE TABLE recent_demand(
     CONSTRAINT recent_demand_unique UNIQUE (settlement_id)
 
 );
-
-CREATE TABLE historic_demand(
-    demand_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    settlement_id INT NOT NULL,
-    national_demand DECIMAL(10,2) NOT NULL,
-    transmission_system_demand DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE,
-    CONSTRAINT historic_demand_unique UNIQUE (settlement_id)
-);
