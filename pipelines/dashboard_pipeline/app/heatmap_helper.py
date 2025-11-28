@@ -258,6 +258,7 @@ def create_bubble_map(df_filtered, bubble_size) -> px.scatter_map:
                     'region': False, 'source_provider': False, 'status': False,
                     'outage_date': False, 'recording_time': False, 'hover_text': True},
         title="UK Power Outages by Postcode",
+        labels={"outage_count": "Count"}
     )
 
     fig.update_traces(
