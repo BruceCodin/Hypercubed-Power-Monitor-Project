@@ -46,7 +46,7 @@ def render_power_generation_page():
         ["recent", "historical"],
         format_func=lambda x: (
             "Recent (Last 24 hours)" if x == "recent"
-            else "Historical (> 24 hours)"
+            else "Historical (Date Range)"
         ),
         key="power_gen_time_filter",
         horizontal=True
