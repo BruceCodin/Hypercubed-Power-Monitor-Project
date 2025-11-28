@@ -141,14 +141,12 @@ class TestLoadNesoDemandDataToDb(unittest.TestCase):
             'transmission_system_demand': [900.2, 950.1]
         })
 
-        # Patch both execute_values calls
         with patch('load_neso.execute_values') as mock_execute, \
              patch('load_neso.load_settlement_data_to_db') as mock_load_settlement:
             mock_load_settlement.return_value = [1, 2]
             mock_execute.return_value = None
 
-            result = load_neso_demand_data_to_db(
-                mock_connection, demand_df, 'recent_demand')
+            result = load_neso_demand_data_to_db(mock_connection, demand_df)
 
         self.assertTrue(result)
         mock_connection.commit.assert_called_once()
@@ -162,7 +160,7 @@ class TestLoadNesoDemandDataToDb(unittest.TestCase):
             'transmission_system_demand': [900.2]
         })
 
-        result = load_neso_demand_data_to_db(None, demand_df, 'recent_demand')
+        result = load_neso_demand_data_to_db(None, demand_df)
         self.assertFalse(result)
 
     def test_returns_false_when_settlement_load_fails(self):
@@ -178,8 +176,7 @@ class TestLoadNesoDemandDataToDb(unittest.TestCase):
 
         with patch('load_neso.load_settlement_data_to_db') as mock_load_settlement:
             mock_load_settlement.return_value = None
-            result = load_neso_demand_data_to_db(
-                mock_connection, demand_df, 'recent_demand')
+            result = load_neso_demand_data_to_db(mock_connection, demand_df)
 
         self.assertFalse(result)
 
@@ -199,11 +196,9 @@ class TestLoadNesoDemandDataToDb(unittest.TestCase):
         with patch('load_neso.execute_values') as mock_execute, \
              patch('load_neso.load_settlement_data_to_db') as mock_load_settlement:
             mock_load_settlement.return_value = [1]
-            # execute_values is called once for demand insert, which fails
             mock_execute.side_effect = psycopg2.IntegrityError("Constraint violation")
 
-            result = load_neso_demand_data_to_db(
-                mock_connection, demand_df, 'recent_demand')
+            result = load_neso_demand_data_to_db(mock_connection, demand_df)
 
         self.assertFalse(result)
         mock_connection.rollback.assert_called()
@@ -221,14 +216,13 @@ class TestLoadNesoDemandDataToDb(unittest.TestCase):
 
         with patch('load_neso.load_settlement_data_to_db') as mock_load_settlement:
             mock_load_settlement.return_value = [1]
-            result = load_neso_demand_data_to_db(
-                mock_connection, demand_df, 'recent_demand')
+            result = load_neso_demand_data_to_db(mock_connection, demand_df)
 
         self.assertFalse(result)
         mock_connection.rollback.assert_called()
 
-    def test_uses_correct_table_name(self):
-        '''Test that the correct table name is used in the query.'''
+    def test_inserts_into_recent_demand_table(self):
+        '''Test that data is inserted into recent_demand table.'''
         mock_cursor = Mock()
         mock_connection = Mock()
         mock_connection.cursor.return_value = mock_cursor
@@ -245,14 +239,11 @@ class TestLoadNesoDemandDataToDb(unittest.TestCase):
             mock_load_settlement.return_value = [1]
             mock_execute.return_value = None
 
-            load_neso_demand_data_to_db(
-                mock_connection, demand_df, 'historic_demand')
+            load_neso_demand_data_to_db(mock_connection, demand_df)
 
-            # Verify execute_values was called with historic_demand table
             calls = mock_execute.call_args_list
-            # Last call should be the demand data insert
             last_call_query = calls[-1][0][1]
-            self.assertIn('historic_demand', last_call_query)
+            self.assertIn('recent_demand', last_call_query)
 
     def test_maps_settlement_ids_to_demand_data(self):
         '''Test that settlement IDs are correctly mapped to demand data.'''
@@ -274,17 +265,13 @@ class TestLoadNesoDemandDataToDb(unittest.TestCase):
             mock_load_settlement.return_value = expected_settlement_ids
             mock_execute.return_value = None
 
-            load_neso_demand_data_to_db(
-                mock_connection, demand_df, 'recent_demand')
+            load_neso_demand_data_to_db(mock_connection, demand_df)
 
-            # Get the data passed to execute_values for demand insert
-            # First execute_values is for settlements (internal), second is for demand
             calls = mock_execute.call_args_list
-            demand_data = calls[-1][0][2]  # Third argument is the data
+            demand_data = calls[-1][0][2]
 
-            # Verify settlement IDs are in the demand data
-            self.assertEqual(demand_data[0][0], 10)  # First settlement ID
-            self.assertEqual(demand_data[1][0], 11)  # Second settlement ID
+            self.assertEqual(demand_data[0][0], 10)
+            self.assertEqual(demand_data[1][0], 11)
 
     def test_handles_empty_demand_dataframe(self):
         '''Test that empty demand DataFrame is handled.'''
@@ -304,8 +291,7 @@ class TestLoadNesoDemandDataToDb(unittest.TestCase):
             mock_load_settlement.return_value = []
             mock_execute.return_value = None
 
-            result = load_neso_demand_data_to_db(
-                mock_connection, demand_df, 'recent_demand')
+            result = load_neso_demand_data_to_db(mock_connection, demand_df)
 
         self.assertTrue(result)
 
