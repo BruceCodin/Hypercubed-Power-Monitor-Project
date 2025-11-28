@@ -300,7 +300,8 @@ def generate_openai_summary(all_data: Dict) -> str:
     Generate a 1-2 paragraphs summary covering: energy mix, carbon levels, pricing patterns, and outages. 
     Use clear language for the general public.
     
-    Can you return the response as a markdown and put in bold the 3 main facts based on the data"""
+    Return the response as a markdown structure and put in bold the 3 main facts based on the data using markdown syntax.
+    Do not include a header or title in the response. Just return the summary body only."""
 
     try:
         response = client.chat.completions.create(
