@@ -24,7 +24,7 @@ def render_summaries_page():
     # Page header
     st.title("AI Energy Summaries")
     st.markdown("AI-powered analysis of UK energy data, updated every 6 hours")
-    st.error("AI can always make mistakes. Please double check responses")
+    st.warning("AI can always make mistakes. Please double check responses")
 
     # Main content area
     tab1, tab2 = st.tabs(["Latest Summary", "Summary History"])
