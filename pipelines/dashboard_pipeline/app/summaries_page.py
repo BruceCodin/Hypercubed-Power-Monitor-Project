@@ -43,7 +43,7 @@ def render_summaries_page():
             # Display summary in a nice card
             with st.container():
                 st.markdown(f"### Summary")
-                st.write(latest_summary['summary'])
+                st.markdown(latest_summary['summary'])
 
             st.divider()
 
