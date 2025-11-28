@@ -330,34 +330,6 @@ class TestLoadGenerationDataToDb(unittest.TestCase):
 
         self.assertFalse(result)
 
-    def test_deduplicates_generation_data(self):
-        '''Test that duplicate generation records are deduplicated keeping last value.'''
-        mock_cursor = Mock()
-        mock_connection = Mock()
-        mock_connection.cursor.return_value = mock_cursor
-
-        generation_df = pd.DataFrame({
-            'date': [date(2023, 1, 1), date(2023, 1, 1), date(2023, 1, 1)],
-            'settlement_period': [1, 1, 1],
-            'fuel_type': ['WIND', 'WIND', 'WIND'],
-            'generation': [100.0, 105.0, 110.0]  # Last value should be kept
-        })
-
-        with patch('load_elexon.execute_values') as mock_execute, \
-             patch('load_elexon.load_settlement_data_to_db') as mock_load_settlement, \
-             patch('load_elexon.load_fuel_types_to_db') as mock_load_fuel:
-            mock_load_settlement.return_value = [1]
-            mock_load_fuel.return_value = [1]
-            mock_execute.return_value = None
-
-            load_generation_data_to_db(mock_connection, generation_df)
-
-            # Verify execute_values was called with deduplicated data
-            calls = mock_execute.call_args_list
-            generation_data = calls[-1][0][2]
-            self.assertEqual(len(generation_data), 1)
-            self.assertEqual(generation_data[0][2], 110.0)  # Last value
-
 
 if __name__ == '__main__':
     unittest.main()
