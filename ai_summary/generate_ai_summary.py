@@ -298,7 +298,10 @@ def generate_openai_summary(all_data: Dict) -> str:
     - Postcodes Affected: {all_data['outages']['total_postcodes']}
 
     Generate a 1-2 paragraphs summary covering: energy mix, carbon levels, pricing patterns, and outages. 
-    Use clear language for the general public."""
+    Use clear language for the general public.
+    
+    Return the response as a markdown structure and put in bold the 3 main facts based on the data using markdown syntax.
+    Do not include a header or title in the response. Just return the summary body only."""
 
     try:
         response = client.chat.completions.create(
