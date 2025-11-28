@@ -136,10 +136,10 @@ def render_summaries_page():
                                 f"⚡ {data.get('generation', {}).get('total_generation_mw', 0):,.0f} MW")
                         with col2:
                             st.caption(
-                                f"🌍 {data.get('carbon', {}).get('average_intensity', 0)} gCO2/kWh")
+                                f"{data.get('carbon', {}).get('average_intensity', 0)} gCO2/kWh")
                         with col3:
                             st.caption(
-                                f"💷 £{data.get('pricing', {}).get('average_price', 0)}/MWh")
+                                f"£{data.get('pricing', {}).get('average_price', 0)}/MWh")
 
                         st.divider()
                     else:
