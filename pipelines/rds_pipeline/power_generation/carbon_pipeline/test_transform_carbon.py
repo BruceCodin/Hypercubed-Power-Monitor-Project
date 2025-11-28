@@ -8,7 +8,8 @@ from transform_carbon import (
     add_date_column,
     transform_carbon_data,
     update_column_names,
-    make_date_datetime
+    make_date_datetime,
+    remove_null_intensities
 )
 # pylint: skip-file
 # pragma: no cover
@@ -239,6 +240,68 @@ class TestMakeDateDatetime(unittest.TestCase):
         })
         result = make_date_datetime(df)
         self.assertTrue(pd.api.types.is_datetime64_any_dtype(result['date']))
+
+
+class TestRemoveNullIntensities(unittest.TestCase):
+    '''Tests for remove_null_intensities function.'''
+
+    def test_removes_rows_with_null_actual_column(self):
+        '''Test that rows with null actual values are removed.'''
+        df = pd.DataFrame({
+            'actual': [95, None, 105, None],
+            'forecast': [100, 110, 120, 130]
+        })
+        result = remove_null_intensities(df)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(list(result['actual']), [95, 105])
+
+    def test_removes_rows_with_null_intensity_actual_column(self):
+        '''Test that rows with null intensity_actual values are removed.'''
+        df = pd.DataFrame({
+            'intensity_actual': [95, None, 105],
+            'intensity_forecast': [100, 110, 120]
+        })
+        result = remove_null_intensities(df)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(list(result['intensity_actual']), [95, 105])
+
+    def test_handles_all_null_values(self):
+        '''Test that all rows are removed if all have null values.'''
+        df = pd.DataFrame({
+            'actual': [None, None, None],
+            'forecast': [100, 110, 120]
+        })
+        result = remove_null_intensities(df)
+        self.assertEqual(len(result), 0)
+        self.assertTrue(result.empty)
+
+    def test_handles_no_null_values(self):
+        '''Test that no rows are removed if none have null values.'''
+        df = pd.DataFrame({
+            'actual': [95, 105, 115],
+            'forecast': [100, 110, 120]
+        })
+        result = remove_null_intensities(df)
+        self.assertEqual(len(result), 3)
+
+    def test_handles_empty_dataframe(self):
+        '''Test that empty DataFrame is handled gracefully.'''
+        df = pd.DataFrame(columns=['actual', 'forecast'])
+        result = remove_null_intensities(df)
+        self.assertTrue(result.empty)
+
+    def test_handles_missing_actual_column(self):
+        '''Test that function handles missing actual/intensity_actual column.'''
+        df = pd.DataFrame({
+            'forecast': [100, 110, 120]
+        })
+        result = remove_null_intensities(df)
+        self.assertEqual(len(result), 3)
+
+    def test_raises_error_for_invalid_type(self):
+        '''Test that TypeError is raised for non-DataFrame input.'''
+        with self.assertRaises(TypeError):
+            remove_null_intensities("not a dataframe")
 
 
 if __name__ == '__main__':
