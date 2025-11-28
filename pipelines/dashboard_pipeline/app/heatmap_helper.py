@@ -120,6 +120,14 @@ def count_outage_status(df: pd.DataFrame) -> dict:
 
 @st.cache_data(ttl=300)
 def get_mapped_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Map postcodes to latitude and longitude.
+
+    Args:
+        df: DataFrame containing 'postcode' column
+
+    Returns:
+        pd.DataFrame: DataFrame with added 'lat', 'lon', and 'region' columns
+    """
 
     nomi = pgeocode.Nominatim('gb')
 
@@ -147,7 +155,16 @@ def get_unique_regions(df: pd.DataFrame) -> list:
 
 
 def create_bubble_map(df_filtered, bubble_size) -> px.scatter_map:
-    # Create provider links mapping - TODO(human): add actual service provider website URLs
+    """Create a Plotly scatter map for power outages with clickable provider links.
+
+    Args:
+        df_filtered: DataFrame filtered based on user selections
+        bubble_size: Size of the bubbles on the map
+
+    Returns:
+        px.scatter_map: Plotly scatter map figure
+    """
+
     provider_links = {
         'Northern Ireland Electricity Networks': 'https://www.nienetworks.co.uk/',
         'Scottish and Southern Electricity Networks': 'https://www.ssen.co.uk/',
