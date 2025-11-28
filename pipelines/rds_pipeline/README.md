@@ -6,12 +6,12 @@ Data ingestion pipelines for power generation and outage data into PostgreSQL RD
 
 Extracts, transforms, and loads energy data from multiple UK grid operators:
 
-**Power Generation Data** (30-minute intervals)
-- Carbon intensity (Carbon API)
-- Settlement data (Elexon/BMRS)
-- Grid demand (NESO)
+**Power Generation Data** 
+- Carbon intensity (Carbon API) (30-minute intervals)
+- Pricing and generation data (Elexon) (30-minute intervals)
+- Grid demand (NESO) (Once a day)
 
-**Power Outage Data** (real-time)
+**Power Outage Data** (Real-time)
 - National Grid
 - UK Power Networks
 - Northern Powergrid
@@ -33,7 +33,7 @@ power_cuts/             # Outage data pipelines (Lambda)
     transform_script/   # Common outage transformation
     lambda_handler_power_cuts.py
 
-power_generation/       # Generation data pipelines (Lambda)
+power_generation/       # Generation data pipelines (2 Lambdas)
     carbon_pipeline/
     elexon_pipeline/
     neso_pipeline/
@@ -47,7 +47,8 @@ bash db_schema/initialise_rds.bash
 
 # Build Lambda images
 bash power_cuts/bash_scripts/create_power_cuts_lambda_image.sh
-bash power_generation/bash_scripts/create_generation_lambda_image.sh
+
+bash power_generation/bash_scripts/create_generation_lambda_image.sh (not-implemented)
 
 # Deploy to ECR
 bash */bash_scripts/push_*_image.sh
