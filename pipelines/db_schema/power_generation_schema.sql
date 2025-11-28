@@ -1,4 +1,3 @@
-DROP TABLE IF EXISTS historic_demand CASCADE;
 DROP TABLE IF EXISTS recent_demand CASCADE;
 DROP TABLE IF EXISTS generation CASCADE;
 DROP TABLE IF EXISTS fuel_type CASCADE;
@@ -56,13 +55,4 @@ CREATE TABLE recent_demand(
     FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE,
     CONSTRAINT recent_demand_unique UNIQUE (settlement_id)
 
-);
-
-CREATE TABLE historic_demand(
-    demand_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    settlement_id INT NOT NULL,
-    national_demand DECIMAL(10,2) NOT NULL,
-    transmission_system_demand DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (settlement_id) REFERENCES settlements(settlement_id) ON DELETE CASCADE,
-    CONSTRAINT historic_demand_unique UNIQUE (settlement_id)
 );
