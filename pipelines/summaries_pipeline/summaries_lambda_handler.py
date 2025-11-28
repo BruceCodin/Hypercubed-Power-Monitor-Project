@@ -1,6 +1,10 @@
 import boto3
 import json
 from datetime import datetime
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def get_summary_data() -> str:
@@ -128,9 +132,14 @@ def lambda_handler(event, context):
     Returns:
         dict: Response containing status code and summary data
     """
-    summary_data = get_summary_data()
 
+    logger.info("Fetching summary data from S3.")
+    summary_data = get_summary_data()
+    logger.info("Summary data fetched successfully.")
+
+    logger.info("Generating HTML email report.")
     html_email = generate_html_email(summary_data)
+    logger.info("HTML email report generated successfully.")
 
     return {
         'statusCode': 200,
