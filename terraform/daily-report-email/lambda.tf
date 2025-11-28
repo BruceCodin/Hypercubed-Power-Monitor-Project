@@ -182,6 +182,16 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
   })
 }
 
+# CloudWatch Log Group for Step Function
+resource "aws_cloudwatch_log_group" "email_step_function_logs" {
+  name              = "/aws/stepfunctions/${var.step_function_name}"
+  retention_in_days = var.lambda_log_retention_days
+
+  tags = merge(var.common_tags, {
+    Name = "${var.step_function_name}-logs"
+  })
+}
+
 # ==============================================================================
 # Lambda Permissions
 # ==============================================================================
@@ -193,6 +203,3 @@ resource "aws_lambda_permission" "allow_step_functions" {
   principal     = "states.amazonaws.com"
   source_arn    = "arn:aws:states:${var.aws_region}:${data.aws_caller_identity.current.account_id}:stateMachine:*"
 }
-
-# Data source for current AWS account ID
-data "aws_caller_identity" "current" {}
