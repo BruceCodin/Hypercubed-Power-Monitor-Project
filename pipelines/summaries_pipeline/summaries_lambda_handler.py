@@ -119,6 +119,8 @@ def generate_html_email(summary: str) -> str:
 </html>
     """
 
+    html_body = html_body.replace("**", "")
+
     return html_body
 
 
