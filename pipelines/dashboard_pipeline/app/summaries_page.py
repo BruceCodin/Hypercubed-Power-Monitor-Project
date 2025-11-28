@@ -24,6 +24,7 @@ def render_summaries_page():
     # Page header
     st.title("AI Energy Summaries")
     st.markdown("AI-powered analysis of UK energy data, updated every 6 hours")
+    st.markdown("AI can always make mistakes. Please double check responses")
 
     # Main content area
     tab1, tab2 = st.tabs(["Latest Summary", "Summary History"])
@@ -125,7 +126,7 @@ def render_summaries_page():
                                 f"{summary_meta['timestamp'].strftime('%H:%M')}")
 
                         # Summary text
-                        st.write(summary_data['summary'])
+                        st.info(summary_data['summary'])
 
                         # Quick stats
                         data = summary_data.get('data', {})
