@@ -99,7 +99,7 @@ def generate_html_email(summary: str) -> str:
 <body>
     <div class="container">
         <div class="header">
-            <h1>UK Power Monitor Daily Report</h1>
+            <h1>Watt's Up Daily Report</h1>
         </div>
         <div class="content">
             <div class="timestamp">
