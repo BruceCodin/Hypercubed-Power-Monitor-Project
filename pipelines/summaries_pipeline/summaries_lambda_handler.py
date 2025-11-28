@@ -32,7 +32,7 @@ def generate_html_email(summary: str) -> str:
     """Generates an HTML email report from the summary data.
 
     Args:
-        summary_dict: The summary dictionary
+        summary: The summary as a string
 
     Returns:
         str: Formatted HTML email report
