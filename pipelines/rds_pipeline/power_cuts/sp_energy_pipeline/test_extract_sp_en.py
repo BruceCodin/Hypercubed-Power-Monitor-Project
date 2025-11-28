@@ -1,5 +1,5 @@
 # pylint: skip-file
-# test_extract.py
+# pragma: no cover
 import pytest
 from extract_sp_en import (
     parse_records,
@@ -128,6 +128,6 @@ class TestRecordTransformation:
         # Assert
         assert set(result.keys()) == expected_keys
         assert result["source_provider"] == "SP Energy Networks"
-        assert result["status"] == False 
+        assert result["status"] == False
         assert result["outage_date"] == "2025-11-17T08:24:11+00:00"
         assert "T" in result["recording_time"]

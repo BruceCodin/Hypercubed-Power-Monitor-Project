@@ -175,8 +175,8 @@ if __name__ == "__main__":
     from datetime import datetime
     # carbon intensity api can only fetch data in month chunks
     raw_data = fetch_carbon_intensity_data(
-        from_datetime = datetime(2025, 3, 1, 0, 0),
-        to_datetime = datetime(2025, 3, 28, 0, 0)
+    from_datetime = datetime(2025, 11, 27, 0, 0),
+    to_datetime = datetime(2025, 11, 27, 13, 0)
     )
     tranform_data = transform_carbon_data(raw_data)
     print(tranform_data.head())

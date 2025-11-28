@@ -1,5 +1,5 @@
 # pylint: skip-file
-
+# pragma: no cover
 """Unit tests for Northern Powergrid power cut extraction functions."""
 
 from extract_northern_powergrid import parse_power_cut_data, PROVIDER

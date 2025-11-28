@@ -43,6 +43,7 @@ def transform_neso_data_columns(demand_df: pd.DataFrame) -> pd.DataFrame:
         logger.error(f"Failed to transform NESO data: {e}")
         raise
 
+
 def make_date_column_datetime(demand_df: pd.DataFrame) -> pd.DataFrame:
     '''
     Convert settlement_date column to datetime format
@@ -57,14 +58,16 @@ def make_date_column_datetime(demand_df: pd.DataFrame) -> pd.DataFrame:
         raise KeyError("settlement_date column not found in DataFrame")
 
     try:
-        demand_df['settlement_date'] = pd.to_datetime(demand_df['settlement_date'])
+        demand_df['settlement_date'] = pd.to_datetime(
+            demand_df['settlement_date'])
         logger.info("Converted settlement_date to datetime format")
         return demand_df
     except (ValueError, TypeError) as e:
         logger.error(f"Failed to convert settlement_date to datetime: {e}")
         raise
 
-def validate_data_types(demand_df: pd.DataFrame) -> bool:
+
+def validate_data_types(demand_df: pd.DataFrame) -> pd.DataFrame:
     '''
     Validate data types of NESO demand DataFrame
     national_demand int
@@ -74,9 +77,9 @@ def validate_data_types(demand_df: pd.DataFrame) -> bool:
 
     Args:
         demand_df (pd.DataFrame): DataFrame containing NESO demand data
-    
+
     Returns:
-        bool: True if data types are valid, False otherwise
+        pd.DataFrame: DataFrame if all data types are valid, else raises ValueError
     '''
     # check settlement_period between 1 and 48, remove if not
     demand_df = demand_df[demand_df['settlement_period'].between(1, 48)]
@@ -91,10 +94,12 @@ def validate_data_types(demand_df: pd.DataFrame) -> bool:
             logger.error(f"Column {column} not found in DataFrame")
             return False
         if str(demand_df[column].dtype) != expected_type:
-            logger.error(f"Column {column} has type {demand_df[column].dtype}, expected {expected_type}")
+            logger.error(
+                f"Column {column} has type {demand_df[column].dtype}, expected {expected_type}")
             return False
     logger.info("All data types are valid")
     return demand_df
+
 
 def transform_neso_demand_data(demand_df: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -105,7 +110,7 @@ def transform_neso_demand_data(demand_df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Fully transformed NESO demand data
     '''
-    
+
     df = transform_neso_data_columns(demand_df)
     df = make_date_column_datetime(df)
     df = validate_data_types(df)

@@ -105,7 +105,7 @@ resource "aws_cloudwatch_log_group" "neso_lambda_log_group" {
 resource "aws_cloudwatch_event_rule" "neso_lambda_schedule" {
   name                = "neso-etl-daily-schedule"
   description         = "Trigger NESO ETL Lambda function once a day at 2 AM UTC"
-  schedule_expression = "cron(0 2 * * ? *)"
+  schedule_expression = "cron(0 10 * * ? *)"
 
   tags = {
     Name        = "neso-etl-schedule"
