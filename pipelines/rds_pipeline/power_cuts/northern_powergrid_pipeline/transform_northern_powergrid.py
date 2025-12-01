@@ -4,7 +4,6 @@ the Northern Powergrid API into a standardized format suitable for further proce
 
 from datetime import datetime
 import logging
-from typing import Optional
 
 
 logger = logging.getLogger(__name__)

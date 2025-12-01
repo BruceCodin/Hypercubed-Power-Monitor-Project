@@ -9,6 +9,7 @@ from extract_carbon import fetch_carbon_intensity_data
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
 def add_settlement_period(carbon_df: pd.DataFrame) -> pd.DataFrame:
     '''
     Add settlement period to carbon intensity DataFrame based on from and to timestamps.
@@ -35,16 +36,18 @@ def add_settlement_period(carbon_df: pd.DataFrame) -> pd.DataFrame:
         for _, row in carbon_df.iterrows():
             from_time = datetime.strptime(row['from'], "%Y-%m-%dT%H:%MZ")
             # Settlement periods are half-hourly intervals starting from midnight
-            settlement_period = (from_time.hour * 2) + (1 if from_time.minute >= 30 else 0) + 1
+            settlement_period = (from_time.hour * 2) + \
+                (1 if from_time.minute >= 30 else 0) + 1
             settlement_periods.append(settlement_period)
 
         carbon_df['settlement_period'] = settlement_periods
         logger.info(f"Added settlement periods to {len(carbon_df)} rows")
         return carbon_df
-    
+
     except ValueError as e:
         logger.error(f"Failed to parse timestamp: {e}")
         raise
+
 
 def refactor_intensity_column(carbon_df: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -68,13 +71,16 @@ def refactor_intensity_column(carbon_df: pd.DataFrame) -> pd.DataFrame:
 
     try:
         intensity_data = carbon_df['intensity'].apply(pd.Series)
-        carbon_df = pd.concat([carbon_df.drop(columns=['intensity']), intensity_data], axis=1)
-        logger.info(f"Refactored intensity column into {len(intensity_data.columns)} columns")
+        carbon_df = pd.concat(
+            [carbon_df.drop(columns=['intensity']), intensity_data], axis=1)
+        logger.info(
+            f"Refactored intensity column into {len(intensity_data.columns)} columns")
         return carbon_df
     # Capture specific exceptions that may arise during parsing
     except (TypeError, ValueError) as e:
         logger.error(f"Failed to refactor intensity column: {e}")
         raise ValueError(f"Failed to parse intensity column data: {e}") from e
+
 
 def add_date_column(carbon_df: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -99,13 +105,15 @@ def add_date_column(carbon_df: pd.DataFrame) -> pd.DataFrame:
         carbon_df['date'] = carbon_df['from'].apply(
             lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%MZ").date()
         )
-        columns_to_drop = [col for col in ['from', 'to'] if col in carbon_df.columns]
+        columns_to_drop = [col for col in [
+            'from', 'to'] if col in carbon_df.columns]
         carbon_df = carbon_df.drop(columns=columns_to_drop)
         logger.info(f"Added date column and dropped {columns_to_drop}")
         return carbon_df
     except ValueError as e:
         logger.error(f"Failed to parse timestamp: {e}")
         raise
+
 
 def remove_null_intensities(carbon_df: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -135,13 +143,15 @@ def remove_null_intensities(carbon_df: pd.DataFrame) -> pd.DataFrame:
         removed_count = initial_count - len(carbon_df)
 
         if removed_count > 0:
-            logger.info(f"Removed {removed_count} rows with null intensity_actual values")
+            logger.info(
+                f"Removed {removed_count} rows with null intensity_actual values")
 
         return carbon_df
 
     except (TypeError, ValueError) as e:
         logger.error(f"Failed to remove null intensities: {e}")
         raise ValueError(f"Failed to filter null intensity values: {e}") from e
+
 
 def transform_carbon_data(carbon_df: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -161,6 +171,7 @@ def transform_carbon_data(carbon_df: pd.DataFrame) -> pd.DataFrame:
     carbon_df = make_date_datetime(carbon_df)
     logger.info("Completed full transformation of carbon intensity data")
     return carbon_df
+
 
 def update_column_names(carbon_df: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -191,6 +202,7 @@ def update_column_names(carbon_df: pd.DataFrame) -> pd.DataFrame:
     logger.info("Updated column names to match database schema")
     return carbon_df
 
+
 def make_date_datetime(carbon_df: pd.DataFrame) -> pd.DataFrame:
     '''
     Convert 'date' column to datetime objects.
@@ -217,15 +229,16 @@ def make_date_datetime(carbon_df: pd.DataFrame) -> pd.DataFrame:
     except Exception as e:
         logger.error(f"Failed to convert 'date' column: {e}")
         raise ValueError(f"Failed to convert 'date' column: {e}") from e
-    
-    
+
+
 if __name__ == "__main__":
     # For local testing
     from_datetime = datetime(2025, 11, 27, 0, 0)
     to_datetime = datetime(2025, 11, 27, 13, 0)
     carbon_data = fetch_carbon_intensity_data(from_datetime, to_datetime)
     transformed_data = transform_carbon_data(carbon_data)
-    #print head by settlement period descending
-    transformed_data = transformed_data.sort_values(by='settlement_period', ascending=False)
+    # print head by settlement period descending
+    transformed_data = transformed_data.sort_values(
+        by='settlement_period', ascending=False)
     print(transformed_data.head())
     print(transformed_data.dtypes)

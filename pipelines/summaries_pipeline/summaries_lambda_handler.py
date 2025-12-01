@@ -1,10 +1,18 @@
-import boto3
+"""
+Lambda function to generate and send daily email summaries.
+"""
+
 import json
 from datetime import datetime
 import logging
+import boto3
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+BUCKET = "c20-power-monitor-s3"
+KEY = "summaries/summary-latest.json"
 
 
 def get_summary_data() -> str:
@@ -15,9 +23,6 @@ def get_summary_data() -> str:
     """
 
     s3_client = boto3.client('s3')
-
-    BUCKET = "c20-power-monitor-s3"
-    KEY = "summaries/summary-latest.json"
 
     response = s3_client.get_object(Bucket=BUCKET, Key=KEY)
     summary_str = response['Body'].read().decode('utf-8')
