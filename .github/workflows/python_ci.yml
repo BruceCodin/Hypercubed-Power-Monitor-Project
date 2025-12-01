@@ -34,13 +34,8 @@ jobs:
           exit 0
         fi
 
-        EXIT_CODE=0
+        for f in $FILES; do pylint "$f" --fail-under=8.0 || exit 1; done
 
-        for f in $FILES; do
-          pylint "$f" --fail-under=8.0 || EXIT_CODE=$?
-        done
-
-        exit $EXIT_CODE
 
     - name: Test with coverage
       run: pytest --cov=. --cov-report=term-missing
