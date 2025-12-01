@@ -34,10 +34,18 @@ jobs:
           exit 0
         fi
 
-        pylint $FILES \
-          --fail-under=8.0 \
-          --score=y \
-          --output-format=colorized
+        EXIT_CODE=0
+
+        for f in $FILES; do
+          echo "---------------------------"
+          echo "Linting: $f"
+          pylint "$f" \
+            --fail-under=8.0 \
+            --score=y \
+            --output-format=colorized || EXIT_CODE=$?
+        done
+
+        exit $EXIT_CODE
 
     - name: Test with coverage
       run: pytest --cov=. --cov-report=term-missing
