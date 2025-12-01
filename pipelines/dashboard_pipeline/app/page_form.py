@@ -24,9 +24,11 @@ def render_subscription_form_page():
     st.write("To subscribe, please fill out the form below")
 
     with st.form(key='subscription_form'):
+        email = st.text_input("Email Address:")
+        password = st.text_input("Password:", type="password")
+        st.write("\n")
         first_name = st.text_input("First Name:")
         last_name = st.text_input("Last Name:")
-        email = st.text_input("Email Address:")
         postcode = st.text_input("Postcode:")
         submit_button = st.form_submit_button(label='Submit')
 
