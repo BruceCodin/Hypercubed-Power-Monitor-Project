@@ -92,3 +92,8 @@ venv/
 
 *.pem
 *.pemkey
+
+form_local/
+
+secrets*
+*.html

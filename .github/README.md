@@ -1,34 +1,68 @@
-# GitHub Configuration
+# Hypercubed Power Monitor
 
-Configuration and templates for project automation, CI/CD, and contributor guidelines.
+Real-time UK energy monitoring platform with power generation, outage tracking, and AI-powered insights.
 
-## Contents
+## Overview
 
-| Item | Purpose |
-|------|---------|
-| [workflows/](workflows/) | GitHub Actions CI/CD pipelines |
-| [ISSUE_TEMPLATE/](ISSUE_TEMPLATE/) | Issue templates for bugs, features, and tasks |
-| [pull_request_template.md](pull_request_template.md) | PR template for standardized submissions |
+Complete data pipeline combining 6 UK distribution networks and national grid operators. Ingests power cuts and generation data into PostgreSQL, triggers alerts via email, generates AI summaries, and visualizes everything in an interactive Streamlit dashboard.
 
-## Workflows
+## Components
 
-**python_ci.yml** - Linting and testing pipeline
+| Component | Purpose | README |
+|-----------|---------|--------|
+| Dashboard | Streamlit web interface with heatmaps and AI summaries | [dashboard_pipeline](pipelines/dashboard_pipeline/README.md) |
+| RDS Pipeline | ETL ingestion from 6 power networks + generation data | [rds_pipeline](pipelines/rds_pipeline/README.md) |
+| Alerts | SES email alerts for power outages to subscribers | [alerts_pipeline](pipelines/alerts_pipeline/README.md) |
+| S3 Pipeline | Data storage and archival to AWS S3 | [s3_pipeline](pipelines/s3_pipeline/README.md) |
+| Database Schema | PostgreSQL schema and migrations | [db_schema](pipelines/db_schema/README.md) |
+| AI Summary | OpenAI-powered energy insights generation | [ai_summary](ai_summary/README.md) |
+| Infrastructure | Terraform IaC for AWS deployment | [terraform](terraform/README.md) |
+| GitHub Config | CI/CD workflows and contribution templates | [.github](.github/README.md) |
+| Contributing | Contribution guidelines and development setup | [contributing](contributing/README.md) |
 
-- Runs on: push to main, pull requests
-- Lints Python files with pylint (e8.0 threshold)
-- Runs pytest with coverage for all test files
+## Quick Start
 
-## Issue Templates
+```bash
+# Local dashboard
+cd pipelines/dashboard_pipeline/app
+pip install -r requirements.txt
+streamlit run app.py
 
-- **bug_report.md** - Report bugs with reproduction steps
-- **feature_request.md** - Propose features with user stories and benefits
-- **task.md** - Track general tasks and improvements
+# Deploy infrastructure
+cd terraform
+terraform apply -var-file="terraform.tfvars"
+```
 
-## PR Guidelines
+## Data Sources
 
-All PRs require:
-- Type classification (feature, bug fix, docs, refactor, chore)
-- Testing details and coverage info
-- Related issue references
-- Pylint score >= 8.0
-- All Pytests passing
+**Outages** - National Grid, UK Power Networks, Northern Powergrid, SSE, SP Energy, NIE Networks
+
+**Generation** - Elexon (BMRS), Carbon Intensity API, NESO grid demand
+
+## ERD
+
+https://drawsql.app/teams/sigma-labs-85/diagrams/subscriber-alerts
+
+## Architecture
+
+```
+UK Grid Operators
+  ├─ Power Cuts (6 networks)
+  └─ Generation (Elexon, Carbon, NESO)
+         ↓
+   RDS Pipeline ETL (Lambda)
+         ↓
+   PostgreSQL Database
+      ↙  ↓  ↘
+Alerts   AI Summary   Dashboard
+ (SES)   (OpenAI)    (Streamlit)
+         ↓
+      S3 Storage
+```
+
+## Environment
+
+Requires AWS credentials and Secrets Manager configuration for:
+- RDS database
+- Grid operator APIs
+- OpenAI API key
