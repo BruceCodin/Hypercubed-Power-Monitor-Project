@@ -2,10 +2,11 @@
 import logging
 import ast
 import pandas as pd
-from datetime import datetime
-from extract_elexon import fetch_elexon_generation_data
+
+
 # Configure logger
 logger = logging.getLogger(__name__)
+
 
 def update_price_column_names(price_df: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -35,6 +36,7 @@ def update_price_column_names(price_df: pd.DataFrame) -> pd.DataFrame:
         logger.error(f"Failed to update price column names: {e}")
         raise
 
+
 def expand_generation_data_column(generation_df: pd.DataFrame) -> pd.DataFrame:
     """
     Expand data column in the generation DataFrame.
@@ -46,7 +48,8 @@ def expand_generation_data_column(generation_df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: Expanded DataFrame with individual generation records.
     """
     if not isinstance(generation_df, pd.DataFrame):
-        raise TypeError(f"Expected pandas DataFrame, got {type(generation_df)}")
+        raise TypeError(
+            f"Expected pandas DataFrame, got {type(generation_df)}")
 
     if generation_df.empty:
         return generation_df
@@ -67,13 +70,15 @@ def expand_generation_data_column(generation_df: pd.DataFrame) -> pd.DataFrame:
         df_expanded = generation_df.explode('data').reset_index(drop=True)
         df_expanded = pd.concat([df_expanded.drop('data', axis=1),
                                 df_expanded['data'].apply(pd.Series)], axis=1)
-        #Rename fuelType to fuel_type
+        # Rename fuelType to fuel_type
         df_expanded = df_expanded.rename(columns={'fuelType': 'fuel_type'})
-        logger.info(f"Expanded generation data from {len(generation_df)} to {len(df_expanded)} rows")
+        logger.info(
+            f"Expanded generation data from {len(generation_df)} to {len(df_expanded)} rows")
         return df_expanded
     except Exception as e:
         logger.error(f"Failed to expand generation data column: {e}")
         raise
+
 
 def add_date_column_to_generation(generation_df: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -87,7 +92,8 @@ def add_date_column_to_generation(generation_df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: DataFrame with added settlement_date column.
     '''
     if not isinstance(generation_df, pd.DataFrame):
-        raise TypeError(f"Expected pandas DataFrame, got {type(generation_df)}")
+        raise TypeError(
+            f"Expected pandas DataFrame, got {type(generation_df)}")
 
     if generation_df.empty:
         return generation_df
@@ -95,14 +101,17 @@ def add_date_column_to_generation(generation_df: pd.DataFrame) -> pd.DataFrame:
         raise ValueError("DataFrame must contain 'startTime' column")
 
     try:
-        generation_df['date'] = pd.to_datetime(generation_df['startTime']).dt.date
+        generation_df['date'] = pd.to_datetime(
+            generation_df['startTime']).dt.date
         # Make date datetime type
         generation_df['date'] = pd.to_datetime(generation_df['date'])
-        #Drop startTime column
+        # Drop startTime column
         generation_df = generation_df.drop(columns=['startTime'])
-        #Rename settlementPeriod to settlement_period
-        generation_df = generation_df.rename(columns={'settlementPeriod': 'settlement_period'})
-        logger.info(f"Added settlement_date column to {len(generation_df)} rows")
+        # Rename settlementPeriod to settlement_period
+        generation_df = generation_df.rename(
+            columns={'settlementPeriod': 'settlement_period'})
+        logger.info(
+            f"Added settlement_date column to {len(generation_df)} rows")
         return generation_df
     except Exception as e:
         logger.error(f"Failed to add date column: {e}")
@@ -129,7 +138,8 @@ def aggregate_generation_by_settlement_period(generation_df: pd.DataFrame) -> pd
             as_index=False
         )['generation'].sum()
 
-        logger.info(f"Aggregated generation data from {len(generation_df)} to {len(aggregated_df)} rows")
+        logger.info(
+            f"Aggregated generation data from {len(generation_df)} to {len(aggregated_df)} rows")
         return aggregated_df
     except Exception as e:
         logger.error(f"Failed to aggregate generation data: {e}")
@@ -150,11 +160,17 @@ def transform_generation_data(generation_df: pd.DataFrame) -> pd.DataFrame:
     aggregated_df = aggregate_generation_by_settlement_period(transformed_df)
     return aggregated_df
 
-# if __name__ == "__main__":
-#     # Example usage
-#     generation_df = fetch_elexon_generation_data(startTime = datetime(2025,11,24,0,0), endTime = datetime(2025,11,25,0,0))
-#     transformed_data = transform_generation_data(generation_df)
-#     print(transformed_data.head())
-#     #count unique fuel type period combinations
-#     unique_combinations = transformed_data[['date', 'settlement_period', 'fuel_type']].drop_duplicates()
-#     print(f"Unique (date, settlement_period, fuel_type) combinations: {len(unique_combinations)}")
+
+# pylint: disable=pointless-string-statement
+'''
+if __name__ == "__main__":
+    # Example usage
+    from extract_elexon import fetch_elexon_generation_data
+    from datetime import datetime
+    generation_df = fetch_elexon_generation_data(startTime = datetime(2025,11,24,0,0), endTime = datetime(2025,11,25,0,0))
+    transformed_data = transform_generation_data(generation_df)
+    print(transformed_data.head())
+    # count unique fuel type period combinations
+    unique_combinations = transformed_data[['date', 'settlement_period', 'fuel_type']].drop_duplicates()
+    print(f"Unique (date, settlement_period, fuel_type) combinations: {len(unique_combinations)}")
+'''
