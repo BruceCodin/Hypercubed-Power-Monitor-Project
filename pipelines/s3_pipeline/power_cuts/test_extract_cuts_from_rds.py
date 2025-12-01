@@ -5,7 +5,7 @@
 from unittest.mock import patch, Mock, MagicMock
 import json
 import pandas as pd
-from extract_from_rds import (
+from extract_cuts_from_rds import (
     get_secrets,
     load_secrets_to_env,
     connect_to_database,

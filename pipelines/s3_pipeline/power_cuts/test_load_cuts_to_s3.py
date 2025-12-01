@@ -5,7 +5,7 @@
 from unittest.mock import patch
 import pandas as pd
 import pytest
-from load_to_s3 import upload_data_to_s3, POWER_CUT_S3_PATH
+from load_cuts_to_s3 import upload_data_to_s3, POWER_CUT_S3_PATH
 
 
 @pytest.fixture
