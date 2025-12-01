@@ -27,14 +27,13 @@ jobs:
 
     - name: Lint
       run: |
-        run: |
         FILES=$(git ls-files '*.py' | grep -v 'test_')
 
         if [ -z "$FILES" ]; then
           echo "No Python files found to lint"
           exit 0
         fi
-        
+
         pylint $FILES \
           --fail-under=8.0 \
           --score=y \
