@@ -37,12 +37,7 @@ jobs:
         EXIT_CODE=0
 
         for f in $FILES; do
-          echo "---------------------------"
-          echo "Linting: $f"
-          pylint "$f" \
-            --fail-under=8.0 \
-            --score=y \
-            --output-format=colorized || EXIT_CODE=$?
+          pylint "$f" --fail-under=8.0 || EXIT_CODE=$?
         done
 
         exit $EXIT_CODE
