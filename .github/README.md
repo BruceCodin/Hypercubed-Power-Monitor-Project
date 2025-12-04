@@ -16,7 +16,7 @@ Complete data pipeline combining 6 UK distribution networks and national grid op
 | S3 Pipeline | Data storage and archival to AWS S3 | [s3_pipeline](../pipelines/s3_pipeline/README.md) |
 | Database Schema | PostgreSQL schema and migrations | [db_schema](../pipelines/db_schema/README.md) |
 | AI Summary | OpenAI-powered energy insights generation | [ai_summary](../ai_summary/README.md) |
-| Infrastructure | Terraform IaC for AWS deployment | [terraform](terraform/README.md) |
+| Infrastructure | Terraform IaC for AWS deployment | [terraform](../terraform/README.md) |
 | GitHub Config | CI/CD workflows and contribution templates | [.github](./GITHUB.md) |
 | Contributing | Contribution guidelines and development setup | [contributing](../contributing/README.md) |
 
