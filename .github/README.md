@@ -10,15 +10,15 @@ Complete data pipeline combining 6 UK distribution networks and national grid op
 
 | Component | Purpose | README |
 |-----------|---------|--------|
-| Dashboard | Streamlit web interface with heatmaps and AI summaries | [dashboard_pipeline](pipelines/dashboard_pipeline/README.md) |
-| RDS Pipeline | ETL ingestion from 6 power networks + generation data | [rds_pipeline](pipelines/rds_pipeline/README.md) |
-| Alerts | SES email alerts for power outages to subscribers | [alerts_pipeline](pipelines/alerts_pipeline/README.md) |
-| S3 Pipeline | Data storage and archival to AWS S3 | [s3_pipeline](pipelines/s3_pipeline/README.md) |
-| Database Schema | PostgreSQL schema and migrations | [db_schema](pipelines/db_schema/README.md) |
-| AI Summary | OpenAI-powered energy insights generation | [ai_summary](ai_summary/README.md) |
+| Dashboard | Streamlit web interface with heatmaps and AI summaries | [dashboard_pipeline](../pipelines/dashboard_pipeline/README.md) |
+| RDS Pipeline | ETL ingestion from 6 power networks + generation data | [rds_pipeline](../pipelines/rds_pipeline/README.md) |
+| Alerts | SES email alerts for power outages to subscribers | [alerts_pipeline](../pipelines/alerts_pipeline/README.md) |
+| S3 Pipeline | Data storage and archival to AWS S3 | [s3_pipeline](../pipelines/s3_pipeline/README.md) |
+| Database Schema | PostgreSQL schema and migrations | [db_schema](../pipelines/db_schema/README.md) |
+| AI Summary | OpenAI-powered energy insights generation | [ai_summary](../ai_summary/README.md) |
 | Infrastructure | Terraform IaC for AWS deployment | [terraform](terraform/README.md) |
-| GitHub Config | CI/CD workflows and contribution templates | [.github](.github/README.md) |
-| Contributing | Contribution guidelines and development setup | [contributing](contributing/README.md) |
+| GitHub Config | CI/CD workflows and contribution templates | [.github](./GITHUB.md) |
+| Contributing | Contribution guidelines and development setup | [contributing](../contributing/README.md) |
 
 ## Quick Start
 
