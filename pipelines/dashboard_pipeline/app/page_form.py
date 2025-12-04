@@ -53,7 +53,10 @@ def render_subscription_form_page():
                 st.write(response["body"])
 
         st.write(
-            "You can resubmit the form at any time to update your subscriptions.")
+            "You can resubmit the form at any time to update your subscriptions.\n\n"
+            "We only use your data to provide the services you sign up for.\n"
+            "If you have any questions or wish to unsubscribe, please contact us at support@example.com."
+        )
 
 
 if __name__ == "__main__":
