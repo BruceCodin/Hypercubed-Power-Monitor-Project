@@ -5,6 +5,7 @@ This page allows users to subscribe to power cut alerts and daily summary emails
 import logging
 import streamlit as st
 from etl_customer import lambda_handler
+from title_config import title_config
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -12,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 
 def render_subscription_form_page():
     """Render the subscription form page."""
-    st.title("Subscription Form")
+    title_config("Subscription Form")
     st.write("""
              Our Power Monitor features two free services to help you stay informed about what you care about most
 - :electric_plug: **Power Cut Alerts**: Receive notifications about power cuts in your area.
