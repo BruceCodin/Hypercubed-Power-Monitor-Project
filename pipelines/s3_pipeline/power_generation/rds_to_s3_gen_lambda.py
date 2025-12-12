@@ -2,8 +2,8 @@
 
 import logging
 
-from extract_from_rds import get_historical_power_cut_data
-from load_to_s3 import upload_data_to_s3
+from extract_gen_from_rds import get_historical_power_cut_data
+from load_gen_to_s3 import upload_data_to_s3
 
 
 # Configure logging for Lambda

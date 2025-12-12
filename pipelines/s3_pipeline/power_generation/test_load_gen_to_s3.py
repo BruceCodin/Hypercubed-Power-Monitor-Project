@@ -5,7 +5,7 @@
 from unittest.mock import patch
 import pandas as pd
 import pytest
-from load_to_s3 import upload_data_to_s3, POWER_CUT_S3_PATH
+from load_gen_to_s3 import upload_data_to_s3, POWER_CUT_S3_PATH
 
 
 @pytest.fixture
@@ -20,14 +20,14 @@ def sample_dataframe():
     })
 
 
-@patch('load_to_s3.wr.s3.to_parquet')
+@patch('load_gen_to_s3.wr.s3.to_parquet')
 def test_upload_data_to_s3_calls_to_parquet(mock_to_parquet, sample_dataframe):
     """Test that awswrangler to_parquet is called."""
     upload_data_to_s3(sample_dataframe)
     mock_to_parquet.assert_called_once()
 
 
-@patch('load_to_s3.wr.s3.to_parquet')
+@patch('load_gen_to_s3.wr.s3.to_parquet')
 def test_upload_data_to_s3_uses_correct_path(mock_to_parquet, sample_dataframe):
     """Test that data is uploaded to correct S3 path."""
     upload_data_to_s3(sample_dataframe)
@@ -36,7 +36,7 @@ def test_upload_data_to_s3_uses_correct_path(mock_to_parquet, sample_dataframe):
     assert call_kwargs['path'] == POWER_CUT_S3_PATH
 
 
-@patch('load_to_s3.wr.s3.to_parquet')
+@patch('load_gen_to_s3.wr.s3.to_parquet')
 def test_upload_data_to_s3_creates_partitions(mock_to_parquet, sample_dataframe):
     """Test that data is partitioned by year, month, day."""
     upload_data_to_s3(sample_dataframe)
@@ -45,7 +45,7 @@ def test_upload_data_to_s3_creates_partitions(mock_to_parquet, sample_dataframe)
     assert call_kwargs['partition_cols'] == ['year', 'month', 'day']
 
 
-@patch('load_to_s3.wr.s3.to_parquet')
+@patch('load_gen_to_s3.wr.s3.to_parquet')
 def test_upload_data_to_s3_uses_dataset_mode(mock_to_parquet, sample_dataframe):
     """Test that dataset mode is enabled."""
     upload_data_to_s3(sample_dataframe)
@@ -54,7 +54,7 @@ def test_upload_data_to_s3_uses_dataset_mode(mock_to_parquet, sample_dataframe):
     assert call_kwargs['dataset'] is True
 
 
-@patch('load_to_s3.wr.s3.to_parquet')
+@patch('load_gen_to_s3.wr.s3.to_parquet')
 def test_upload_data_to_s3_uses_overwrite_mode(mock_to_parquet, sample_dataframe):
     """Test that overwrite mode is used."""
     upload_data_to_s3(sample_dataframe)
@@ -63,7 +63,7 @@ def test_upload_data_to_s3_uses_overwrite_mode(mock_to_parquet, sample_dataframe
     assert call_kwargs['mode'] == 'overwrite'
 
 
-@patch('load_to_s3.wr.s3.to_parquet')
+@patch('load_gen_to_s3.wr.s3.to_parquet')
 def test_upload_data_to_s3_adds_year_column(mock_to_parquet, sample_dataframe):
     """Test that year column is extracted from recording_time."""
     upload_data_to_s3(sample_dataframe)
@@ -73,7 +73,7 @@ def test_upload_data_to_s3_adds_year_column(mock_to_parquet, sample_dataframe):
     assert uploaded_df['year'].iloc[0] == 2025
 
 
-@patch('load_to_s3.wr.s3.to_parquet')
+@patch('load_gen_to_s3.wr.s3.to_parquet')
 def test_upload_data_to_s3_adds_month_column(mock_to_parquet, sample_dataframe):
     """Test that month column is extracted from recording_time."""
     upload_data_to_s3(sample_dataframe)
@@ -83,7 +83,7 @@ def test_upload_data_to_s3_adds_month_column(mock_to_parquet, sample_dataframe):
     assert uploaded_df['month'].iloc[0] == 1
 
 
-@patch('load_to_s3.wr.s3.to_parquet')
+@patch('load_gen_to_s3.wr.s3.to_parquet')
 def test_upload_data_to_s3_adds_day_column(mock_to_parquet, sample_dataframe):
     """Test that day column is extracted from recording_time."""
     upload_data_to_s3(sample_dataframe)
@@ -93,7 +93,7 @@ def test_upload_data_to_s3_adds_day_column(mock_to_parquet, sample_dataframe):
     assert uploaded_df['day'].iloc[0] == 15
 
 
-@patch('load_to_s3.wr.s3.to_parquet')
+@patch('load_gen_to_s3.wr.s3.to_parquet')
 def test_upload_data_to_s3_does_not_modify_original(
         mock_to_parquet, sample_dataframe):
     """Test that original DataFrame is not modified."""
@@ -104,7 +104,7 @@ def test_upload_data_to_s3_does_not_modify_original(
     assert 'year' not in sample_dataframe.columns
 
 
-@patch('load_to_s3.wr.s3.to_parquet')
+@patch('load_gen_to_s3.wr.s3.to_parquet')
 def test_upload_data_to_s3_preserves_original_data(
         mock_to_parquet, sample_dataframe):
     """Test that original data values are preserved in upload."""

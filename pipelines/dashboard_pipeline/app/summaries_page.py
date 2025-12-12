@@ -13,6 +13,7 @@ from load_summaries import (
     get_summary_by_key,
     format_timestamp
 )
+from title_config import title_config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 def render_summaries_page():
     """Render the AI Energy Summaries dashboard page."""
     # Page header
-    st.title("AI Energy Summaries")
+    title_config("AI Energy Summaries")
     st.markdown("AI-powered analysis of UK energy data, updated every 6 hours")
     st.warning("AI can always make mistakes. Please double check responses")
 

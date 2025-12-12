@@ -9,11 +9,12 @@ from heatmap_helper import (
     create_bubble_map,
     count_outage_status
 )
+from title_config import title_config
 
 
 def render_heatmap_page():
     """Render the heatmap page with filters and visualizations."""
-    st.title("Power Outage Heatmap")
+    title_config("Power Outage Heatmap")
     st.markdown(
         "Real-time and historical tracking of outages across the UK"
     )

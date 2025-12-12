@@ -5,7 +5,7 @@
 from unittest.mock import patch, Mock, MagicMock
 import json
 import pandas as pd
-from extract_from_rds import (
+from extract_gen_from_rds import (
     get_secrets,
     load_secrets_to_env,
     connect_to_database,
@@ -13,7 +13,7 @@ from extract_from_rds import (
 )
 
 
-@patch('extract_from_rds.boto3.client')
+@patch('extract_gen_from_rds.boto3.client')
 def test_get_secrets_success(mock_boto_client):
     """Test successful retrieval of secrets from AWS Secrets Manager."""
     mock_client = Mock()
@@ -27,7 +27,7 @@ def test_get_secrets_success(mock_boto_client):
     mock_client.get_secret_value.assert_called_once()
 
 
-@patch('extract_from_rds.boto3.client')
+@patch('extract_gen_from_rds.boto3.client')
 def test_get_secrets_returns_dict(mock_boto_client):
     """Test that get_secrets returns a dictionary."""
     mock_client = Mock()
@@ -40,7 +40,7 @@ def test_get_secrets_returns_dict(mock_boto_client):
     assert isinstance(result, dict)
 
 
-@patch('extract_from_rds.os.environ', {})
+@patch('extract_gen_from_rds.os.environ', {})
 def test_load_secrets_to_env_sets_variables():
     """Test loading secrets into environment variables."""
     secrets = {'DB_HOST': 'test.host', 'DB_PORT': '5432', 'DB_USER': 'admin'}
@@ -52,7 +52,7 @@ def test_load_secrets_to_env_sets_variables():
     assert os.environ.get('DB_USER') == 'admin'
 
 
-@patch('extract_from_rds.os.environ', {})
+@patch('extract_gen_from_rds.os.environ', {})
 def test_load_secrets_to_env_converts_to_string():
     """Test that numeric values are converted to strings."""
     secrets = {'DB_PORT': 5432}
@@ -63,7 +63,7 @@ def test_load_secrets_to_env_converts_to_string():
     assert isinstance(os.environ.get('DB_PORT'), str)
 
 
-@patch('extract_from_rds.psycopg2.connect')
+@patch('extract_gen_from_rds.psycopg2.connect')
 @patch.dict('os.environ', {
     'DB_HOST': 'localhost',
     'DB_NAME': 'testdb',
@@ -87,7 +87,7 @@ def test_connect_to_database_success(mock_connect):
     )
 
 
-@patch('extract_from_rds.psycopg2.connect')
+@patch('extract_gen_from_rds.psycopg2.connect')
 @patch.dict('os.environ', {
     'DB_HOST': 'localhost',
     'DB_NAME': 'testdb',
@@ -104,8 +104,8 @@ def test_connect_to_database_returns_connection(mock_connect):
     assert result is not None
 
 
-@patch('extract_from_rds.get_secrets')
-@patch('extract_from_rds.connect_to_database')
+@patch('extract_gen_from_rds.get_secrets')
+@patch('extract_gen_from_rds.connect_to_database')
 def test_get_historical_power_cut_data_returns_dataframe(
         mock_connect, mock_get_secrets):
     """Test that function returns a pandas DataFrame."""
@@ -123,8 +123,8 @@ def test_get_historical_power_cut_data_returns_dataframe(
     assert isinstance(result, pd.DataFrame)
 
 
-@patch('extract_from_rds.get_secrets')
-@patch('extract_from_rds.connect_to_database')
+@patch('extract_gen_from_rds.get_secrets')
+@patch('extract_gen_from_rds.connect_to_database')
 def test_get_historical_power_cut_data_removes_duplicate_columns(
         mock_connect, mock_get_secrets):
     """Test that duplicate columns are removed from results."""
@@ -142,8 +142,8 @@ def test_get_historical_power_cut_data_removes_duplicate_columns(
     assert len(result.columns) == len(set(result.columns))
 
 
-@patch('extract_from_rds.get_secrets')
-@patch('extract_from_rds.connect_to_database')
+@patch('extract_gen_from_rds.get_secrets')
+@patch('extract_gen_from_rds.connect_to_database')
 def test_get_historical_power_cut_data_executes_join_query(
         mock_connect, mock_get_secrets):
     """Test that SQL query joins fact_outage and bridge tables."""
@@ -163,8 +163,8 @@ def test_get_historical_power_cut_data_executes_join_query(
     assert 'join' in executed_query.lower()
 
 
-@patch('extract_from_rds.get_secrets')
-@patch('extract_from_rds.connect_to_database')
+@patch('extract_gen_from_rds.get_secrets')
+@patch('extract_gen_from_rds.connect_to_database')
 def test_get_historical_power_cut_data_has_correct_columns(
         mock_connect, mock_get_secrets):
     """Test that returned DataFrame has expected columns."""

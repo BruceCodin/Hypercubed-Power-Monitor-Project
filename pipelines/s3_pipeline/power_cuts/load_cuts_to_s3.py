@@ -36,7 +36,7 @@ def upload_data_to_s3(data: pd.DataFrame) -> None:
 
 if __name__ == "__main__":
 
-    from extract_from_rds import (
+    from extract_cuts_from_rds import (
         get_historical_power_cut_data)
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s')
