@@ -16,6 +16,7 @@ try:
     from dashboard_power_generation import render_power_generation_page
     from summaries_page import render_summaries_page
     from page_form import render_subscription_form_page
+    from title_config import title_config
 except ImportError as e:
     st.error(f"Error importing page modules: {e}")
     st.stop()
@@ -48,7 +49,7 @@ st.session_state.active_page = page_mapping.get(selected, "home")
 
 # Render the appropriate page based on active_page
 if st.session_state.active_page == "home":
-    st.title("Welcome to UK Power Monitor")
+    title_config("Welcome to UK Power Monitor")
     st.markdown("""
 This comprehensive dashboard provides real-time insights into UK power generation,
 carbon intensity, and power outage alerts by consolidating data from multiple providers and sources.
