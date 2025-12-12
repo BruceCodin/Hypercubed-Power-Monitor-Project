@@ -19,6 +19,7 @@ from dashboard_power_generation_helpers import (
     create_demand_chart,
     create_carbon_demand_chart
 )
+from title_config import title_config
 
 
 def render_power_generation_page():
@@ -31,7 +32,7 @@ def render_power_generation_page():
         return
 
     # Header
-    st.title("Power Supply Monitor")
+    title_config("Power Supply Monitor")
     st.markdown(
         "Real-time and historical tracking of power supply, "
         "carbon intensity, and system pricing"
